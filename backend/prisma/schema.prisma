@@ -1,0 +1,36 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Users Table
+model User {
+  id        String    @id @default(uuid())
+  email     String    @unique
+  phone     String?   @unique
+  role      String
+  isActive  Boolean   @default(true)
+  lastLogin DateTime?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([email])
+  @@index([phone])
+  @@index([role])
+}
+
+// Students Table (simplified for testing)
+model Student {
+  id        String   @id @default(uuid())
+  userId    String   @unique
+  cpr       String   @unique
+  firstName String
+  lastName  String
+  createdAt DateTime @default(now())
+  
+  @@index([cpr])
+}
