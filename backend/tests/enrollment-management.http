@@ -1,0 +1,419 @@
+# Enrollment Management API Tests
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+# Replace these with actual values from your database
+
+@baseUrl = http://localhost:3001
+@adminToken = your-admin-jwt-token-here
+@teacherToken = your-teacher-jwt-token-here
+
+# IDs - Replace with actual IDs
+@studentId = student-id-here
+@groupId = group-id-here
+@enrollmentId = enrollment-id-here
+@termId = term-id-here
+@levelId = level-id-here
+
+# ==================== AUTHENTICATION ====================
+
+### Request OTP (Admin)
+POST {{baseUrl}}/api/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "method": "email"
+}
+
+### Verify OTP (Admin)
+POST {{baseUrl}}/api/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "code": "123456"
+}
+
+# Copy the token from response and update @adminToken above
+
+# ==================== CREATE ENROLLMENT ====================
+
+### Enroll Student in Group
+POST {{baseUrl}}/api/enrollments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "groupId": "{{groupId}}"
+}
+
+### Enroll Student with Custom Date
+POST {{baseUrl}}/api/enrollments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "groupId": "{{groupId}}",
+  "enrollmentDate": "2025-11-01"
+}
+
+### Create Enrollment - Error: Missing Student ID
+POST {{baseUrl}}/api/enrollments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}"
+}
+
+### Create Enrollment - Error: Missing Group ID
+POST {{baseUrl}}/api/enrollments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}"
+}
+
+### Create Enrollment - Error: Student Not Found
+POST {{baseUrl}}/api/enrollments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "00000000-0000-0000-0000-000000000000",
+  "groupId": "{{groupId}}"
+}
+
+### Create Enrollment - Error: Group Not Found
+POST {{baseUrl}}/api/enrollments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "groupId": "00000000-0000-0000-0000-000000000000"
+}
+
+### Create Enrollment - Error: Duplicate Enrollment
+POST {{baseUrl}}/api/enrollments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "groupId": "{{groupId}}"
+}
+
+### Create Enrollment - Error: Group at Capacity
+POST {{baseUrl}}/api/enrollments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "another-student-id",
+  "groupId": "full-group-id"
+}
+
+# ==================== GET ALL ENROLLMENTS ====================
+
+### Get All Enrollments (No Filters)
+GET {{baseUrl}}/api/enrollments
+Authorization: Bearer {{adminToken}}
+
+### Get All Enrollments (With Pagination)
+GET {{baseUrl}}/api/enrollments?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get Active Enrollments
+GET {{baseUrl}}/api/enrollments?status=ACTIVE
+Authorization: Bearer {{adminToken}}
+
+### Get Completed Enrollments
+GET {{baseUrl}}/api/enrollments?status=COMPLETED
+Authorization: Bearer {{adminToken}}
+
+### Get Withdrawn Enrollments
+GET {{baseUrl}}/api/enrollments?status=WITHDRAWN
+Authorization: Bearer {{adminToken}}
+
+### Get Enrollments by Student ID
+GET {{baseUrl}}/api/enrollments?studentId={{studentId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Enrollments by Group ID
+GET {{baseUrl}}/api/enrollments?groupId={{groupId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Enrollments by Term ID
+GET {{baseUrl}}/api/enrollments?termId={{termId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Enrollments by Level ID
+GET {{baseUrl}}/api/enrollments?levelId={{levelId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Enrollments with Multiple Filters
+GET {{baseUrl}}/api/enrollments?status=ACTIVE&termId={{termId}}&page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+### Get All Enrollments (Teacher Access)
+GET {{baseUrl}}/api/enrollments
+Authorization: Bearer {{teacherToken}}
+
+# ==================== GET ENROLLMENT BY ID ====================
+
+### Get Enrollment by ID (Full Details)
+GET {{baseUrl}}/api/enrollments/{{enrollmentId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Enrollment by ID (Teacher Access)
+GET {{baseUrl}}/api/enrollments/{{enrollmentId}}
+Authorization: Bearer {{teacherToken}}
+
+### Get Enrollment by ID - Error: Not Found
+GET {{baseUrl}}/api/enrollments/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+# ==================== GET STUDENT ENROLLMENTS ====================
+
+### Get All Enrollments for Student
+GET {{baseUrl}}/api/students/{{studentId}}/enrollments
+Authorization: Bearer {{adminToken}}
+
+### Get Active Enrollments for Student
+GET {{baseUrl}}/api/students/{{studentId}}/enrollments?status=ACTIVE
+Authorization: Bearer {{adminToken}}
+
+### Get Completed Enrollments for Student
+GET {{baseUrl}}/api/students/{{studentId}}/enrollments?status=COMPLETED
+Authorization: Bearer {{adminToken}}
+
+### Get Withdrawn Enrollments for Student
+GET {{baseUrl}}/api/students/{{studentId}}/enrollments?status=WITHDRAWN
+Authorization: Bearer {{adminToken}}
+
+### Get Student Enrollments (With Pagination)
+GET {{baseUrl}}/api/students/{{studentId}}/enrollments?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get Student Enrollments (Teacher Access)
+GET {{baseUrl}}/api/students/{{studentId}}/enrollments
+Authorization: Bearer {{teacherToken}}
+
+# ==================== GET GROUP ENROLLMENTS ====================
+
+### Get All Enrollments for Group
+GET {{baseUrl}}/api/groups/{{groupId}}/enrollments
+Authorization: Bearer {{adminToken}}
+
+### Get Active Enrollments for Group
+GET {{baseUrl}}/api/groups/{{groupId}}/enrollments?status=ACTIVE
+Authorization: Bearer {{adminToken}}
+
+### Get Completed Enrollments for Group
+GET {{baseUrl}}/api/groups/{{groupId}}/enrollments?status=COMPLETED
+Authorization: Bearer {{adminToken}}
+
+### Get Withdrawn Enrollments for Group
+GET {{baseUrl}}/api/groups/{{groupId}}/enrollments?status=WITHDRAWN
+Authorization: Bearer {{adminToken}}
+
+### Get Group Enrollments (With Pagination)
+GET {{baseUrl}}/api/groups/{{groupId}}/enrollments?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+### Get Group Enrollments (Teacher Access)
+GET {{baseUrl}}/api/groups/{{groupId}}/enrollments
+Authorization: Bearer {{teacherToken}}
+
+# ==================== GET GROUP ENROLLMENT STATS ====================
+
+### Get Enrollment Statistics for Group
+GET {{baseUrl}}/api/groups/{{groupId}}/enrollments/stats
+Authorization: Bearer {{adminToken}}
+
+### Get Group Stats (Teacher Access)
+GET {{baseUrl}}/api/groups/{{groupId}}/enrollments/stats
+Authorization: Bearer {{teacherToken}}
+
+# ==================== UPDATE ENROLLMENT STATUS ====================
+
+### Mark Enrollment as Completed
+PUT {{baseUrl}}/api/enrollments/{{enrollmentId}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "COMPLETED"
+}
+
+### Mark Enrollment as Active
+PUT {{baseUrl}}/api/enrollments/{{enrollmentId}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "ACTIVE"
+}
+
+### Mark Enrollment as Withdrawn
+PUT {{baseUrl}}/api/enrollments/{{enrollmentId}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "WITHDRAWN"
+}
+
+### Update Status - Error: Missing Status
+PUT {{baseUrl}}/api/enrollments/{{enrollmentId}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+}
+
+### Update Status - Error: Invalid Status
+PUT {{baseUrl}}/api/enrollments/{{enrollmentId}}/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "INVALID_STATUS"
+}
+
+### Update Status - Error: Not Found
+PUT {{baseUrl}}/api/enrollments/00000000-0000-0000-0000-000000000000/status
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "COMPLETED"
+}
+
+# ==================== WITHDRAW ENROLLMENT ====================
+
+### Withdraw Student (With Reason)
+PUT {{baseUrl}}/api/enrollments/{{enrollmentId}}/withdraw
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "withdrawalReason": "Student moving to another city",
+  "withdrawalDate": "2025-11-15"
+}
+
+### Withdraw Student (Minimal)
+PUT {{baseUrl}}/api/enrollments/{{enrollmentId}}/withdraw
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "withdrawalReason": "Personal reasons"
+}
+
+### Withdraw Student (No Reason)
+PUT {{baseUrl}}/api/enrollments/{{enrollmentId}}/withdraw
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+}
+
+### Withdraw - Error: Not Found
+PUT {{baseUrl}}/api/enrollments/00000000-0000-0000-0000-000000000000/withdraw
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "withdrawalReason": "This will fail"
+}
+
+### Withdraw - Error: Already Withdrawn
+PUT {{baseUrl}}/api/enrollments/{{enrollmentId}}/withdraw
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "withdrawalReason": "Already withdrawn"
+}
+
+# ==================== AUTHORIZATION TESTS ====================
+
+### Create Enrollment - Error: Teacher Access Denied
+POST {{baseUrl}}/api/enrollments
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "groupId": "{{groupId}}"
+}
+
+### Update Status - Error: Teacher Access Denied
+PUT {{baseUrl}}/api/enrollments/{{enrollmentId}}/status
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "status": "COMPLETED"
+}
+
+### Withdraw - Error: Teacher Access Denied
+PUT {{baseUrl}}/api/enrollments/{{enrollmentId}}/withdraw
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "withdrawalReason": "Teacher cannot withdraw"
+}
+
+### Get Enrollments - Error: No Token
+GET {{baseUrl}}/api/enrollments
+
+### Create Enrollment - Error: Invalid Token
+POST {{baseUrl}}/api/enrollments
+Authorization: Bearer invalid-token-here
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "groupId": "{{groupId}}"
+}
+
+# ==================== NOTES ====================
+# 
+# Total Endpoints: 8
+# - POST /api/enrollments (Create enrollment)
+# - GET /api/enrollments (Get all with filters)
+# - GET /api/enrollments/:id (Get by ID)
+# - PUT /api/enrollments/:id/status (Update status)
+# - PUT /api/enrollments/:id/withdraw (Withdraw student)
+# - GET /api/students/:studentId/enrollments (Student's enrollments)
+# - GET /api/groups/:groupId/enrollments (Group's enrollments)
+# - GET /api/groups/:groupId/enrollments/stats (Group statistics)
+#
+# Status Values:
+# - ACTIVE: Student currently enrolled
+# - COMPLETED: Student finished the term
+# - WITHDRAWN: Student withdrew mid-term
+#
+# Access Control:
+# - Admin: Full access (all operations)
+# - Teacher: Read-only access (view enrollments)
+# - Student/Parent: No direct access
+#
+# Features:
+# - Capacity checking
+# - Duplicate enrollment prevention
+# - Withdrawal tracking (date + reason)
+# - Statistics (capacity, utilization, etc.)
+# - Student enrollment history
+# - Group roster management
+# - Payment plan linking (automatic)
+# - Attendance tracking integration
+#

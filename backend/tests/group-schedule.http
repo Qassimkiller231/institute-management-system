@@ -1,0 +1,228 @@
+### Class & Schedule Management API Tests
+### Server: http://localhost:3001
+
+# ===========================================
+# VARIABLES - Replace with actual IDs
+# ===========================================
+
+@adminToken = YOUR_ADMIN_TOKEN_HERE
+@teacherToken = YOUR_TEACHER_TOKEN_HERE
+@programId = YOUR_PROGRAM_ID_HERE
+@termId = YOUR_TERM_ID_HERE
+@levelId = YOUR_LEVEL_ID_HERE
+@teacherId = YOUR_TEACHER_ID_HERE
+@venueId = YOUR_VENUE_ID_HERE
+@hallId = YOUR_HALL_ID_HERE
+@groupId = YOUR_GROUP_ID_HERE
+@sessionId = YOUR_SESSION_ID_HERE
+
+# ===========================================
+# GROUPS
+# ===========================================
+
+### Create Group
+POST http://localhost:3001/api/groups
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "levelId": "{{levelId}}",
+  "teacherId": "{{teacherId}}",
+  "venueId": "{{venueId}}",
+  "groupCode": "A1-ME",
+  "name": "A1 - Monday Evening",
+  "schedule": {
+    "days": ["Monday", "Wednesday"],
+    "time": "18:00-20:00"
+  },
+  "capacity": 15,
+  "totalClasses": 25
+}
+
+### Get All Groups
+GET http://localhost:3001/api/groups
+Authorization: Bearer {{adminToken}}
+
+### Filter Groups by Term
+GET http://localhost:3001/api/groups?termId={{termId}}
+Authorization: Bearer {{adminToken}}
+
+### Filter Groups by Level
+GET http://localhost:3001/api/groups?levelId={{levelId}}
+Authorization: Bearer {{adminToken}}
+
+### Filter Groups by Teacher
+GET http://localhost:3001/api/groups?teacherId={{teacherId}}
+Authorization: Bearer {{adminToken}}
+
+### Filter Active Groups
+GET http://localhost:3001/api/groups?isActive=true
+Authorization: Bearer {{adminToken}}
+
+### Get Group by ID
+GET http://localhost:3001/api/groups/{{groupId}}
+Authorization: Bearer {{adminToken}}
+
+### Update Group
+PUT http://localhost:3001/api/groups/{{groupId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "A1 - Monday Evening (Updated)",
+  "capacity": 20
+}
+
+### Assign Teacher to Group
+PUT http://localhost:3001/api/groups/{{groupId}}/teacher
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "{{teacherId}}",
+  "reason": "Regular teacher assignment"
+}
+
+### Update Group Schedule
+PUT http://localhost:3001/api/groups/{{groupId}}/schedule
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "schedule": {
+    "days": ["Tuesday", "Thursday"],
+    "time": "19:00-21:00"
+  },
+  "reason": "Schedule conflict resolution"
+}
+
+### Deactivate Group
+DELETE http://localhost:3001/api/groups/{{groupId}}
+Authorization: Bearer {{adminToken}}
+
+# ===========================================
+# CLASS SESSIONS
+# ===========================================
+
+### Create Single Class Session
+POST http://localhost:3001/api/class-sessions
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}",
+  "hallId": "{{hallId}}",
+  "sessionNumber": 1,
+  "sessionDate": "2025-09-01",
+  "startTime": "18:00",
+  "endTime": "20:00",
+  "durationHours": 2.0
+}
+
+### Bulk Create Sessions (Generate all 25)
+POST http://localhost:3001/api/class-sessions/bulk
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}",
+  "hallId": "{{hallId}}",
+  "startDate": "2025-09-01",
+  "schedule": {
+    "days": ["Monday", "Wednesday"],
+    "time": "18:00-20:00"
+  },
+  "totalSessions": 25,
+  "durationHours": 2.0
+}
+
+### Get All Sessions for Group
+GET http://localhost:3001/api/class-sessions/group/{{groupId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Upcoming Sessions (Not Completed)
+GET http://localhost:3001/api/class-sessions/group/{{groupId}}?isCompleted=false
+Authorization: Bearer {{adminToken}}
+
+### Get Completed Sessions
+GET http://localhost:3001/api/class-sessions/group/{{groupId}}?isCompleted=true
+Authorization: Bearer {{adminToken}}
+
+### Update Class Session
+PUT http://localhost:3001/api/class-sessions/{{sessionId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "sessionDate": "2025-09-02",
+  "hallId": "{{hallId}}",
+  "notes": "Rescheduled due to holiday"
+}
+
+### Mark Session as Completed
+PUT http://localhost:3001/api/class-sessions/{{sessionId}}/complete
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "teacherSignature": "Ahmed Hassan",
+  "notes": "Covered grammar basics and sentence structure"
+}
+
+# ===========================================
+# SCHEDULE MANAGEMENT
+# ===========================================
+
+### Check Schedule Conflicts
+GET http://localhost:3001/api/schedules/conflicts?venueId={{venueId}}&date=2025-09-01&startTime=18:00&endTime=20:00
+Authorization: Bearer {{adminToken}}
+
+### Check Conflicts (Excluding Specific Group)
+GET http://localhost:3001/api/schedules/conflicts?venueId={{venueId}}&date=2025-09-01&startTime=18:00&endTime=20:00&excludeGroupId={{groupId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Schedule Change History
+GET http://localhost:3001/api/schedules/changes/{{groupId}}
+Authorization: Bearer {{adminToken}}
+
+# ===========================================
+# ERROR CASES
+# ===========================================
+
+### ERROR - Create Group without required fields (400)
+POST http://localhost:3001/api/groups
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Test Group"
+}
+
+### ERROR - Duplicate Group Code (400)
+POST http://localhost:3001/api/groups
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "levelId": "{{levelId}}",
+  "groupCode": "A1-ME",
+  "name": "Duplicate Group"
+}
+
+### ERROR - Group Not Found (404)
+GET http://localhost:3001/api/groups/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+### ERROR - Teacher tries to create group (403)
+POST http://localhost:3001/api/groups
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "levelId": "{{levelId}}",
+  "groupCode": "TEST",
+  "name": "Test Group"
+}

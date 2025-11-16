@@ -1,0 +1,181 @@
+### Program/Course Management API Tests
+### Server: http://localhost:3001
+
+# ===========================================
+# PROGRAMS
+# ===========================================
+@adminToken = ""
+@programId = ""
+@termId = ""
+@levelId = ""
+@venueId = ""
+@hallId = ""
+### Create Program
+POST http://localhost:3001/api/programs
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "English Multiverse",
+  "code": "EM",
+  "description": "English course for ages 11-17",
+  "minAge": 11,
+  "maxAge": 17
+}
+
+### Get All Programs
+GET http://localhost:3001/api/programs
+Authorization: Bearer {{adminToken}}
+
+### Get Program by ID
+GET http://localhost:3001/api/programs/{{programId}}
+Authorization: Bearer {{adminToken}}
+
+### Update Program
+PUT http://localhost:3001/api/programs/{{programId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "description": "Updated: English course for teenagers",
+  "isActive": true
+}
+
+### Deactivate Program
+DELETE http://localhost:3001/api/programs/{{programId}}
+Authorization: Bearer {{adminToken}}
+
+# ===========================================
+# TERMS
+# ===========================================
+
+### Create Term
+POST http://localhost:3001/api/terms
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "programId": "{{programId}}",
+  "name": "Fall 2025",
+  "startDate": "2025-09-01",
+  "endDate": "2025-12-31",
+  "isCurrent": true
+}
+
+### Get All Terms
+GET http://localhost:3001/api/terms
+Authorization: Bearer {{adminToken}}
+
+### Filter Terms by Program
+GET http://localhost:3001/api/terms?programId={{programId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Current Term
+GET http://localhost:3001/api/terms?isCurrent=true
+Authorization: Bearer {{adminToken}}
+
+### Update Term
+PUT http://localhost:3001/api/terms/{{termId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isCurrent": false
+}
+
+# ===========================================
+# LEVELS
+# ===========================================
+
+### Create Level
+POST http://localhost:3001/api/levels
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "A1",
+  "displayName": "Beginner A1",
+  "orderNumber": 1,
+  "description": "Basic English fundamentals",
+  "isMixed": false
+}
+
+### Get All Levels
+GET http://localhost:3001/api/levels
+Authorization: Bearer {{adminToken}}
+
+### Update Level
+PUT http://localhost:3001/api/levels/{{levelId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "description": "Updated description"
+}
+
+# ===========================================
+# VENUES
+# ===========================================
+
+### Create Venue
+POST http://localhost:3001/api/venues
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Country Mall",
+  "code": "CM",
+  "address": "Country Mall, Manama, Bahrain"
+}
+
+### Get All Venues
+GET http://localhost:3001/api/venues
+Authorization: Bearer {{adminToken}}
+
+### Update Venue
+PUT http://localhost:3001/api/venues/{{venueId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "address": "Updated address"
+}
+
+# ===========================================
+# HALLS
+# ===========================================
+
+### Create Hall
+POST http://localhost:3001/api/halls
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "venueId": "{{venueId}}",
+  "name": "Hall 1",
+  "code": "H1",
+  "capacity": 20,
+  "floor": "Ground"
+}
+
+### Get All Halls
+GET http://localhost:3001/api/halls
+Authorization: Bearer {{adminToken}}
+
+### Get Halls by Venue
+GET http://localhost:3001/api/halls?venueId={{venueId}}
+Authorization: Bearer {{adminToken}}
+
+### Update Hall
+PUT http://localhost:3001/api/halls/{{hallId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "capacity": 25,
+  "isActive": true
+}
+
+### Deactivate Hall
+DELETE http://localhost:3001/api/halls/{{hallId}}
+Authorization: Bearer {{adminToken}}

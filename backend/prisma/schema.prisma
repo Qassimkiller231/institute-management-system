@@ -1,3 +1,8 @@
+// ============================================
+// INSTITUTE MANAGEMENT SYSTEM - PRISMA SCHEMA
+// 31 Tables - Complete Database Design
+// ============================================
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,30 +12,690 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Users Table
+// ============================================
+// MODULE 1: USER MANAGEMENT & AUTHENTICATION
+// ============================================
+
 model User {
   id        String    @id @default(uuid())
   email     String    @unique
   phone     String?   @unique
-  role      String
+  role      String    @default("STUDENT") // ADMIN, TEACHER, STUDENT, PARENT
   isActive  Boolean   @default(true)
   lastLogin DateTime?
   createdAt DateTime  @default(now())
   updatedAt DateTime  @updatedAt
+
+  // Relations
+  otpCodes          OtpCode[]
+  sessions          Session[]
+  student           Student?
+  teacher           Teacher?
+  parent            Parent?
+  sentNotifications Notification[]
+  auditLogs         AuditLog[]
+  chatMessages      ChatMessage[]
+  publishedAnnouncements Announcement[] @relation("PublishedBy")
+  madeReceipts      Installment[]    @relation("ReceiptMaker")
+  requestedRefunds  Refund[]         @relation("RequestedBy")
+  approvedRefunds   Refund[]         @relation("ApprovedBy")
+  processedRefunds  Refund[]         @relation("ProcessedBy")
 
   @@index([email])
   @@index([phone])
   @@index([role])
 }
 
-// Students Table (simplified for testing)
-model Student {
+model OtpCode {
+  id        String   @id @default(uuid())
+  userId    String
+  code      String
+  expiresAt DateTime
+  isUsed    Boolean  @default(false)
+  attempts  Int      @default(0)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+}
+
+model Session {
+  id        String   @id @default(uuid())
+  userId    String
+  token     String   @unique
+  expiresAt DateTime
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@index([userId])
+  @@index([expiresAt])
+}
+
+model Parent {
   id        String   @id @default(uuid())
   userId    String   @unique
-  cpr       String   @unique
   firstName String
   lastName  String
   createdAt DateTime @default(now())
-  
+
+  user               User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parentStudentLinks ParentStudentLink[]
+  phones             Phone[]
+}
+
+model ParentStudentLink {
+  id           String   @id @default(uuid())
+  parentId     String
+  studentId    String
+  relationship String?
+  createdAt    DateTime @default(now())
+
+  parent  Parent  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+  student Student @relation(fields: [studentId], references: [id], onDelete: Cascade)
+
+  @@unique([parentId, studentId])
+  @@index([parentId])
+  @@index([studentId])
+}
+
+// ============================================
+// MODULE 2: PROFILES
+// ============================================
+
+model Phone {
+  id          String   @id @default(uuid())
+  phoneNumber String   @unique
+  countryCode String   @default("+973")
+  isVerified  Boolean  @default(false)
+  isPrimary   Boolean  @default(false)
+  studentId   String?
+  parentId    String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  student Student? @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  parent  Parent?  @relation(fields: [parentId], references: [id], onDelete: Cascade)
+
+  @@index([phoneNumber])
+  @@index([studentId])
+  @@index([parentId])
+  @@index([isPrimary])
+}
+
+model Student {
+  id         String    @id @default(uuid())
+  userId     String    @unique
+  cpr        String    @unique
+  firstName  String
+  secondName String?
+  thirdName  String?
+  dateOfBirth DateTime @db.Date
+  gender     String    // Male, Female
+
+  // School Information
+  schoolType String?
+  schoolYear String?
+
+  // Contact Information
+  email String?
+
+  // Preferences
+  preferredTiming String?
+  preferredCenter String?
+  needsTransport  Boolean @default(false)
+
+  // Address (nullable)
+  area    String?
+  houseNo String?
+  road    String?
+  block   String?
+
+  // Additional Information
+  healthIssues    String?
+  howHeardAbout   String?
+  referralPerson  String?
+  notes           String?
+
+  // Status
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  phones             Phone[]
+  parentStudentLinks ParentStudentLink[]
+  enrollments        Enrollment[]
+  testSessions       TestSession[]
+  speakingSlots      SpeakingSlot[]
+  attendance         Attendance[]
+
   @@index([cpr])
+  @@index([userId])
+  @@index([firstName, secondName, thirdName])
+}
+
+model Teacher {
+  id                       String   @id @default(uuid())
+  userId                   String   @unique
+  firstName                String
+  lastName                 String
+  specialization           String?
+  isActive                 Boolean  @default(true)
+  availableForSpeakingTests Boolean @default(true)
+  createdAt                DateTime @default(now())
+  updatedAt                DateTime @updatedAt
+
+  user                    User                      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  groups                  Group[]
+  speakingSlots           SpeakingSlot[]
+  teacherScheduleTemplates TeacherScheduleTemplate[]
+  teacherScheduleOverrides TeacherScheduleOverride[]
+  attendance              Attendance[]
+  materials               Material[]
+
+  @@index([userId])
+  @@index([isActive])
+}
+
+// ============================================
+// MODULE 3: ACADEMIC STRUCTURE
+// ============================================
+
+model Program {
+  id          String   @id @default(uuid())
+  name        String
+  code        String   @unique
+  description String?
+  minAge      Int?
+  maxAge      Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  terms Term[]
+
+  @@index([code])
+  @@index([isActive])
+}
+
+model Term {
+  id        String   @id @default(uuid())
+  programId String
+  name      String
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  isCurrent Boolean  @default(false)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  program       Program        @relation(fields: [programId], references: [id], onDelete: Cascade)
+  groups        Group[]
+  announcements Announcement[]
+
+  @@index([programId])
+  @@index([startDate, endDate])
+  @@index([isCurrent])
+}
+
+model Level {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  displayName String?
+  orderNumber Int?
+  description String?
+  isMixed     Boolean  @default(false)
+  mixedLevels String?
+  createdAt   DateTime @default(now())
+
+  groups Group[]
+  tests  Test[]
+
+  @@index([orderNumber])
+}
+
+model Venue {
+  id        String   @id @default(uuid())
+  name      String
+  code      String   @unique
+  address   String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  halls  Hall[]
+  groups Group[]
+
+  @@index([code])
+}
+
+model Hall {
+  id        String   @id @default(uuid())
+  venueId   String
+  name      String
+  code      String
+  capacity  Int?
+  floor     String?
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  venue         Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  classSessions ClassSession[]
+
+  @@unique([venueId, code])
+  @@index([venueId])
+  @@index([isActive])
+}
+
+model Group {
+  id        String   @id @default(uuid())
+  termId    String
+  levelId   String
+  teacherId String?
+  venueId   String?
+  groupCode String   @unique
+  name      String?
+  schedule  Json?    // JSONB - flexible schedule
+  capacity  Int      @default(15)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  term          Term           @relation(fields: [termId], references: [id], onDelete: Cascade)
+  level         Level          @relation(fields: [levelId], references: [id], onDelete: Restrict)
+  teacher       Teacher?       @relation(fields: [teacherId], references: [id], onDelete: SetNull)
+  venue         Venue?         @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  enrollments   Enrollment[]
+  classSessions ClassSession[]
+  materials     Material[]
+  announcements Announcement[]
+
+  @@index([termId])
+  @@index([levelId])
+  @@index([teacherId])
+  @@index([groupCode])
+}
+
+model ClassSession {
+  id                 String    @id @default(uuid())
+  groupId            String
+  hallId             String?
+  sessionDate        DateTime  @db.Date
+  sessionNumber      Int
+  startTime          DateTime  @db.Time
+  endTime            DateTime  @db.Time
+  topic              String?
+  status             String    @default("SCHEDULED") // SCHEDULED, COMPLETED, CANCELLED
+  cancellationReason String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  group      Group        @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  hall       Hall?        @relation(fields: [hallId], references: [id], onDelete: SetNull)
+  attendance Attendance[]
+
+  @@index([groupId])
+  @@index([sessionDate])
+  @@index([status])
+}
+
+// ============================================
+// MODULE 4: ENROLLMENT
+// ============================================
+
+model Enrollment {
+  id               String    @id @default(uuid())
+  studentId        String
+  groupId          String
+  enrollmentDate   DateTime  @db.Date
+  status           String    @default("ACTIVE") // ACTIVE, COMPLETED, WITHDRAWN
+  withdrawalDate   DateTime? @db.Date
+  withdrawalReason String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  student     Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  group       Group                @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  attendance  Attendance[]
+  paymentPlan StudentPaymentPlan?
+  refunds     Refund[]
+
+  @@index([studentId])
+  @@index([groupId])
+  @@index([status])
+}
+
+// ============================================
+// MODULE 5: TESTING SYSTEM
+// ============================================
+
+model Test {
+  id              String   @id @default(uuid())
+  name            String
+  testType        String   // PLACEMENT, SPEAKING, WRITTEN
+  levelId         String?
+  totalQuestions  Int
+  durationMinutes Int
+  isActive        Boolean  @default(true)
+  createdAt       DateTime @default(now())
+
+  level         Level?         @relation(fields: [levelId], references: [id], onDelete: SetNull)
+  questions     TestQuestion[]
+  testSessions  TestSession[]
+
+  @@index([testType])
+  @@index([isActive])
+}
+
+model TestQuestion {
+  id            String   @id @default(uuid())
+  testId        String
+  questionText  String
+  questionType  String   // MULTIPLE_CHOICE, TRUE_FALSE, FILL_BLANK
+  options       Json?    // JSONB for answer options
+  correctAnswer String
+  points        Int      @default(1)
+  orderNumber   Int
+  createdAt     DateTime @default(now())
+
+  test Test @relation(fields: [testId], references: [id], onDelete: Cascade)
+
+  @@index([testId])
+  @@index([orderNumber])
+}
+
+model TestSession {
+  id          String    @id @default(uuid())
+  studentId   String
+  testId      String
+  startedAt   DateTime
+  completedAt DateTime?
+  score       Decimal?  @db.Decimal(5, 2)
+  answers     Json?     // JSONB
+  status      String    @default("IN_PROGRESS") // IN_PROGRESS, COMPLETED, ABANDONED
+  createdAt   DateTime  @default(now())
+
+  student       Student        @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  test          Test           @relation(fields: [testId], references: [id], onDelete: Cascade)
+  speakingSlots SpeakingSlot[]
+
+  @@index([studentId])
+  @@index([testId])
+  @@index([status])
+}
+
+model TeacherScheduleTemplate {
+  id        String   @id @default(uuid())
+  teacherId String
+  dayOfWeek Int      // 0=Sunday, 6=Saturday
+  startTime DateTime @db.Time
+  endTime   DateTime @db.Time
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId])
+  @@index([dayOfWeek])
+}
+
+model TeacherScheduleOverride {
+  id           String    @id @default(uuid())
+  teacherId    String
+  overrideDate DateTime  @db.Date
+  isAvailable  Boolean
+  startTime    DateTime? @db.Time
+  endTime      DateTime? @db.Time
+  reason       String?
+  createdAt    DateTime  @default(now())
+
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId])
+  @@index([overrideDate])
+}
+
+model SpeakingSlot {
+  id              String    @id @default(uuid())
+  teacherId       String
+  studentId       String?
+  testSessionId   String?
+  slotDate        DateTime  @db.Date
+  slotTime        DateTime  @db.Time
+  durationMinutes Int       @default(15)
+  status          String    @default("AVAILABLE") // AVAILABLE, BOOKED, COMPLETED, CANCELLED
+  score           Decimal?  @db.Decimal(5, 2)
+  feedback        String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  teacher     Teacher      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  student     Student?     @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  testSession TestSession? @relation(fields: [testSessionId], references: [id], onDelete: Cascade)
+
+  @@index([teacherId])
+  @@index([studentId])
+  @@index([slotDate])
+  @@index([status])
+}
+
+// ============================================
+// MODULE 6: ATTENDANCE
+// ============================================
+
+model Attendance {
+  id             String   @id @default(uuid())
+  classSessionId String
+  studentId      String
+  enrollmentId   String
+  status         String   // PRESENT, ABSENT, LATE, EXCUSED
+  markedAt       DateTime
+  markedBy       String?
+  notes          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  classSession ClassSession @relation(fields: [classSessionId], references: [id], onDelete: Cascade)
+  student      Student      @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  enrollment   Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  teacher      Teacher?     @relation(fields: [markedBy], references: [id], onDelete: SetNull)
+
+  @@index([classSessionId])
+  @@index([studentId])
+  @@index([enrollmentId])
+  @@index([status])
+}
+
+// ============================================
+// MODULE 7: PAYMENTS & FINANCE
+// ============================================
+
+model StudentPaymentPlan {
+  id                 String   @id @default(uuid())
+  enrollmentId       String   @unique
+  totalAmount        Decimal  @db.Decimal(10, 2)
+  discountAmount     Decimal  @default(0) @db.Decimal(10, 2)
+  discountReason     String?
+  finalAmount        Decimal  @db.Decimal(10, 2)
+  totalInstallments  Int
+  status             String   @default("ACTIVE") // ACTIVE, SUPERSEDED, COMPLETED
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  enrollment   Enrollment    @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  installments Installment[]
+
+  @@index([enrollmentId])
+  @@index([status])
+}
+
+model Installment {
+  id                      String    @id @default(uuid())
+  paymentPlanId           String
+  installmentNumber       Int
+  amount                  Decimal   @db.Decimal(10, 2)
+  paymentDate             DateTime  @db.Date
+  paymentMethod           String    // BENEFIT_PAY, BANK_TRANSFER, CASH, CARD_MACHINE
+  receiptNumber           String?
+  receiptUrl              String?
+  receiptMakerId          String?
+  benefitReferenceNumber  String?   @unique
+  notes                   String?
+  createdAt               DateTime  @default(now())
+
+  paymentPlan  StudentPaymentPlan @relation(fields: [paymentPlanId], references: [id], onDelete: Cascade)
+  receiptMaker User?              @relation("ReceiptMaker", fields: [receiptMakerId], references: [id], onDelete: SetNull)
+  refunds      Refund[]
+
+  @@unique([paymentPlanId, installmentNumber])
+  @@index([paymentPlanId])
+  @@index([paymentDate])
+  @@index([benefitReferenceNumber])
+}
+
+model Refund {
+  id            String    @id @default(uuid())
+  installmentId String?
+  enrollmentId  String
+  refundAmount  Decimal   @db.Decimal(10, 2)
+  refundReason  String
+  refundMethod  String?   // BANK_TRANSFER, BENEFIT_PAY, CASH
+  requestedBy   String
+  requestedAt   DateTime  @default(now())
+  approvedBy    String?
+  approvedAt    DateTime?
+  processedBy   String?
+  processedAt   DateTime?
+  status        String    @default("PENDING") // PENDING, APPROVED, REJECTED, COMPLETED
+  receiptUrl    String?
+  notes         String?
+  createdAt     DateTime  @default(now())
+
+  installment    Installment? @relation(fields: [installmentId], references: [id], onDelete: SetNull)
+  enrollment     Enrollment   @relation(fields: [enrollmentId], references: [id], onDelete: Cascade)
+  requester      User         @relation("RequestedBy", fields: [requestedBy], references: [id], onDelete: Cascade)
+  approver       User?        @relation("ApprovedBy", fields: [approvedBy], references: [id], onDelete: SetNull)
+  processor      User?        @relation("ProcessedBy", fields: [processedBy], references: [id], onDelete: SetNull)
+
+  @@index([enrollmentId])
+  @@index([status])
+}
+
+// ============================================
+// MODULE 8: LEARNING MATERIALS
+// ============================================
+
+model Material {
+  id           String   @id @default(uuid())
+  groupId      String
+  title        String
+  description  String?
+  materialType String   // PDF, VIDEO, LINK, IMAGE, OTHER
+  fileUrl      String?
+  fileSizeKb   Int?
+  uploadedBy   String?
+  uploadedAt   DateTime @default(now())
+  isActive     Boolean  @default(true)
+
+  group   Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  teacher Teacher? @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)
+
+  @@index([groupId])
+  @@index([materialType])
+  @@index([uploadedBy])
+}
+
+// ============================================
+// MODULE 9: COMMUNICATION
+// ============================================
+
+model Announcement {
+  id             String    @id @default(uuid())
+  groupId        String?
+  termId         String?
+  title          String
+  content        String
+  targetAudience String    // ALL, STUDENTS, TEACHERS, PARENTS, GROUP_SPECIFIC
+  publishedBy    String?
+  publishedAt    DateTime?
+  scheduledFor   DateTime?
+  isPublished    Boolean   @default(false)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  group     Group? @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  term      Term?  @relation(fields: [termId], references: [id], onDelete: Cascade)
+  publisher User?  @relation("PublishedBy", fields: [publishedBy], references: [id], onDelete: SetNull)
+
+  @@index([groupId])
+  @@index([termId])
+  @@index([publishedAt])
+  @@index([targetAudience])
+  @@index([isPublished])
+}
+
+model Notification {
+  id       String    @id @default(uuid())
+  userId   String
+  type     String    // ATTENDANCE_WARNING, PAYMENT_REMINDER, ENROLLMENT_CONFIRMED, etc.
+  title    String
+  message  String
+  linkUrl  String?
+  isRead   Boolean   @default(false)
+  readAt   DateTime?
+  sentVia  String?   // EMAIL, SMS, WHATSAPP
+  sentAt   DateTime?
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([isRead])
+  @@index([type])
+  @@index([createdAt])
+}
+
+model ChatMessage {
+  id        String   @id @default(uuid())
+  userId    String?
+  userRole  String   // ADMIN, TEACHER, STUDENT, PARENT
+  message   String
+  response  String
+  context   Json?    // JSONB
+  queryType String?
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([createdAt])
+  @@index([queryType])
+}
+
+// ============================================
+// MODULE 10: AUDIT & LOGS
+// ============================================
+
+model AuditLog {
+  id         String   @id @default(uuid())
+  userId     String?
+  action     String   // CREATE, UPDATE, DELETE, LOGIN, LOGOUT, PAYMENT, etc.
+  tableName  String?
+  recordId   String?
+  oldValues  Json?    // JSONB
+  newValues  Json?    // JSONB
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([action])
+  @@index([createdAt])
+  @@index([tableName])
+  @@index([recordId])
 }

@@ -1,0 +1,259 @@
+// src/controllers/student.controller.ts
+import { Request, Response } from 'express';
+import * as studentService from '../services/student.service';
+import { AuthRequest } from '../types/auth.types';
+
+/**
+ * POST /api/students
+ * Create new student
+ */
+export const createStudent = async (req: AuthRequest, res: Response) => {
+  try {
+    const data = req.body;
+
+    // Validation
+    if (!data.cpr || !data.firstName || !data.dateOfBirth || !data.gender) {
+      return res.status(400).json({
+        success: false,
+        message: 'CPR, first name, date of birth, and gender are required'
+      });
+    }
+
+    const result = await studentService.createStudent(data);
+
+    res.status(201).json({
+      success: true,
+      message: 'Student created successfully',
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Create student error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to create student'
+    });
+  }
+};
+
+/**
+ * GET /api/students
+ * Get all students with filters
+ */
+export const getAllStudents = async (req: AuthRequest, res: Response) => {
+  try {
+    const filters = {
+      isActive: req.query.isActive === 'true' ? true : 
+                req.query.isActive === 'false' ? false : undefined,
+      gender: req.query.gender as string,
+      schoolType: req.query.schoolType as string,
+      schoolYear: req.query.schoolYear as string,
+      preferredCenter: req.query.preferredCenter as string,
+      search: req.query.search as string,
+      page: req.query.page ? parseInt(req.query.page as string) : 1,
+      limit: req.query.limit ? parseInt(req.query.limit as string) : 50
+    };
+
+    const result = await studentService.getAllStudents(filters);
+
+    res.status(200).json({
+      success: true,
+      ...result
+    });
+  } catch (error: any) {
+    console.error('Get all students error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch students'
+    });
+  }
+};
+
+/**
+ * GET /api/students/:id
+ * Get student by ID with full details
+ */
+export const getStudentById = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const result = await studentService.getStudentById(id);
+
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Get student by ID error:', error);
+    
+    if (error.message === 'Student not found') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch student'
+    });
+  }
+};
+
+/**
+ * PUT /api/students/:id
+ * Update student information
+ */
+export const updateStudent = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const result = await studentService.updateStudent(id, updates);
+
+    res.status(200).json({
+      success: true,
+      message: 'Student updated successfully',
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Update student error:', error);
+    
+    if (error.message === 'Student not found') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to update student'
+    });
+  }
+};
+
+/**
+ * DELETE /api/students/:id
+ * Deactivate student (soft delete)
+ */
+export const deleteStudent = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const result = await studentService.deleteStudent(id);
+
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } catch (error: any) {
+    console.error('Delete student error:', error);
+    
+    if (error.message === 'Student not found') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to delete student'
+    });
+  }
+};
+
+/**
+ * POST /api/students/:id/phones
+ * Add phone number to student
+ */
+export const addPhone = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    if (!data.phoneNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'Phone number is required'
+      });
+    }
+
+    const result = await studentService.addPhone(id, data);
+
+    res.status(201).json({
+      success: true,
+      message: 'Phone number added successfully',
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Add phone error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to add phone number'
+    });
+  }
+};
+
+/**
+ * POST /api/students/:id/parents
+ * Link parent to student
+ */
+export const linkParent = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+
+    if (!data.parentId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Parent ID is required'
+      });
+    }
+
+    const result = await studentService.linkParent(id, data);
+
+    res.status(201).json({
+      success: true,
+      message: 'Parent linked successfully',
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Link parent error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to link parent'
+    });
+  }
+};
+
+/**
+ * GET /api/students/search
+ * Search students by name, CPR, or email
+ */
+export const searchStudents = async (req: AuthRequest, res: Response) => {
+  try {
+    const query = req.query.q as string;
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : 20;
+
+    if (!query) {
+      return res.status(400).json({
+        success: false,
+        message: 'Search query is required'
+      });
+    }
+
+    const result = await studentService.searchStudents(query, limit);
+
+    res.status(200).json({
+      success: true,
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Search students error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to search students'
+    });
+  }
+};

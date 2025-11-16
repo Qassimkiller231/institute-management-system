@@ -1,0 +1,194 @@
+import prisma from '../utils/db';
+import { generateToken } from '../utils/jwt';
+import { generateOTP, getOTPExpiration, isOTPExpired, sendOTP } from '../utils/otp';
+
+/**
+ * Request OTP code for login
+ */
+export const requestOTP = async (identifier: string, method: 'email' | 'sms') => {
+  // Find user by email or phone
+  const isEmail = identifier.includes('@');
+  const user = await prisma.user.findFirst({
+    where: isEmail ? { email: identifier } : { phone: identifier },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  if (!user.isActive) {
+    throw new Error('User account is inactive');
+  }
+
+  // Check if there's a recent unused OTP (within last minute)
+  const recentOTP = await prisma.otpCode.findFirst({
+    where: {
+      userId: user.id,
+      isUsed: false,
+      expiresAt: { gt: new Date() },
+      createdAt: { gt: new Date(Date.now() - 60000) }, // Last 1 minute
+    },
+  });
+
+  if (recentOTP) {
+    throw new Error('OTP already sent. Please wait before requesting a new one.');
+  }
+
+  // Generate new OTP
+  const code = generateOTP();
+  const expiresAt = getOTPExpiration();
+
+  // Save OTP to database
+  await prisma.otpCode.create({
+    data: {
+      userId: user.id,
+      code,
+      expiresAt,
+      isUsed: false,
+      attempts: 0,
+    },
+  });
+
+  // Send OTP (simulated for now)
+  const recipient = method === 'email' ? user.email : user.phone || '';
+  await sendOTP(recipient, code, method);
+
+  return {
+    success: true,
+    message: `OTP sent to ${method === 'email' ? 'email' : 'phone'}`,
+  };
+};
+
+/**
+ * Verify OTP and login user
+ */
+export const verifyOTP = async (identifier: string, code: string) => {
+  // Find user
+  const isEmail = identifier.includes('@');
+  const user = await prisma.user.findFirst({
+    where: isEmail ? { email: identifier } : { phone: identifier },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  // Find OTP code
+  const otpRecord = await prisma.otpCode.findFirst({
+    where: {
+      userId: user.id,
+      code,
+      isUsed: false,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (!otpRecord) {
+    throw new Error('Invalid OTP code');
+  }
+
+  // Check if OTP expired
+  if (isOTPExpired(otpRecord.expiresAt)) {
+    throw new Error('OTP code has expired');
+  }
+
+  // Check attempts (max 3)
+  if (otpRecord.attempts >= 3) {
+    throw new Error('Maximum OTP attempts exceeded');
+  }
+
+  // Increment attempts
+  await prisma.otpCode.update({
+    where: { id: otpRecord.id },
+    data: { attempts: otpRecord.attempts + 1 },
+  });
+
+  // Mark OTP as used
+  await prisma.otpCode.update({
+    where: { id: otpRecord.id },
+    data: { isUsed: true },
+  });
+
+  // Update last login
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLogin: new Date() },
+  });
+
+  // Generate JWT token
+  const token = generateToken({
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+  });
+
+  // Create session
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+  await prisma.session.create({
+    data: {
+      userId: user.id,
+      token,
+      expiresAt,
+      ipAddress: null,
+      userAgent: null,
+    },
+  });
+
+  return {
+    success: true,
+    message: 'Login successful',
+    data: {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+      },
+    },
+  };
+};
+
+/**
+ * Logout user
+ */
+export const logout = async (token: string) => {
+  // Delete session
+  await prisma.session.deleteMany({
+    where: { token },
+  });
+
+  return {
+    success: true,
+    message: 'Logout successful',
+  };
+};
+
+/**
+ * Get current user info
+ */
+export const getCurrentUser = async (userId: string) => {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: {
+      id: true,
+      email: true,
+      phone: true,
+      role: true,
+      isActive: true,
+      lastLogin: true,
+      createdAt: true,
+    },
+  });
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  return {
+    success: true,
+    data: user,
+  };
+};
