@@ -1,0 +1,58 @@
+# term-management.http
+
+@baseUrl = http://localhost:3001/api
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+
+### Variables
+@programId = 686b7f25-b713-4e2d-b73b-968673c5e962
+@termId = 49a33970-5bdf-44f7-8d50-8f4099a58f32
+
+# ==================== TERMS ====================
+
+### Create Term
+POST {{baseUrl}}/terms
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "programId": "{{programId}}",
+  "name": "Fall 2025",
+  "startDate": "2025-09-01",
+  "endDate": "2025-12-31",
+  "isCurrent": true
+}
+
+### Get All Terms
+GET {{baseUrl}}/terms
+Authorization: Bearer {{adminToken}}
+
+### Get Terms by Program
+GET {{baseUrl}}/terms?programId={{programId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Current Term Only
+GET {{baseUrl}}/terms?isCurrent=true
+Authorization: Bearer {{adminToken}}
+
+### Get Term By ID
+GET {{baseUrl}}/terms/{{termId}}
+Authorization: Bearer {{adminToken}}
+
+### Update Term
+PUT {{baseUrl}}/terms/{{termId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Fall 2025 Updated",
+  "isCurrent": false
+}
+
+### Set Term as Current
+PUT {{baseUrl}}/terms/{{termId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isCurrent": true
+}

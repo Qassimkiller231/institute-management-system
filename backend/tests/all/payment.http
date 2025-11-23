@@ -1,0 +1,237 @@
+### Payment Module - Complete Test Suite
+### Base URL: http://localhost:3001
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@enrollmentId = 75659e2c-393b-443f-a7a5-32bcd9442f28
+@installmentId = 25e92b55-025f-4ee6-b04b-eb901bd95ae5
+
+### ============================================
+### 1. CREATE PAYMENT PLAN
+### ============================================
+
+### Create payment plan (4 installments)
+POST {{baseUrl}}/api/payments/plans
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "enrollmentId": "{{enrollmentId}}",
+  "totalAmount": 600,
+  "discountAmount": 50,
+  "discountReason": "Sibling discount",
+  "totalInstallments": 4,
+  "installments": [
+    {
+      "installmentNumber": 1,
+      "amount": 137.5,
+      "paymentDate": "2025-10-15"
+    },
+    {
+      "installmentNumber": 2,
+      "amount": 137.5,
+      "paymentDate": "2025-11-15"
+    },
+    {
+      "installmentNumber": 3,
+      "amount": 137.5,
+      "paymentDate": "2025-12-15"
+    },
+    {
+      "installmentNumber": 4,
+      "amount": 137.5,
+      "paymentDate": "2026-01-15"
+    }
+  ]
+}
+
+### ============================================
+### 2. GET PAYMENT PLANS
+### ============================================
+
+### Get all payment plans
+GET {{baseUrl}}/api/payments/plans
+Authorization: Bearer {{adminToken}}
+
+### Get payment plans with filters
+GET {{baseUrl}}/api/payments/plans?status=ACTIVE&page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get payment plan by enrollment
+GET {{baseUrl}}/api/payments/plans/enrollment/{{enrollmentId}}
+Authorization: Bearer {{adminToken}}
+
+### ============================================
+### 3. GET BALANCE
+### ============================================
+
+### Get balance for enrollment
+GET {{baseUrl}}/api/payments/balance/enrollment/{{enrollmentId}}
+Authorization: Bearer {{adminToken}}
+
+### ============================================
+### 4. RECORD PAYMENT
+### ============================================
+
+### Record payment - BENEFIT_PAY
+POST {{baseUrl}}/api/payments/installments/{{installmentId}}/pay
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "paymentMethod": "BENEFIT_PAY",
+  "receiptNumber": "REC-2025-001",
+  "benefitReferenceNumber": "BEN-12345678",
+  "notes": "Paid via Benefit Pay"
+}
+
+### Record payment - BANK_TRANSFER
+POST {{baseUrl}}/api/payments/installments/{{installmentId}}/pay
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "paymentMethod": "BANK_TRANSFER",
+  "receiptNumber": "REC-2025-002",
+  "receiptUrl": "https://example.com/receipts/rec-002.pdf",
+  "notes": "Bank reference: 987654321"
+}
+
+### Record payment - CASH
+POST {{baseUrl}}/api/payments/installments/{{installmentId}}/pay
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "paymentMethod": "CASH",
+  "receiptNumber": "REC-2025-003",
+  "notes": "Cash payment received"
+}
+
+### Record payment - CARD_MACHINE
+POST {{baseUrl}}/api/payments/installments/{{installmentId}}/pay
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "paymentMethod": "CARD_MACHINE",
+  "receiptNumber": "REC-2025-004",
+  "notes": "Card payment via POS machine"
+}
+
+### ============================================
+### 5. REFUNDS
+### ============================================
+
+### Create refund request
+POST {{baseUrl}}/api/payments/refunds
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "enrollmentId": "{{enrollmentId}}",
+  "installmentId": "{{installmentId}}",
+  "refundAmount": 137.5,
+  "refundReason": "Student withdrew from program",
+  "refundMethod": "BANK_TRANSFER",
+  "notes": "Request full refund for last installment"
+}
+
+### Get all refunds
+GET {{baseUrl}}/api/payments/refunds
+Authorization: Bearer {{adminToken}}
+
+### Get refunds with filters
+GET {{baseUrl}}/api/payments/refunds?status=PENDING&page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get refunds by enrollment
+GET {{baseUrl}}/api/payments/refunds?enrollmentId={{enrollmentId}}
+Authorization: Bearer {{adminToken}}
+
+### Approve refund
+PATCH {{baseUrl}}/api/payments/refunds/86f5200c-cc5d-49a7-8a15-591f1c0af2fd/approve
+Authorization: Bearer {{adminToken}}
+
+### Process refund (complete)
+PATCH {{baseUrl}}/api/payments/refunds/86f5200c-cc5d-49a7-8a15-591f1c0af2fd/process
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "receiptUrl": "https://example.com/refund-receipts/refund-001.pdf"
+}
+
+### ============================================
+### 6. ERROR HANDLING TESTS
+### ============================================
+
+### ERROR - Create plan without installments
+POST {{baseUrl}}/api/payments/plans
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "enrollmentId": "{{enrollmentId}}",
+  "totalAmount": 600,
+  "totalInstallments": 4
+}
+
+### ERROR - Create plan for non-existent enrollment
+POST {{baseUrl}}/api/payments/plans
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "enrollmentId": "00000000-0000-0000-0000-000000000000",
+  "totalAmount": 600,
+  "totalInstallments": 4,
+  "installments": [
+    { "installmentNumber": 1, "amount": 150, "paymentDate": "2025-10-15" }
+  ]
+}
+
+### ERROR - Record payment with invalid method
+POST {{baseUrl}}/api/payments/installments/{{installmentId}}/pay
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "paymentMethod": "INVALID_METHOD"
+}
+
+### ERROR - Get plan for non-existent enrollment
+GET {{baseUrl}}/api/payments/plans/enrollment/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+### ============================================
+### 7. COMPLETE WORKFLOW TEST
+### ============================================
+
+### Step 1: Create enrollment (assuming you have groupId and studentId)
+# POST {{baseUrl}}/api/enrollments
+# (Use enrollment endpoint)
+
+### Step 2: Create payment plan for that enrollment
+# (Use CREATE PAYMENT PLAN above)
+
+### Step 3: Get the payment plan
+# (Use GET PAYMENT PLAN BY ENROLLMENT)
+
+### Step 4: Record payment for first installment
+# (Use RECORD PAYMENT above)
+
+### Step 5: Check balance
+# (Use GET BALANCE)
+
+### Step 6: Record remaining payments
+# (Repeat RECORD PAYMENT for each installment)
+
+### Step 7: Create refund if needed
+# (Use CREATE REFUND REQUEST)
+
+### Step 8: Admin approves refund
+# (Use APPROVE REFUND)
+
+### Step 9: Admin processes refund
+# (Use PROCESS REFUND)

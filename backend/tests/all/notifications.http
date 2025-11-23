@@ -1,0 +1,45 @@
+@baseUrl = http://localhost:3001
+@adminToken = YOUR_ADMIN_TOKEN_HERE
+@studentId = YOUR_STUDENT_ID_HERE
+@installmentId = YOUR_INSTALLMENT_ID_HERE
+
+### ============================================
+### PAYMENT REMINDERS
+### ============================================
+
+### 1. Test payment reminder scheduler
+POST {{baseUrl}}/api/notifications/test-scheduler
+Authorization: Bearer {{adminToken}}
+
+### 2. Send manual payment reminder to specific installment
+POST {{baseUrl}}/api/notifications/payment-reminder/{{installmentId}}
+Authorization: Bearer {{adminToken}}
+
+### ============================================
+### ATTENDANCE WARNINGS
+### ============================================
+
+### 3. Get all at-risk students (attendance < 75%)
+GET {{baseUrl}}/api/notifications/at-risk-students
+Authorization: Bearer {{adminToken}}
+
+### 4. Send manual attendance warning to specific student
+POST {{baseUrl}}/api/notifications/attendance-warning/{{studentId}}
+Authorization: Bearer {{adminToken}}
+
+### ============================================
+### HOW TO USE THIS FILE
+### ============================================
+# 
+# Step 1: Get your admin token
+#   - Login as admin using auth.http
+#   - Copy the token from the response
+#   - Replace YOUR_ADMIN_TOKEN_HERE above
+#
+# Step 2: Get student/installment IDs
+#   - Use students.http or payments.http to get IDs
+#   - Replace YOUR_STUDENT_ID_HERE and YOUR_INSTALLMENT_ID_HERE
+#
+# Step 3: Click "Send Request" above any endpoint
+#
+### ============================================

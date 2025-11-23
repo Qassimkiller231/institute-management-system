@@ -1,0 +1,73 @@
+# hall-management.http
+
+@baseUrl = http://localhost:3001/api
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+
+### Variables
+@venueId = f41e8e8e-ba98-479f-92bf-65138882e64b
+@hallId = 5719dc5f-1d3b-400e-86eb-f29a5dd6678e
+
+# ==================== HALLS ====================
+
+### Create Hall - Room A
+POST {{baseUrl}}/halls
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "venueId": "{{venueId}}",
+  "name": "Room A",
+  "capacity": 20,
+  "isActive": true
+}
+
+### Create Hall - Room B
+POST {{baseUrl}}/halls
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "venueId": "{{venueId}}",
+  "name": "Room B",
+  "capacity": 25,
+  "isActive": true
+}
+
+### Create Hall - Room C
+POST {{baseUrl}}/halls
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "venueId": "{{venueId}}",
+  "name": "Room C",
+  "capacity": 15,
+  "isActive": true
+}
+
+### Get All Halls
+GET {{baseUrl}}/halls
+Authorization: Bearer {{adminToken}}
+
+### Get Halls by Venue
+GET {{baseUrl}}/halls?venueId={{venueId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Hall By ID
+GET {{baseUrl}}/halls/{{hallId}}
+Authorization: Bearer {{adminToken}}
+
+### Update Hall
+PUT {{baseUrl}}/halls/{{hallId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Room A - Updated",
+  "capacity": 22,
+  "isActive": true
+}
+
+### Delete Hall (Soft Delete)
+DELETE {{baseUrl}}/halls/{{hallId}}
+Authorization: Bearer {{adminToken}}

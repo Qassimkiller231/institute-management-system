@@ -1,0 +1,211 @@
+### EMAIL SERVICE TESTS
+### Base URL
+@baseUrl = http://localhost:3001/api/email
+
+### Admin Token (Replace with actual token)
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+### Test Email
+@testEmail = test@example.com
+
+### ============================================
+### 1. VERIFY AWS SES CONFIGURATION
+GET {{baseUrl}}/verify-ses
+Authorization: Bearer {{adminToken}}
+
+### ============================================
+### 2. SEND TEST EMAIL
+POST {{baseUrl}}/send
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "to": "{{testEmail}}",
+  "subject": "Test Email from Institute System",
+  "message": "This is a test email to verify the email service is working correctly."
+}
+
+### ============================================
+### 3. SEND OTP EMAIL
+POST {{baseUrl}}/send-otp
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "to": "{{testEmail}}",
+  "name": "John Ahmed",
+  "otpCode": "123456",
+  "expiryMinutes": 5
+}
+
+### ============================================
+### 4. SEND PAYMENT RECEIPT EMAIL
+POST {{baseUrl}}/send-receipt
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "to": "{{testEmail}}",
+  "studentName": "John Ahmed",
+  "receiptNumber": "REC-2025-001",
+  "amount": 150.00,
+  "currency": "BHD",
+  "paymentMethod": "BENEFIT_PAY",
+  "paymentDate": "2025-11-22",
+  "installmentNumber": 1,
+  "balance": 450.00
+}
+
+### ============================================
+### 5. SEND PAYMENT REMINDER - 3 DAYS BEFORE
+POST {{baseUrl}}/send-payment-reminder
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "to": "{{testEmail}}",
+  "studentName": "John Ahmed",
+  "amount": 150.00,
+  "currency": "BHD",
+  "dueDate": "2025-11-25",
+  "installmentNumber": 2,
+  "reminderType": "THREE_DAYS"
+}
+
+### ============================================
+### 6. SEND PAYMENT REMINDER - 1 DAY BEFORE
+POST {{baseUrl}}/send-payment-reminder
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "to": "{{testEmail}}",
+  "studentName": "John Ahmed",
+  "amount": 150.00,
+  "currency": "BHD",
+  "dueDate": "2025-11-23",
+  "installmentNumber": 2,
+  "reminderType": "ONE_DAY"
+}
+
+### ============================================
+### 7. SEND PAYMENT REMINDER - DUE TODAY
+POST {{baseUrl}}/send-payment-reminder
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "to": "{{testEmail}}",
+  "studentName": "John Ahmed",
+  "amount": 150.00,
+  "currency": "BHD",
+  "dueDate": "2025-11-22",
+  "installmentNumber": 2,
+  "reminderType": "DUE_DATE"
+}
+
+### ============================================
+### 8. SEND PAYMENT REMINDER - OVERDUE
+POST {{baseUrl}}/send-payment-reminder
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "to": "{{testEmail}}",
+  "studentName": "John Ahmed",
+  "amount": 150.00,
+  "currency": "BHD",
+  "dueDate": "2025-11-15",
+  "installmentNumber": 2,
+  "reminderType": "OVERDUE"
+}
+
+### ============================================
+### 9. SEND ATTENDANCE WARNING TO STUDENT
+POST {{baseUrl}}/send-attendance-warning
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "to": "{{testEmail}}",
+  "studentName": "John Ahmed",
+  "attendancePercentage": 72.0,
+  "classesAttended": 18,
+  "totalClasses": 25,
+  "groupName": "English Multiverse A1 - Group 1",
+  "recipientType": "STUDENT"
+}
+
+### ============================================
+### 10. SEND ATTENDANCE WARNING TO PARENT
+POST {{baseUrl}}/send-attendance-warning
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "to": "parent@example.com",
+  "studentName": "John Ahmed",
+  "attendancePercentage": 72.0,
+  "classesAttended": 18,
+  "totalClasses": 25,
+  "groupName": "English Multiverse A1 - Group 1",
+  "recipientType": "PARENT"
+}
+
+### ============================================
+### 11. SEND ANNOUNCEMENT EMAIL
+POST {{baseUrl}}/send-announcement
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "to": "{{testEmail}}",
+  "recipientName": "John Ahmed",
+  "title": "Class Schedule Change",
+  "content": "Please note that next week's class on Tuesday will be moved to Thursday at the same time due to a public holiday. All other classes remain as scheduled.",
+  "publishedBy": "Admin Team"
+}
+
+### ============================================
+### 12. SEND BULK EMAILS
+POST {{baseUrl}}/send-bulk
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "recipients": [
+    { "email": "student1@example.com", "name": "Ahmed Ali" },
+    { "email": "student2@example.com", "name": "Fatima Hassan" },
+    { "email": "student3@example.com", "name": "Mohammed Khalid" }
+  ],
+  "emailData": {
+    "subject": "Important Announcement - Function Institute",
+    "htmlBody": "<p>Dear {{name}},</p><p>This is an important announcement for all students.</p>",
+    "textBody": "Dear {{name}},\n\nThis is an important announcement for all students."
+  }
+}
+
+### ============================================
+### 13. GET EMAIL HISTORY (ALL)
+GET {{baseUrl}}/history?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+### ============================================
+### 14. GET EMAIL HISTORY (SPECIFIC USER)
+### Replace with actual user ID
+@userId = 123e4567-e89b-12d3-a456-426614174000
+
+GET {{baseUrl}}/history?userId={{userId}}&page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### ============================================
+### NOTES:
+### - All endpoints require admin authentication
+### - Replace @adminToken with actual JWT token
+### - AWS SES must be configured in .env:
+###   AWS_SES_REGION=us-east-1
+###   AWS_SES_ACCESS_KEY=your_key
+###   AWS_SES_SECRET_KEY=your_secret
+###   FROM_EMAIL=noreply@institute.com
+### - Sender email must be verified in AWS SES
+### - Test mode has sending limits (200 emails/day)

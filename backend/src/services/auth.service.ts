@@ -1,23 +1,31 @@
-import prisma from '../utils/db';
-import { generateToken } from '../utils/jwt';
-import { generateOTP, getOTPExpiration, isOTPExpired, sendOTP } from '../utils/otp';
-
+import prisma from "../utils/db";
+import { generateToken } from "../utils/jwt";
+import {
+  generateOTP,
+  getOTPExpiration,
+  isOTPExpired,
+  sendOTP,
+} from "../utils/otp";
+import * as smsService from "./sms.service";
 /**
  * Request OTP code for login
  */
-export const requestOTP = async (identifier: string, method: 'email' | 'sms') => {
+export const requestOTP = async (
+  identifier: string,
+  method: "email" | "sms"
+) => {
   // Find user by email or phone
-  const isEmail = identifier.includes('@');
+  const isEmail = identifier.includes("@");
   const user = await prisma.user.findFirst({
     where: isEmail ? { email: identifier } : { phone: identifier },
   });
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 
   if (!user.isActive) {
-    throw new Error('User account is inactive');
+    throw new Error("User account is inactive");
   }
 
   // Check if there's a recent unused OTP (within last minute)
@@ -31,7 +39,9 @@ export const requestOTP = async (identifier: string, method: 'email' | 'sms') =>
   });
 
   if (recentOTP) {
-    throw new Error('OTP already sent. Please wait before requesting a new one.');
+    throw new Error(
+      "OTP already sent. Please wait before requesting a new one."
+    );
   }
 
   // Generate new OTP
@@ -50,12 +60,27 @@ export const requestOTP = async (identifier: string, method: 'email' | 'sms') =>
   });
 
   // Send OTP (simulated for now)
-  const recipient = method === 'email' ? user.email : user.phone || '';
+  const recipient = method === "email" ? user.email : user.phone || "";
   await sendOTP(recipient, code, method);
+  if (method === "sms") {
+    // Send via SMS
+    await smsService.sendOTP({
+      phone: identifier,
+      code: code,
+      userId: user.id,
+    });
+  } else {
+    // Send via email (existing code)
+    // await emailService.sendOTP({
+    //   email: identifier,
+    //   code: otpCode,
+    //   userId: user.id
+    // });
+  }
 
   return {
     success: true,
-    message: `OTP sent to ${method === 'email' ? 'email' : 'phone'}`,
+    message: `OTP sent to ${method === "email" ? "email" : "phone"}`,
   };
 };
 
@@ -64,13 +89,13 @@ export const requestOTP = async (identifier: string, method: 'email' | 'sms') =>
  */
 export const verifyOTP = async (identifier: string, code: string) => {
   // Find user
-  const isEmail = identifier.includes('@');
+  const isEmail = identifier.includes("@");
   const user = await prisma.user.findFirst({
     where: isEmail ? { email: identifier } : { phone: identifier },
   });
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 
   // Find OTP code
@@ -80,21 +105,21 @@ export const verifyOTP = async (identifier: string, code: string) => {
       code,
       isUsed: false,
     },
-    orderBy: { createdAt: 'desc' },
+    orderBy: { createdAt: "desc" },
   });
 
   if (!otpRecord) {
-    throw new Error('Invalid OTP code');
+    throw new Error("Invalid OTP code");
   }
 
   // Check if OTP expired
   if (isOTPExpired(otpRecord.expiresAt)) {
-    throw new Error('OTP code has expired');
+    throw new Error("OTP code has expired");
   }
 
   // Check attempts (max 3)
   if (otpRecord.attempts >= 3) {
-    throw new Error('Maximum OTP attempts exceeded');
+    throw new Error("Maximum OTP attempts exceeded");
   }
 
   // Increment attempts
@@ -115,11 +140,39 @@ export const verifyOTP = async (identifier: string, code: string) => {
     data: { lastLogin: new Date() },
   });
 
+  // Get role-specific ID
+  let studentId = null;
+  let teacherId = null;
+  let parentId = null;
+
+  if (user.role === "STUDENT") {
+    const student = await prisma.student.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    studentId = student?.id || null;
+  } else if (user.role === "TEACHER") {
+    const teacher = await prisma.teacher.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    teacherId = teacher?.id || null;
+  } else if (user.role === "PARENT") {
+    const parent = await prisma.parent.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    parentId = parent?.id || null;
+  }
+
   // Generate JWT token
   const token = generateToken({
     userId: user.id,
     email: user.email,
     role: user.role,
+    studentId, // ✅ Add these
+    teacherId, // ✅
+    parentId, // ✅
   });
 
   // Create session
@@ -138,7 +191,7 @@ export const verifyOTP = async (identifier: string, code: string) => {
 
   return {
     success: true,
-    message: 'Login successful',
+    message: "Login successful",
     data: {
       token,
       user: {
@@ -146,6 +199,9 @@ export const verifyOTP = async (identifier: string, code: string) => {
         email: user.email,
         phone: user.phone,
         role: user.role,
+        studentId,
+        teacherId,
+        parentId,
       },
     },
   };
@@ -162,7 +218,7 @@ export const logout = async (token: string) => {
 
   return {
     success: true,
-    message: 'Logout successful',
+    message: "Logout successful",
   };
 };
 
@@ -184,7 +240,7 @@ export const getCurrentUser = async (userId: string) => {
   });
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 
   return {

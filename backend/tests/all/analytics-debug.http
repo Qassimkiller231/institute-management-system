@@ -1,0 +1,34 @@
+### Analytics Debug - Placement Tests
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@programId = 742f6b2d-eb68-4b8c-afdd-c2af2c18b9d6
+@groupId = ce7ad635-c179-46b4-beb0-8cf5fa0404f7
+@testId = e1d65018-e45c-4ba8-9728-4311e179a4ac
+@testSessionId = ce50d7a7-9d8d-4a3a-9eba-14b7735647c4
+@levelId = 16fb655c-ef9e-4038-895f-e350a5df4604
+@studentId = 4919371f-313b-47db-b05c-c3c8b40697f5
+@enrollmentId = 75659e2c-393b-443f-a7a5-32bcd9442f28
+
+### 1. Get all PLACEMENT tests
+GET {{baseUrl}}/api/tests?testType=PLACEMENT
+Authorization: Bearer {{adminToken}}
+
+### 2. Get all test sessions
+GET {{baseUrl}}/api/test-sessions
+Authorization: Bearer {{adminToken}}
+
+### 3. Get specific test session
+GET {{baseUrl}}/api/test-sessions/{{testSessionId}}
+Authorization: Bearer {{adminToken}}
+
+### 4. Admin Dashboard
+GET {{baseUrl}}/api/reports/dashboard/admin
+Authorization: Bearer {{adminToken}}
+
+### 5. Program Summary (FIX: needs programId)
+GET {{baseUrl}}/api/reports/program/{{programId}}/summary
+Authorization: Bearer {{adminToken}}
+
+### 6. Placement Test Summary
+GET {{baseUrl}}/api/reports/program/placement-summary
+Authorization: Bearer {{adminToken}}

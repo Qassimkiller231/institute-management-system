@@ -1,0 +1,65 @@
+# Financial Reports API Tests
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+
+# IDs
+@termId = 49a33970-5bdf-44f7-8d50-8f4099a58f32
+
+# ==================== AUTH ====================
+
+### Request OTP (Admin)
+POST {{baseUrl}}/api/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "method": "email"
+}
+
+### Verify OTP (Admin)
+POST {{baseUrl}}/api/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "code": "123456"
+}
+
+# Copy token into @adminToken above
+
+# ==================== MONTHLY PROGRAM DUES ====================
+
+### Get Monthly Program Dues (Current Year)
+GET {{baseUrl}}/api/reports/financial/monthly-dues
+Authorization: Bearer {{adminToken}}
+
+### Get Monthly Program Dues (Specific Year)
+GET {{baseUrl}}/api/reports/financial/monthly-dues?year=2025
+Authorization: Bearer {{adminToken}}
+
+### Get Monthly Program Dues – Invalid Year
+GET {{baseUrl}}/api/reports/financial/monthly-dues?year=abc
+Authorization: Bearer {{adminToken}}
+
+# ==================== TERM DUES OVERVIEW ====================
+
+### Get Term Dues Overview
+GET {{baseUrl}}/api/reports/financial/term/{{termId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Term Dues Overview – Missing / Invalid ID
+GET {{baseUrl}}/api/reports/financial/term/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+# ==================== AUTH ERRORS ====================
+
+### Get Monthly Program Dues – No Token
+GET {{baseUrl}}/api/reports/financial/monthly-dues
+
+### Get Term Dues Overview – Invalid Token
+GET {{baseUrl}}/api/reports/financial/term/{{termId}}
+Authorization: Bearer invalid-token

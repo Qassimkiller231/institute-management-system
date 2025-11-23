@@ -1,0 +1,140 @@
+# Speaking Slots API Tests
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+# Replace these with actual values from your database
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
+
+@teacherId = fd435948-d4a9-44ac-8f4e-e8c9887f696d
+@studentId = 4919371f-313b-47db-b05c-c3c8b40697f5
+@testSessionId = 67bd026b-c317-4745-9753-eca1f5c6af6e
+@speakingSlotId = 9c9f6a32-0daf-4b86-9023-648ee7a20bca
+
+# ==================== LIST AVAILABLE SLOTS ====================
+
+### Get Available Speaking Slots (Admin)
+GET {{baseUrl}}/api/speaking-slots/available?startDate=2025-10-20&endDate=2025-10-27
+Authorization: Bearer {{adminToken}}
+
+### Get Available Speaking Slots (Teacher)
+GET {{baseUrl}}/api/speaking-slots/available?startDate=2025-10-20&endDate=2025-10-27
+Authorization: Bearer {{teacherToken}}
+
+### Get Available Speaking Slots - No Date Filter
+GET {{baseUrl}}/api/speaking-slots/available
+Authorization: Bearer {{adminToken}}
+
+# ==================== LIST SLOTS FOR TEACHER ====================
+
+### Get All Speaking Slots for Teacher (Admin)
+GET {{baseUrl}}/api/speaking-slots/teacher/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+
+### Get All Speaking Slots for Teacher (Teacher)
+GET {{baseUrl}}/api/speaking-slots/teacher/{{teacherId}}
+Authorization: Bearer {{teacherToken}}
+
+# ==================== BOOK SPEAKING SLOT ====================
+
+### Book Speaking Slot for Test Session (Admin)
+# After listing available slots, copy one id to @speakingSlotId above
+POST {{baseUrl}}/api/speaking-slots/book
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "{{testSessionId}}",
+  "slotId": "{{speakingSlotId}}",
+  "studentId": "{{studentId}}"
+}
+
+### Book Slot - Error: Slot Already Booked / Not Available
+POST {{baseUrl}}/api/speaking-slots/book
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "{{testSessionId}}",
+  "slotId": "{{speakingSlotId}}",
+  "studentId": "{{studentId}}"
+}
+
+### Book Slot - Error: Invalid IDs
+POST {{baseUrl}}/api/speaking-slots/book
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "00000000-0000-0000-0000-000000000000",
+  "slotId": "00000000-0000-0000-0000-000000000000",
+  "studentId": "{{studentId}}"
+}
+
+# ==================== SUBMIT SPEAKING RESULT ====================
+
+### Submit Speaking Result (Teacher)
+POST {{baseUrl}}/api/speaking-slots/submit-result
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "{{testSessionId}}",
+  "slotId": "{{speakingSlotId}}",
+  "score": 82.5,
+  "feedback": "Excellent fluency, minor grammar issues."
+}
+
+### Submit Speaking Result - Error: Wrong Session
+POST {{baseUrl}}/api/speaking-slots/submit-result
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "00000000-0000-0000-0000-000000000000",
+  "slotId": "{{speakingSlotId}}",
+  "score": 70
+}
+
+# ==================== AUTHORIZATION TESTS ====================
+
+### Book Slot - Error: Teacher Access Denied (if only Admin can book)
+POST {{baseUrl}}/api/speaking-slots/book
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "{{testSessionId}}",
+  "slotId": "{{speakingSlotId}}",
+  "studentId": "{{studentId}}"
+}
+
+### Submit Speaking Result - Error: Admin Access Denied
+POST {{baseUrl}}/api/speaking-slots/submit-result
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "{{testSessionId}}",
+  "slotId": "{{speakingSlotId}}",
+  "score": 90
+}
+
+### Get Slots - Error: No Token
+GET {{baseUrl}}/api/speaking-slots/available
+
+# ==================== NOTES ====================
+#
+# Endpoints:
+# - GET /api/speaking-slots/available (List available slots) [Admin/Teacher]
+# - GET /api/speaking-slots/teacher/:teacherId (Slots per teacher) [Admin/Teacher]
+# - POST /api/speaking-slots/book (Book a slot for a test session) [Admin]
+# - POST /api/speaking-slots/submit-result (Submit speaking score) [Teacher]
+#
+# Features:
+# - Slot filtering by date
+# - Teacher-based view of all slots
+# - Booking links slot ↔ testSession ↔ student
+# - Speaking results update both slot & testSession status

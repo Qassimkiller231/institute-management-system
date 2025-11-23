@@ -1,0 +1,400 @@
+# Teacher Management API Tests
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+# Replace these with actual values from your database
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
+
+# IDs - Replace with actual IDs
+@teacherId = fd435948-d4a9-44ac-8f4e-e8c9887f696d
+
+# ==================== AUTHENTICATION ====================
+
+### Request OTP (Admin)
+POST {{baseUrl}}/api/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "method": "email"
+}
+
+### Verify OTP (Admin)
+POST {{baseUrl}}/api/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "code": "123456"
+}
+
+# Copy the token from response and update @adminToken above
+
+# ==================== CREATE TEACHER ====================
+
+### Create Teacher (Full Profile)
+POST {{baseUrl}}/api/teachers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "john.smith@institute.com",
+  "phone": "+97333888999",
+  "firstName": "John",
+  "lastName": "Smith",
+  "specialization": "Grammar and Writing",
+  "availableForSpeakingTests": true
+}
+
+### Create Teacher (Minimal Profile)
+POST {{baseUrl}}/api/teachers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "jane.doe@institute.com",
+  "firstName": "Jane",
+  "lastName": "Doe"
+}
+
+### Create Teacher (Not Available for Speaking Tests)
+POST {{baseUrl}}/api/teachers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "mike.johnson@institute.com",
+  "phone": "+97333777888",
+  "firstName": "Mike",
+  "lastName": "Johnson",
+  "specialization": "Conversation and Listening",
+  "availableForSpeakingTests": false
+}
+
+### Create Teacher - Error: Missing Required Fields
+POST {{baseUrl}}/api/teachers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "firstName": "Test"
+}
+
+### Create Teacher - Error: Duplicate Email
+POST {{baseUrl}}/api/teachers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "john.smith@institute.com",
+  "firstName": "Duplicate",
+  "lastName": "Teacher"
+}
+
+# ==================== GET ALL TEACHERS ====================
+
+### Get All Teachers (No Filters)
+GET {{baseUrl}}/api/teachers
+Authorization: Bearer {{adminToken}}
+
+### Get All Teachers (With Pagination)
+GET {{baseUrl}}/api/teachers?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get Active Teachers Only
+GET {{baseUrl}}/api/teachers?isActive=true
+Authorization: Bearer {{adminToken}}
+
+### Get Inactive Teachers
+GET {{baseUrl}}/api/teachers?isActive=false
+Authorization: Bearer {{adminToken}}
+
+### Get Teachers Available for Speaking Tests
+GET {{baseUrl}}/api/teachers?availableForSpeakingTests=true
+Authorization: Bearer {{adminToken}}
+
+### Get Teachers NOT Available for Speaking Tests
+GET {{baseUrl}}/api/teachers?availableForSpeakingTests=false
+Authorization: Bearer {{adminToken}}
+
+### Get Teachers by Specialization
+GET {{baseUrl}}/api/teachers?specialization=Grammar
+Authorization: Bearer {{adminToken}}
+
+### Get Teachers with Multiple Filters
+GET {{baseUrl}}/api/teachers?isActive=true&availableForSpeakingTests=true&page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+### Get Teachers with Search (Name)
+GET {{baseUrl}}/api/teachers?search=John
+Authorization: Bearer {{adminToken}}
+
+### Get Teachers with Search (Email)
+GET {{baseUrl}}/api/teachers?search=smith
+Authorization: Bearer {{adminToken}}
+
+### Get All Teachers (Teacher Access)
+GET {{baseUrl}}/api/teachers
+Authorization: Bearer {{teacherToken}}
+
+# ==================== GET TEACHER BY ID ====================
+
+### Get Teacher by ID (Full Details)
+GET {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Teacher by ID (Teacher Access)
+GET {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{teacherToken}}
+
+### Get Teacher by ID - Error: Not Found
+GET {{baseUrl}}/api/teachers/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+# ==================== SEARCH TEACHERS ====================
+
+### Search Teachers by Name
+GET {{baseUrl}}/api/teachers/search?q=John
+Authorization: Bearer {{adminToken}}
+
+### Search Teachers by Last Name
+GET {{baseUrl}}/api/teachers/search?q=Smith
+Authorization: Bearer {{adminToken}}
+
+### Search Teachers by Email
+GET {{baseUrl}}/api/teachers/search?q=john@
+Authorization: Bearer {{adminToken}}
+
+### Search Teachers with Limit
+GET {{baseUrl}}/api/teachers/search?q=j&limit=5
+Authorization: Bearer {{adminToken}}
+
+### Search Teachers - Error: No Query
+GET {{baseUrl}}/api/teachers/search
+Authorization: Bearer {{adminToken}}
+
+# ==================== GET AVAILABLE TEACHERS ====================
+
+### Get All Available Teachers for Speaking Tests
+GET {{baseUrl}}/api/teachers/available
+Authorization: Bearer {{adminToken}}
+
+### Get Available Teachers (Teacher Access)
+GET {{baseUrl}}/api/teachers/available
+Authorization: Bearer {{teacherToken}}
+
+# ==================== UPDATE TEACHER ====================
+
+### Update Teacher (Partial Update)
+PUT {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "specialization": "Advanced Grammar and Composition",
+  "availableForSpeakingTests": true
+}
+
+### Update Teacher (Full Update)
+PUT {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "firstName": "John",
+  "lastName": "Smith",
+  "email": "john.smith.updated@institute.com",
+  "phone": "+97333999888",
+  "specialization": "IELTS Preparation",
+  "availableForSpeakingTests": true
+}
+
+### Update Teacher Email
+PUT {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "newemail@institute.com"
+}
+
+### Update Teacher Phone
+PUT {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phone": "+97333111000"
+}
+
+### Update Teacher - Deactivate
+PUT {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isActive": false
+}
+
+### Update Teacher - Reactivate
+PUT {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isActive": true
+}
+
+### Update Teacher - Error: Not Found
+PUT {{baseUrl}}/api/teachers/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "specialization": "This will fail"
+}
+
+### Update Teacher - Error: Duplicate Email
+PUT {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "jane.doe@institute.com"
+}
+
+# ==================== TOGGLE SPEAKING TEST AVAILABILITY ====================
+
+### Enable Speaking Test Availability
+PUT {{baseUrl}}/api/teachers/{{teacherId}}/availability
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "available": true
+}
+
+### Disable Speaking Test Availability
+PUT {{baseUrl}}/api/teachers/{{teacherId}}/availability
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "available": false
+}
+
+### Toggle Availability - Error: Missing Available Field
+PUT {{baseUrl}}/api/teachers/{{teacherId}}/availability
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+}
+
+### Toggle Availability - Error: Invalid Value
+PUT {{baseUrl}}/api/teachers/{{teacherId}}/availability
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "available": "yes"
+}
+
+### Toggle Availability - Error: Not Found
+PUT {{baseUrl}}/api/teachers/00000000-0000-0000-0000-000000000000/availability
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "available": true
+}
+
+# ==================== DELETE TEACHER ====================
+
+### Delete Teacher (Soft Delete)
+DELETE {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+
+### Delete Teacher - Error: Not Found
+DELETE {{baseUrl}}/api/teachers/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+# ==================== AUTHORIZATION TESTS ====================
+
+### Create Teacher - Error: Teacher Access Denied
+POST {{baseUrl}}/api/teachers
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "email": "test@institute.com",
+  "firstName": "Test",
+  "lastName": "Teacher"
+}
+
+### Update Teacher - Error: Teacher Access Denied
+PUT {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "specialization": "Teacher cannot update"
+}
+
+### Delete Teacher - Error: Teacher Access Denied
+DELETE {{baseUrl}}/api/teachers/{{teacherId}}
+Authorization: Bearer {{teacherToken}}
+
+### Toggle Availability - Error: Teacher Access Denied
+PUT {{baseUrl}}/api/teachers/{{teacherId}}/availability
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "available": false
+}
+
+### Get Teachers - Error: No Token
+GET {{baseUrl}}/api/teachers
+
+### Create Teacher - Error: Invalid Token
+POST {{baseUrl}}/api/teachers
+Authorization: Bearer invalid-token-here
+Content-Type: application/json
+
+{
+  "email": "test@test.com",
+  "firstName": "Test",
+  "lastName": "Test"
+}
+
+# ==================== NOTES ====================
+# 
+# Total Endpoints: 8
+# - POST /api/teachers (Create)
+# - GET /api/teachers (Get all with filters)
+# - GET /api/teachers/:id (Get by ID)
+# - GET /api/teachers/search (Search)
+# - GET /api/teachers/available (Get available for speaking tests)
+# - PUT /api/teachers/:id (Update)
+# - PUT /api/teachers/:id/availability (Toggle availability)
+# - DELETE /api/teachers/:id (Soft delete)
+#
+# Access Control:
+# - Admin: Full access (all operations)
+# - Teacher: Read-only access (view teachers)
+# - Student/Parent: No direct access
+#
+# Features:
+# - Full CRUD operations
+# - Search by name or email
+# - Multiple filters (active, available, specialization)
+# - Pagination support
+# - Speaking test availability toggle
+# - Soft delete (deactivation)
+# - Transaction-based updates
+# - View assigned groups and schedules
+#

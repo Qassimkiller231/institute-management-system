@@ -1,0 +1,44 @@
+@baseUrl = http://localhost:3001
+
+### ============================================
+### QUICK TEST - GET YOUR TOKENS AND IDS HERE
+### ============================================
+
+### Step 1: Login as Admin (COPY TOKEN FROM RESPONSE)
+POST {{baseUrl}}/api/auth/verify-otp
+Content-Type: application/json
+
+{
+  "email": "admin@functioninstitute.com",
+  "code": "123456"
+}
+
+# ----------------------------
+# SAVE YOUR TOKEN HERE:
+@adminToken = PASTE_TOKEN_HERE
+# ----------------------------
+
+### Step 2: Get All Students (COPY A STUDENT ID)
+GET {{baseUrl}}/api/students?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+# ----------------------------
+# SAVE A STUDENT ID HERE:
+@studentId = PASTE_STUDENT_ID_HERE
+# ----------------------------
+
+### Step 3: Get Student's Enrollments
+GET {{baseUrl}}/api/students/{{studentId}}/enrollments
+Authorization: Bearer {{adminToken}}
+
+### Step 4: Get Payment Plan (COPY AN INSTALLMENT ID)
+GET {{baseUrl}}/api/payments/student/{{studentId}}/payment-plan
+Authorization: Bearer {{adminToken}}
+
+# ----------------------------
+# SAVE AN INSTALLMENT ID HERE:
+@installmentId = PASTE_INSTALLMENT_ID_HERE
+# ----------------------------
+
+### Step 5: Now use these variables in notifications.http!
+# Copy the values above and paste them in notifications.http

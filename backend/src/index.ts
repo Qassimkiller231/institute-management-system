@@ -8,9 +8,34 @@ import groupRoutes from './routes/group.routes';
 import teacherRoutes from './routes/teacher.routes';
 import studentRoutes from './routes/student.routes';
 import enrollmentRoutes from './routes/enrollment.routes';
-
-
-
+import termRoutes from './routes/term.routes';
+import levelRoutes from './routes/level.routes';
+import venueRoutes from './routes/venue.routes';
+import hallRoutes from './routes/hall.routes';
+import parentRoutes from './routes/parent.routes';
+import phoneRoutes from './routes/phone.routes';
+import sessionRoutes from './routes/session.routes';
+import attendanceRoutes from './routes/attendance.routes';
+import materialRoutes from './routes/material.routes';
+import teacherScheduleRoutes from './routes/teacherSchedule.routes';
+import speakingSlotRoutes from './routes/speakingSlots.routes';
+import testRoutes from './routes/test.routes';
+import testSessionRoutes from './routes/testSession.routes';
+// import financialAnalyticsRoutes from './routes/financialAnalytics.routes';
+// import programAnalyticsRoutes from './routes/programAnalytics.routes';
+// import performanceReportsRoutes from './routes/performanceReports.routes';
+// import dashboardAnalyticsRoutes from './routes/dashboardAnalytics.routes';
+import reportingRoutes from './routes/reporting.routes';
+import progressCriteriaRoutes from './routes/progressCriteria.routes';
+import paymentRoutes from './routes/payment.routes';
+import chatbotRoutes from './routes/chatbot.routes'
+import notificationRoutes from './routes/notification.routes';
+import * as scheduler from './services/notifications/scheduler.service';
+import announcementRoutes from './routes/announcement.routes';
+import smsRoutes from './routes/sms.routes';
+import paymentReminderRoutes from './routes/paymentReminder.routes';
+import attendanceWarningRoutes from './routes/attendanceWarning.routes';
+import emailRoutes from './routes/email.routes';
 
 // Load environment variables
 dotenv.config();
@@ -34,11 +59,40 @@ app.get('/api/health', (req, res) => {
 // Routes
 app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
-app.use('/api', programRoutes);
-app.use('/api', groupRoutes);
-app.use('/api', teacherRoutes);
-app.use('/api', studentRoutes);
-app.use('/api', enrollmentRoutes);
+app.use('/api/programs', programRoutes);
+app.use('/api/groups', groupRoutes);
+app.use('/api/teachers', teacherRoutes);
+app.use('/api/students', studentRoutes);
+app.use('/api/enrollments', enrollmentRoutes);
+app.use('/api/terms', termRoutes);
+app.use('/api/levels', levelRoutes);
+app.use('/api/venues', venueRoutes);
+app.use('/api/halls', hallRoutes);
+app.use('/api/parents', parentRoutes);
+app.use('/api/phones', phoneRoutes);
+app.use('/api/sessions', sessionRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/materials', materialRoutes);
+app.use('/api/teacher-schedules', teacherScheduleRoutes);
+app.use('/api/speaking-slots', speakingSlotRoutes);
+app.use('/api/tests', testRoutes);
+app.use('/api/test-sessions', testSessionRoutes);
+// app.use('/api/reports', financialAnalyticsRoutes);
+// app.use('/api/reports', programAnalyticsRoutes);
+// app.use('/api/reports', performanceReportsRoutes);
+// app.use('/api/reports', dashboardAnalyticsRoutes);
+app.use('/api/progress-criteria', progressCriteriaRoutes);
+app.use('/api/payments', paymentRoutes);
+app.use('/api/reports', reportingRoutes);
+app.use('/api/chatbot', chatbotRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/announcements', announcementRoutes);
+app.use('/api/sms', smsRoutes);
+app.use('/api/payment-reminders', paymentReminderRoutes);
+app.use('/api/attendance-warnings', attendanceWarningRoutes);
+app.use('/api/email', emailRoutes);
+
+scheduler.startScheduler();
 
 
 

@@ -5,37 +5,25 @@ const prisma = new PrismaClient();
 
 /**
  * Create a new student
- * Creates both User and Student records
  */
 export const createStudent = async (data: {
-  // User data
   email?: string;
   phone?: string;
-  
-  // Student personal data
   cpr: string;
   firstName: string;
   secondName?: string;
   thirdName?: string;
   dateOfBirth: string;
   gender: string;
-  
-  // School information
   schoolType?: string;
   schoolYear?: string;
-  
-  // Contact preferences
   preferredTiming?: string;
   preferredCenter?: string;
   needsTransport?: boolean;
-  
-  // Address
   area?: string;
   houseNo?: string;
   road?: string;
   block?: string;
-  
-  // Additional info
   healthIssues?: string;
   howHeardAbout?: string;
   referralPerson?: string;
@@ -60,19 +48,18 @@ export const createStudent = async (data: {
       throw new Error('Email already in use by another user');
     }
   }
-  
 
   // Create User and Student in a transaction
   const result = await prisma.$transaction(async (tx) => {
     // Create User
     const user = await tx.user.create({
-  data: {
-    email: data.email || `student-${data.cpr}@placeholder.local`,
-    phone: data.phone,
-    role: 'STUDENT',
-    isActive: true
-  }
-});
+      data: {
+        email: data.email || `student-${data.cpr}@placeholder.local`,
+        phone: data.phone,
+        role: 'STUDENT',
+        isActive: true
+      }
+    });
 
     // Create Student
     const student = await tx.student.create({
@@ -144,7 +131,6 @@ export const getAllStudents = async (filters: {
   if (filters.schoolYear) where.schoolYear = filters.schoolYear;
   if (filters.preferredCenter) where.preferredCenter = filters.preferredCenter;
   
-  // Search by name, CPR, or email
   if (filters.search) {
     where.OR = [
       { firstName: { contains: filters.search, mode: 'insensitive' } },
@@ -257,6 +243,26 @@ export const getStudentById = async (id: string) => {
         },
         orderBy: { enrollmentDate: 'desc' }
       },
+      // ✅ ADD THIS:
+testSessions: {
+  include: {
+    test: true,
+    speakingSlots: {
+      include: {
+        teacher: {
+          include: {
+            user: {
+              select: {
+                email: true
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  orderBy: { startedAt: 'desc' }
+},
       _count: {
         select: {
           enrollments: true,
@@ -307,31 +313,39 @@ export const updateStudent = async (id: string, updates: {
     throw new Error('Student not found');
   }
 
-  // Check email uniqueness if changing email
-  if (updates.email && updates.email !== existing.email) {
-    const existingEmail = await prisma.user.findUnique({
-      where: { email: updates.email }
-    });
-
-    if (existingEmail && existingEmail.id !== existing.userId) {
-      // Check if it's a PARENT or STUDENT (allowed to share)
-      if (existingEmail.role !== 'PARENT' && existingEmail.role !== 'STUDENT') {
-        throw new Error('Email already in use by another user');
-      }
-    }
-  }
-
   // Update in transaction
   const result = await prisma.$transaction(async (tx) => {
-    // Update User if email changed
-    if (updates.email && updates.email !== existing.user.email) {
+    // CASCADE: If activating/deactivating student, do the same to user
+    if (updates.isActive !== undefined && updates.isActive !== existing.user.isActive) {
       await tx.user.update({
         where: { id: existing.userId },
-        data: { email: updates.email }
+        data: { isActive: updates.isActive }
       });
     }
 
-    // Update Student
+    // Check email uniqueness if changing email
+    if (updates.email && updates.email !== existing.email) {
+      const existingEmail = await tx.user.findUnique({
+        where: { email: updates.email }
+      });
+
+      // If email exists in User table and belongs to different user
+      if (existingEmail && existingEmail.id !== existing.userId) {
+        // Allow sharing ONLY if it's PARENT or STUDENT
+        if (existingEmail.role !== 'PARENT' && existingEmail.role !== 'STUDENT') {
+          throw new Error('Email already in use by another user');
+        }
+        // If sharing with PARENT/STUDENT, DON'T update User table
+      } else if (!existingEmail || existingEmail.id === existing.userId) {
+        // Email is free OR it's the student's own email - can update User table
+        await tx.user.update({
+          where: { id: existing.userId },
+          data: { email: updates.email }
+        });
+      }
+    }
+
+    // Update Student data
     const data: any = {};
     if (updates.firstName !== undefined) data.firstName = updates.firstName;
     if (updates.secondName !== undefined) data.secondName = updates.secondName;
@@ -403,71 +417,22 @@ export const deleteStudent = async (id: string) => {
 };
 
 /**
- * Add phone number to student
- */
-export const addPhone = async (studentId: string, data: {
-  phoneNumber: string;
-  countryCode?: string;
-  isPrimary?: boolean;
-}) => {
-  const student = await prisma.student.findUnique({ where: { id: studentId } });
-  if (!student) {
-    throw new Error('Student not found');
-  }
-
-  // Check if phone already exists
-  const existingPhone = await prisma.phone.findUnique({
-    where: { phoneNumber: data.phoneNumber }
-  });
-
-  if (existingPhone) {
-    throw new Error('Phone number already exists');
-  }
-
-  // If this is primary, unset other primary phones for this student
-  if (data.isPrimary) {
-    await prisma.phone.updateMany({
-      where: { 
-        studentId: studentId,
-        isPrimary: true
-      },
-      data: { isPrimary: false }
-    });
-  }
-
-  const phone = await prisma.phone.create({
-    data: {
-      phoneNumber: data.phoneNumber,
-      countryCode: data.countryCode || '+973',
-      isPrimary: data.isPrimary || false,
-      studentId: studentId,
-      isActive: true
-    }
-  });
-
-  return phone;
-};
-
-/**
  * Link parent to student
  */
 export const linkParent = async (studentId: string, data: {
   parentId: string;
   relationship?: string;
 }) => {
-  // Check if student exists
   const student = await prisma.student.findUnique({ where: { id: studentId } });
   if (!student) {
     throw new Error('Student not found');
   }
 
-  // Check if parent exists
   const parent = await prisma.parent.findUnique({ where: { id: data.parentId } });
   if (!parent) {
     throw new Error('Parent not found');
   }
 
-  // Check if link already exists
   const existingLink = await prisma.parentStudentLink.findFirst({
     where: {
       parentId: data.parentId,
@@ -536,4 +501,94 @@ export const searchStudents = async (query: string, limit: number = 20) => {
   });
 
   return students;
+};
+/**
+ * Get students based on ENROLLMENT filters (for dashboard)
+ * - programId / termId / groupId / venueId
+ * - status: ACTIVE, WITHDREW, LATE_ENROLLMENT, FREE_SEAT, etc.
+ */
+export const getStudentsByEnrollmentFilters = async (filters: {
+  programId?: string;
+  termId?: string;
+  groupId?: string;
+  venueId?: string;
+  status?: string;
+  search?: string;
+  page?: number;
+  limit?: number;
+}) => {
+  const page = filters.page || 1;
+  const limit = filters.limit || 50;
+  const skip = (page - 1) * limit;
+
+  const where: any = {};
+
+  // Enrollment-level filters
+  if (filters.status) where.status = filters.status;
+  if (filters.groupId) where.groupId = filters.groupId;
+
+  // Nested group filters
+  if (filters.programId || filters.termId || filters.venueId) {
+    where.group = {};
+    if (filters.termId) where.group.termId = filters.termId;
+    if (filters.venueId) where.group.venueId = filters.venueId;
+    if (filters.programId) {
+      where.group.term = { programId: filters.programId };
+    }
+  }
+
+  // Search on student fields
+  if (filters.search) {
+    where.student = {
+      OR: [
+        { firstName: { contains: filters.search, mode: 'insensitive' } },
+        { secondName: { contains: filters.search, mode: 'insensitive' } },
+        { thirdName: { contains: filters.search, mode: 'insensitive' } },
+        { cpr: { contains: filters.search } },
+        { email: { contains: filters.search, mode: 'insensitive' } }
+      ]
+    };
+  }
+
+  const [enrollments, total] = await Promise.all([
+    prisma.enrollment.findMany({
+      where,
+      skip,
+      take: limit,
+      include: {
+        student: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                email: true,
+                phone: true,
+                isActive: true,
+                lastLogin: true
+              }
+            }
+          }
+        },
+        group: {
+          include: {
+            level: true,
+            term: { include: { program: true } },
+            venue: true
+          }
+        }
+      },
+      orderBy: { enrollmentDate: 'desc' }
+    }),
+    prisma.enrollment.count({ where })
+  ]);
+
+  return {
+    data: enrollments,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit)
+    }
+  };
 };

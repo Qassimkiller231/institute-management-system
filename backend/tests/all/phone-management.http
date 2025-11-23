@@ -1,0 +1,113 @@
+# phone-management.http
+
+@baseUrl = http://localhost:3001/api
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+
+### Variables (Update these after creating records)
+@phoneId = 9bcddbc1-9e52-4ea5-aec2-60f7eea50de3
+@parentId = 8b22be73-37ab-4248-9668-7c3c0402c826
+@studentId = b9314efd-8a0b-4a78-8a16-099cd6b4a6e9
+
+# ==================== PHONES ====================
+
+### Add Phone for Parent
+POST {{baseUrl}}/phones
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phoneNumber": "+97333111222",
+  "countryCode": "+973",
+  "isPrimary": true,
+  "ownerId": "{{parentId}}",
+  "ownerType": "PARENT"
+}
+
+### Add Phone for Student
+POST {{baseUrl}}/phones
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phoneNumber": "+97333444555",
+  "countryCode": "+973",
+  "isPrimary": true,
+  "ownerId": "{{studentId}}",
+  "ownerType": "STUDENT"
+}
+
+### Add Secondary Phone for Parent
+POST {{baseUrl}}/phones
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phoneNumber": "+97333666777",
+  "countryCode": "+973",
+  "isPrimary": false,
+  "ownerId": "{{parentId}}",
+  "ownerType": "PARENT"
+}
+
+### Get All Phones
+GET {{baseUrl}}/phones
+Authorization: Bearer {{adminToken}}
+
+### Get All Phones with Pagination
+GET {{baseUrl}}/phones?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get Active Phones Only
+GET {{baseUrl}}/phones?isActive=true
+Authorization: Bearer {{adminToken}}
+
+### Get Primary Phones Only
+GET {{baseUrl}}/phones?isPrimary=true
+Authorization: Bearer {{adminToken}}
+
+### Get Phones for Specific Parent
+GET {{baseUrl}}/phones?parentId={{parentId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Phones for Specific Student
+GET {{baseUrl}}/phones?studentId={{studentId}}
+Authorization: Bearer {{adminToken}}
+
+### Search Phones by Number
+GET {{baseUrl}}/phones?search=333
+Authorization: Bearer {{adminToken}}
+
+### Get Phone By ID
+GET {{baseUrl}}/phones/{{phoneId}}
+Authorization: Bearer {{adminToken}}
+
+### Update Phone Number
+PUT {{baseUrl}}/phones/{{phoneId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phoneNumber": "+97333999888"
+}
+
+### Set Phone as Primary
+PUT {{baseUrl}}/phones/{{phoneId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isPrimary": true
+}
+
+### Mark Phone as Verified
+PUT {{baseUrl}}/phones/{{phoneId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "isVerified": true
+}
+
+### Deactivate Phone
+DELETE {{baseUrl}}/phones/{{phoneId}}
+Authorization: Bearer {{adminToken}}

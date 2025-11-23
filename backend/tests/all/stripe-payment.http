@@ -1,0 +1,24 @@
+@baseUrl = http://localhost:3001
+@adminToken = YOUR_ADMIN_TOKEN
+@installmentId = YOUR_INSTALLMENT_ID
+
+### Step 1: Create Payment Intent
+POST {{baseUrl}}/api/payments/stripe/create-intent
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "installmentId": "{{installmentId}}",
+  "amount": 150,
+  "currency": "BHD"
+}
+
+### Step 2: Confirm Payment (after Stripe payment succeeds)
+POST {{baseUrl}}/api/payments/stripe/confirm
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "paymentIntentId": "pi_PASTE_FROM_STEP_1",
+  "installmentId": "{{installmentId}}"
+}

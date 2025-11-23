@@ -1,0 +1,80 @@
+# level-management.http
+
+@baseUrl = http://localhost:3001/api
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+
+### Variables
+@programId = 686b7f25-b713-4e2d-b73b-968673c5e962
+@levelId = 16fb655c-ef9e-4038-895f-e350a5df4604
+
+# ==================== LEVELS ====================
+
+### Create Level - A1
+POST {{baseUrl}}/levels
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "programId": "{{programId}}",
+  "name": "A1",
+  "displayName": "Beginner A1",
+  "orderNumber": 1
+}
+
+### Create Level - A2
+POST {{baseUrl}}/levels
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "programId": "{{programId}}",
+  "name": "A2",
+  "displayName": "Elementary A2",
+  "orderNumber": 2
+}
+
+### Create Level - B1
+POST {{baseUrl}}/levels
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "programId": "{{programId}}",
+  "name": "B1",
+  "displayName": "Intermediate B1",
+  "orderNumber": 3
+}
+
+### Create Level - B2
+POST {{baseUrl}}/levels
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "programId": "{{programId}}",
+  "name": "B2",
+  "displayName": "Upper-Intermediate B2",
+  "orderNumber": 4
+}
+
+### Get All Levels
+GET {{baseUrl}}/levels
+Authorization: Bearer {{adminToken}}
+
+### Get Levels by Program
+GET {{baseUrl}}/levels?programId={{programId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Level By ID
+GET {{baseUrl}}/levels/{{levelId}}
+Authorization: Bearer {{adminToken}}
+
+### Update Level
+PUT {{baseUrl}}/levels/{{levelId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "displayName": "Beginner Level A1",
+  "orderNumber": 1
+}

@@ -1,0 +1,346 @@
+# Attendance Management API Tests
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+# Replace these with actual values (tokens & IDs from DB)
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
+
+# IDs - Replace with actual IDs from your DB
+@studentId1 = 9a617c37-a2ab-47db-9213-d1feac8add95
+@studentId2 = cee2506e-8f68-40df-8fe8-4c5444cecda9
+@studentId3 = b9314efd-8a0b-4a78-8a16-099cd6b4a6e9
+@classSessionId = bea3897d-0a1f-47e0-9cea-87b028b766ad
+@groupId = ce7ad635-c179-46b4-beb0-8cf5fa0404f7
+@termId = 49a33970-5bdf-44f7-8d50-8f4099a58f32
+@attendanceId = ea831e55-e69e-47e1-94e5-a0a7f2f2bbc6
+
+# ==================== AUTHENTICATION ====================
+# First, get tokens from the auth module
+
+### Request OTP (Teacher)
+POST {{baseUrl}}/api/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "teacher@institute.com",
+  "method": "email"
+}
+
+### Verify OTP (Teacher)
+POST {{baseUrl}}/api/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "teacher@institute.com",
+  "code": "123456"
+}
+
+# Copy the token from response and update @teacherToken above
+
+### Request OTP (Admin)
+POST {{baseUrl}}/api/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "method": "email"
+}
+
+### Verify OTP (Admin)
+POST {{baseUrl}}/api/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "code": "123456"
+}
+
+# Copy the token from response and update @adminToken above
+
+# ==================== 1. RECORD SINGLE ATTENDANCE ====================
+
+### Record attendance - Present
+POST {{baseUrl}}/api/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId1}}",
+  "classSessionId": "{{classSessionId}}",
+  "status": "PRESENT",
+  "notes": "On time and engaged"
+}
+
+### Record attendance - Absent
+POST {{baseUrl}}/api/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId2}}",
+  "classSessionId": "{{classSessionId}}",
+  "status": "ABSENT",
+  "notes": "No notification received"
+}
+
+### Record attendance - Late
+POST {{baseUrl}}/api/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId3}}",
+  "classSessionId": "{{classSessionId}}",
+  "status": "LATE",
+  "notes": "Arrived 15 minutes late"
+}
+
+### Record attendance - Excused
+POST {{baseUrl}}/api/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId1}}",
+  "classSessionId": "{{classSessionId}}",
+  "status": "EXCUSED",
+  "notes": "Medical appointment with documentation"
+}
+
+# ==================== 2. BULK RECORD ATTENDANCE ====================
+
+### Bulk record attendance for entire class
+POST {{baseUrl}}/api/attendance/bulk
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "classSessionId": "{{classSessionId}}",
+  "records": [
+    {
+      "studentId": "{{studentId1}}",
+      "status": "PRESENT",
+      "notes": "Participated actively"
+    },
+    {
+      "studentId": "{{studentId2}}",
+      "status": "PRESENT"
+    },
+    {
+      "studentId": "{{studentId3}}",
+      "status": "LATE",
+      "notes": "Late by 10 minutes"
+    }
+  ]
+}
+
+# ==================== 3. GET STUDENT ATTENDANCE ====================
+
+### Get all attendance for a student
+GET {{baseUrl}}/api/attendance/student/{{studentId1}}
+Authorization: Bearer {{teacherToken}}
+
+### Get student attendance filtered by group
+GET {{baseUrl}}/api/attendance/student/{{studentId1}}?groupId={{groupId}}
+Authorization: Bearer {{teacherToken}}
+
+### Get student attendance filtered by term
+GET {{baseUrl}}/api/attendance/student/{{studentId1}}?termId={{termId}}
+Authorization: Bearer {{teacherToken}}
+
+### Get student attendance filtered by date range
+GET {{baseUrl}}/api/attendance/student/{{studentId1}}?startDate=2024-01-01&endDate=2024-12-31
+Authorization: Bearer {{teacherToken}}
+
+### Get student attendance with multiple filters
+GET {{baseUrl}}/api/attendance/student/{{studentId1}}?groupId={{groupId}}&startDate=2024-09-01&endDate=2024-12-31
+Authorization: Bearer {{teacherToken}}
+
+# ==================== 4. GET SESSION ATTENDANCE ====================
+
+### Get all attendance for a class session
+GET {{baseUrl}}/api/attendance/session/{{classSessionId}}
+Authorization: Bearer {{teacherToken}}
+
+# ==================== 5. GET ATTENDANCE STATISTICS ====================
+
+### Get attendance stats for a student (all time)
+GET {{baseUrl}}/api/attendance/student/{{studentId1}}/stats
+Authorization: Bearer {{teacherToken}}
+
+### Get attendance stats for a student in specific group
+GET {{baseUrl}}/api/attendance/student/{{studentId1}}/stats?groupId={{groupId}}
+Authorization: Bearer {{teacherToken}}
+
+### Get attendance stats for a student in specific term
+GET {{baseUrl}}/api/attendance/student/{{studentId1}}/stats?termId={{termId}}
+Authorization: Bearer {{teacherToken}}
+
+### Get attendance stats with date range
+GET {{baseUrl}}/api/attendance/student/{{studentId1}}/stats?startDate=2024-09-01&endDate=2024-12-31
+Authorization: Bearer {{teacherToken}}
+
+# ==================== 6. GET LOW ATTENDANCE STUDENTS ====================
+
+### Get students with attendance below 75% in a group
+GET {{baseUrl}}/api/attendance/group/{{groupId}}/low-attendance
+Authorization: Bearer {{teacherToken}}
+
+### Get students with attendance below 80% (custom threshold)
+GET {{baseUrl}}/api/attendance/group/{{groupId}}/low-attendance?threshold=80
+Authorization: Bearer {{teacherToken}}
+
+### Get students with attendance below 90%
+GET {{baseUrl}}/api/attendance/group/{{groupId}}/low-attendance?threshold=90
+Authorization: Bearer {{teacherToken}}
+
+# ==================== 7. UPDATE ATTENDANCE ====================
+
+### Update attendance status
+PUT {{baseUrl}}/api/attendance/{{attendanceId}}
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "status": "PRESENT"
+}
+
+### Update attendance status and notes
+PUT {{baseUrl}}/api/attendance/{{attendanceId}}
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "status": "EXCUSED",
+  "notes": "Parent provided doctor's note after class"
+}
+
+### Update only notes
+PUT {{baseUrl}}/api/attendance/{{attendanceId}}
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "notes": "Updated information received from parent"
+}
+
+# ==================== 8. DELETE ATTENDANCE ====================
+
+### Delete attendance record
+DELETE {{baseUrl}}/api/attendance/{{attendanceId}}
+Authorization: Bearer {{teacherToken}}
+
+# ==================== 9. ERROR CASES ====================
+
+### Invalid status code
+POST {{baseUrl}}/api/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId1}}",
+  "classSessionId": "{{classSessionId}}",
+  "status": "X"
+}
+
+### Missing required fields
+POST {{baseUrl}}/api/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId1}}"
+}
+
+### Duplicate attendance record
+POST {{baseUrl}}/api/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId1}}",
+  "classSessionId": "{{classSessionId}}",
+  "status": "PRESENT"
+}
+
+### Non-existent student
+POST {{baseUrl}}/api/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "studentId": "00000000-0000-0000-0000-000000000000",
+  "classSessionId": "{{classSessionId}}",
+  "status": "PRESENT"
+}
+
+### Non-existent class session
+POST {{baseUrl}}/api/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId1}}",
+  "classSessionId": "00000000-0000-0000-0000-000000000000",
+  "status": "PRESENT"
+}
+
+### Invalid threshold (over 100)
+GET {{baseUrl}}/api/attendance/group/{{groupId}}/low-attendance?threshold=150
+Authorization: Bearer {{teacherToken}}
+
+### Invalid threshold (negative)
+GET {{baseUrl}}/api/attendance/group/{{groupId}}/low-attendance?threshold=-10
+Authorization: Bearer {{teacherToken}}
+
+# ==================== 10. ADMIN TESTS ====================
+
+### Admin can record attendance
+POST {{baseUrl}}/api/attendance
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId1}}",
+  "classSessionId": "{{classSessionId}}",
+  "status": "PRESENT",
+  "teacherId": "fd435948-d4a9-44ac-8f4e-e8c9887f696d"
+}
+
+### Admin can view attendance
+GET {{baseUrl}}/api/attendance/student/{{studentId1}}
+Authorization: Bearer {{adminToken}}
+
+### Admin can update attendance
+PUT {{baseUrl}}/api/attendance/{{attendanceId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "status": "EXCUSED",
+  "notes": "Admin correction"
+}
+
+### Admin can delete attendance
+DELETE {{baseUrl}}/api/attendance/{{attendanceId}}
+Authorization: Bearer {{adminToken}}
+
+# ==================== NOTES ====================
+#
+# Status codes:
+# - PRESENT
+# - ABSENT
+# - LATE
+# - EXCUSED
+#
+# Access Control:
+# - Teachers: can record, view, and update attendance for their classes
+# - Admins: full access
+# - Students/Parents: no direct access (should be 403)
+#
+# Attendance rate (example):
+#   (PRESENT + LATE) / Total Sessions * 100
+#

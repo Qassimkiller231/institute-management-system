@@ -12,15 +12,15 @@ router.use(authenticate);
 // ==================== TEACHERS ====================
 
 // Admin only for create/update/delete
-router.post('/teachers', requireAdmin, teacherController.createTeacher);
-router.put('/teachers/:id', requireAdmin, teacherController.updateTeacher);
-router.delete('/teachers/:id', requireAdmin, teacherController.deleteTeacher);
-router.put('/teachers/:id/availability', requireAdmin, teacherController.toggleAvailability);
+router.post('/', requireAdmin, teacherController.createTeacher);
+router.put('/:id', requireAdmin, teacherController.updateTeacher);
+router.delete('/:id', requireAdmin, teacherController.deleteTeacher);
+router.put('/:id/availability', requireAdmin, teacherController.toggleAvailability);
 
 // Admin or Teacher can view teachers
-router.get('/teachers/search', requireTeacherOrAdmin, teacherController.searchTeachers);
-router.get('/teachers/available', requireTeacherOrAdmin, teacherController.getAvailableTeachers);
-router.get('/teachers', requireTeacherOrAdmin, teacherController.getAllTeachers);
-router.get('/teachers/:id', requireTeacherOrAdmin, teacherController.getTeacherById);
+router.get('/search', requireTeacherOrAdmin, teacherController.searchTeachers);
+router.get('/available', requireTeacherOrAdmin, teacherController.getAvailableTeachers);
+router.get('/', requireTeacherOrAdmin, teacherController.getAllTeachers);
+router.get('/:id', requireTeacherOrAdmin, teacherController.getTeacherById);
 
 export default router;

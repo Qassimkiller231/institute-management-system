@@ -1,0 +1,90 @@
+### reporting.http
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+
+# Placeholders - Replace with actual IDs from your database
+@programId = YOUR_PROGRAM_ID
+@termId = YOUR_TERM_ID
+@groupId = YOUR_GROUP_ID
+@teacherId = YOUR_TEACHER_ID
+@studentId = YOUR_STUDENT_ID
+@enrollmentId = YOUR_ENROLLMENT_ID
+
+# ===========================================
+# REPORTING & ANALYTICS API TESTS
+# ===========================================
+GET http://localhost:3001/api/test-sessions
+Authorization: Bearer {{adminToken}}
+
+### 1. Admin Dashboard (all data)
+GET {{baseUrl}}/api/reports/dashboard/admin
+Authorization: Bearer {{adminToken}}
+
+### 2. Admin Dashboard (filtered by term)
+GET {{baseUrl}}/api/reports/dashboard/admin?termId={{termId}}
+Authorization: Bearer {{adminToken}}
+
+### 3. Teacher Dashboard
+GET {{baseUrl}}/api/reports/dashboard/teacher/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+
+### 4. Group Performance Report (full term)
+GET {{baseUrl}}/api/reports/performance/group/{{groupId}}
+Authorization: Bearer {{adminToken}}
+
+### 5. Group Performance Report (with date range)
+GET {{baseUrl}}/api/reports/performance/group/{{groupId}}?startDate=2025-01-01&endDate=2025-12-31
+Authorization: Bearer {{adminToken}}
+
+### 6. Student Performance Report (latest enrollment)
+GET {{baseUrl}}/api/reports/performance/student/{{studentId}}
+Authorization: Bearer {{adminToken}}
+
+### 7. Student Performance Report (specific enrollment)
+GET {{baseUrl}}/api/reports/performance/student/{{studentId}}?enrollmentId={{enrollmentId}}
+Authorization: Bearer {{adminToken}}
+
+### 8. At-Risk Students (all)
+GET {{baseUrl}}/api/reports/at-risk
+Authorization: Bearer {{adminToken}}
+
+### 9. At-Risk Students (by group)
+GET {{baseUrl}}/api/reports/at-risk?groupId={{groupId}}
+Authorization: Bearer {{adminToken}}
+
+### 10. At-Risk Students (custom threshold 70%)
+GET {{baseUrl}}/api/reports/at-risk?groupId={{groupId}}&threshold=70
+Authorization: Bearer {{adminToken}}
+
+### 11. Monthly Program Dues (current year)
+GET {{baseUrl}}/api/reports/financial/monthly
+Authorization: Bearer {{adminToken}}
+
+### 12. Monthly Program Dues (specific year)
+GET {{baseUrl}}/api/reports/financial/monthly?year=2025
+Authorization: Bearer {{adminToken}}
+
+### 13. Term Dues Overview
+GET {{baseUrl}}/api/reports/financial/term/{{termId}}
+Authorization: Bearer {{adminToken}}
+
+### 14. Program Student Overview (THIS WAS FAILING - NOW FIXED!)
+GET {{baseUrl}}/api/reports/program/{{programId}}/summary
+Authorization: Bearer {{adminToken}}
+
+### 15. Placement Test Summary (THIS WAS FAILING - NOW FIXED!)
+GET {{baseUrl}}/api/reports/program/placement-summary
+Authorization: Bearer {{adminToken}}
+
+### 16. Trends (last 6 months)
+GET {{baseUrl}}/api/reports/trends
+Authorization: Bearer {{adminToken}}
+
+### 17. Trends (last 12 months)
+GET {{baseUrl}}/api/reports/trends?monthsBack=12
+Authorization: Bearer {{adminToken}}
+
+### 18. Trends (last 3 months)
+GET {{baseUrl}}/api/reports/trends?monthsBack=3
+Authorization: Bearer {{adminToken}}

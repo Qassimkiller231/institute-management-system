@@ -1,0 +1,181 @@
+# Placement Test End-to-End Flow
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
+
+@studentId = student-id-here
+@teacherId = fd435948-d4a9-44ac-8f4e-e8c9887f696d
+@levelId = level-id-here
+
+@testId = test-id-here
+@testSessionId = test-session-id-here
+@speakingSlotId = speaking-slot-id-here
+
+# ==================== 1. CREATE TEST + QUESTIONS ====================
+
+### [STEP 1] Create Placement Test (Admin)
+POST {{baseUrl}}/api/tests
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "EM Placement Test - Flow Demo",
+  "testType": "PLACEMENT",
+  "levelId": null,
+  "totalQuestions": 3,
+  "durationMinutes": 30,
+  "isActive": true
+}
+
+# → Copy "id" from response into @testId
+
+### [STEP 2] Add Question 1
+POST {{baseUrl}}/api/tests/{{testId}}/questions
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "questionText": "What is the past tense of 'go'?",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["went", "goed", "gone", "going"],
+  "correctAnswer": "went",
+  "points": 1,
+  "orderNumber": 1
+}
+
+### [STEP 3] Add Question 2
+POST {{baseUrl}}/api/tests/{{testId}}/questions
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "questionText": "Choose the correct sentence:",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": [
+    "He go to school every day.",
+    "He goes to school every day.",
+    "He going to school every day.",
+    "He is go to school every day."
+  ],
+  "correctAnswer": "He goes to school every day.",
+  "points": 1,
+  "orderNumber": 2
+}
+
+# ==================== 2. START SESSION & SUBMIT MCQ ====================
+
+### [STEP 4] Start Test Session
+POST {{baseUrl}}/api/test-sessions/start
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "testId": "{{testId}}",
+  "studentId": "{{studentId}}"
+}
+
+# → Copy "id" into @testSessionId
+
+### [STEP 5] Get Questions for Session
+GET {{baseUrl}}/api/test-sessions/{{testSessionId}}/questions
+
+### [STEP 6] Submit MCQ Answers
+POST {{baseUrl}}/api/test-sessions/{{testSessionId}}/submit-mcq
+Content-Type: application/json
+
+{
+  "answers": {
+    "question-uuid-1": "went",
+    "question-uuid-2": "He goes to school every day."
+  }
+}
+
+# ==================== 3. GENERATE & VIEW SPEAKING SLOTS ====================
+
+### [STEP 7] Create Teacher Template (Admin)
+POST {{baseUrl}}/api/teacher-schedules/templates
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "{{teacherId}}",
+  "dayOfWeek": 1,
+  "startTime": "10:00",
+  "endTime": "12:00"
+}
+
+### [STEP 8] Generate Speaking Slots (Admin)
+POST {{baseUrl}}/api/teacher-schedules/generate-slots
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "{{teacherId}}",
+  "startDate": "2025-10-20",
+  "endDate": "2025-10-27",
+  "slotDuration": 15
+}
+
+### [STEP 9] List Available Speaking Slots
+GET {{baseUrl}}/api/speaking-slots/available?startDate=2025-10-20&endDate=2025-10-27
+Authorization: Bearer {{adminToken}}
+
+# → Pick one slot.id and set @speakingSlotId
+
+# ==================== 4. BOOK SPEAKING & SUBMIT RESULT ====================
+
+### [STEP 10] Book Slot for This Session
+POST {{baseUrl}}/api/speaking-slots/book
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "{{testSessionId}}",
+  "slotId": "{{speakingSlotId}}",
+  "studentId": "{{studentId}}"
+}
+
+### [STEP 11] Submit Speaking Result (Teacher)
+POST {{baseUrl}}/api/speaking-slots/submit-result
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "sessionId": "{{testSessionId}}",
+  "slotId": "{{speakingSlotId}}",
+  "score": 85.5,
+  "feedback": "Confident, good fluency; a few grammar errors with past tenses."
+}
+
+# ==================== 5. FINALIZE & REVIEW RESULTS ====================
+
+### [STEP 12] Finalize Placement Result (Admin)
+POST {{baseUrl}}/api/test-sessions/{{testSessionId}}/finalize
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "finalLevelId": "{{levelId}}",
+  "recommendation": "Place student in A2 bridging group.",
+  "passed": true
+}
+
+### [STEP 13] View Final Session Summary
+GET {{baseUrl}}/api/test-sessions/{{testSessionId}}
+Authorization: Bearer {{adminToken}}
+
+# ==================== NOTES ====================
+#
+# This file runs a full placement pipeline:
+# 1) Admin creates test + questions
+# 2) Admin starts MCQ session for a student
+# 3) Student (or admin) submits MCQ answers
+# 4) Admin generates speaking slots from teacher schedule
+# 5) Admin books a slot for the test session
+# 6) Teacher submits speaking score
+# 7) Admin finalizes level decision
+#
+# Use it once your individual endpoints are green.

@@ -1,0 +1,40 @@
+# Program & Placement Analytics API Tests
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
+
+@programId = 742f6b2d-eb68-4b8c-afdd-c2af2c18b9d6
+
+# ==================== PROGRAM OVERVIEW ====================
+
+### Program Student Overview (Admin)
+GET {{baseUrl}}/api/reports/program/{{programId}}
+Authorization: Bearer {{adminToken}}
+
+### Program Student Overview (Teacher)
+GET {{baseUrl}}/api/reports/program/{{programId}}
+Authorization: Bearer {{teacherToken}}
+
+### Program Student Overview – Invalid ID
+GET {{baseUrl}}/api/reports/program/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+### Program Student Overview – No Token
+GET {{baseUrl}}/api/reports/program/{{programId}}
+
+# ==================== PLACEMENT TEST SUMMARY ====================
+
+### Placement Test Summary (Admin)
+GET {{baseUrl}}/api/reports/placement-tests
+Authorization: Bearer {{adminToken}}
+
+### Placement Test Summary (Teacher)
+GET {{baseUrl}}/api/reports/placement-tests
+Authorization: Bearer {{teacherToken}}
+
+### Placement Test Summary – No Token
+GET {{baseUrl}}/api/reports/placement-tests

@@ -1,0 +1,391 @@
+### ========================================
+### ADMIN WORKFLOW - COMPLETE END-TO-END
+### Institute Management System
+### ========================================
+
+@baseUrl = http://localhost:3001/api
+@adminToken = your_admin_token_here
+@teacherId = teacher_id_here
+@studentId = student_id_here
+@groupId = group_id_here
+@enrollmentId = enrollment_id_here
+@programId =
+@venueId=
+@userId=
+@termId=
+@levelId=
+@hallId=
+@installmentId=
+@sessionId=
+@fullGroupId=
+@studentToken=
+
+
+
+### ========================================
+### WORKFLOW 1: SETUP ACADEMIC STRUCTURE
+### ========================================
+
+### 1.1 Create Program
+POST {{baseUrl}}/programs
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "English Multiverse",
+  "code": "EM-2025",
+  "description": "English program for ages 11-17",
+  "minAge": 11,
+  "maxAge": 17
+}
+
+### 1.2 Create Term
+POST {{baseUrl}}/terms
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "programId": "{{programId}}",
+  "name": "Fall 2025",
+  "startDate": "2025-09-01",
+  "endDate": "2025-12-31",
+  "isCurrent": true
+}
+
+### 1.3 Create Levels
+POST {{baseUrl}}/levels
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "A1",
+  "displayName": "Beginner A1",
+  "orderNumber": 1,
+  "description": "Beginner level"
+}
+
+### 1.4 Create Venue
+POST {{baseUrl}}/venues
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Country Mall",
+  "code": "CM",
+  "address": "Country Mall, Bahrain"
+}
+
+### 1.5 Create Hall
+POST {{baseUrl}}/halls
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "venueId": "{{venueId}}",
+  "name": "Hall 1",
+  "code": "H1",
+  "capacity": 20,
+  "floor": "Ground Floor"
+}
+
+### ========================================
+### WORKFLOW 2: CREATE TEACHER & GROUP
+### ========================================
+
+### 2.1 Create Teacher User
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "teacher1@test.com",
+  "phone": "+97333333333",
+  "role": "TEACHER"
+}
+
+### 2.2 Create Teacher Profile
+POST {{baseUrl}}/teachers
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "firstName": "Ahmed",
+  "lastName": "Hassan",
+  "specialization": "English Language",
+  "availableForSpeakingTests": true
+}
+
+### 2.3 Create Group
+POST {{baseUrl}}/groups
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "levelId": "{{levelId}}",
+  "teacherId": "{{teacherId}}",
+  "venueId": "{{venueId}}",
+  "groupCode": "EM-A1-001",
+  "name": "English Multiverse A1 - Group 1",
+  "schedule": {
+    "days": ["Sunday", "Tuesday"],
+    "time": "18:00-20:00"
+  },
+  "capacity": 15
+}
+
+### 2.4 Create Class Sessions (Auto-generate)
+POST {{baseUrl}}/class-sessions/generate
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}",
+  "startDate": "2025-09-01",
+  "endDate": "2025-12-31",
+  "days": [0, 2],
+  "startTime": "18:00",
+  "endTime": "20:00",
+  "hallId": "{{hallId}}"
+}
+
+### ========================================
+### WORKFLOW 3: STUDENT REGISTRATION
+### ========================================
+
+### 3.1 Register Student User
+POST {{baseUrl}}/users
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "student1@test.com",
+  "phone": "+97344444444",
+  "role": "STUDENT"
+}
+
+### 3.2 Create Student Profile
+POST {{baseUrl}}/students
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "cpr": "123456789",
+  "firstName": "Mohammed",
+  "secondName": "Ali",
+  "thirdName": "Ahmed",
+  "dateOfBirth": "2010-05-15",
+  "gender": "Male",
+  "schoolType": "Government",
+  "email": "student1@test.com",
+  "preferredTiming": "Evening",
+  "preferredCenter": "Country Mall",
+  "area": "Manama",
+  "houseNo": "123",
+  "road": "1",
+  "block": "301"
+}
+
+### 3.3 Create Enrollment
+POST {{baseUrl}}/enrollments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "groupId": "{{groupId}}",
+  "enrollmentDate": "2025-09-01",
+  "status": "ACTIVE"
+}
+
+### ========================================
+### WORKFLOW 4: PAYMENT SETUP
+### ========================================
+
+### 4.1 Create Payment Plan
+POST {{baseUrl}}/payments/plans
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "enrollmentId": "{{enrollmentId}}",
+  "totalInstallments": 4,
+  "defaultFees": 600.00,
+  "totalDues": 600.00
+}
+
+### 4.2 Record First Payment
+POST {{baseUrl}}/payments/installments/{{installmentId}}/pay
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "paymentMethod": "CASH",
+  "receiptNumber": "REC-2025-001"
+}
+
+### 4.3 Generate Receipt
+GET {{baseUrl}}/payments/installments/{{installmentId}}/receipt
+Authorization: Bearer {{adminToken}}
+
+### ========================================
+### WORKFLOW 5: VIEW REPORTS
+### ========================================
+
+### 5.1 Dashboard Statistics
+GET {{baseUrl}}/analytics/dashboard
+Authorization: Bearer {{adminToken}}
+
+### 5.2 Program Analytics
+GET {{baseUrl}}/analytics/programs/{{programId}}
+Authorization: Bearer {{adminToken}}
+
+### 5.3 Attendance Report
+GET {{baseUrl}}/analytics/attendance?groupId={{groupId}}
+Authorization: Bearer {{adminToken}}
+
+### 5.4 Financial Report
+GET {{baseUrl}}/analytics/financial?startDate=2025-09-01&endDate=2025-12-31
+Authorization: Bearer {{adminToken}}
+
+### 5.5 Export Attendance to Excel
+GET {{baseUrl}}/analytics/attendance/export?groupId={{groupId}}&format=excel
+Authorization: Bearer {{adminToken}}
+
+### ========================================
+### WORKFLOW 6: MANAGE STUDENTS
+### ========================================
+
+### 6.1 Get All Students (Paginated)
+GET {{baseUrl}}/students?page=1&limit=10&isActive=true
+Authorization: Bearer {{adminToken}}
+
+### 6.2 Search Students
+GET {{baseUrl}}/students/search?query=Mohammed
+Authorization: Bearer {{adminToken}}
+
+### 6.3 Get Student Details
+GET {{baseUrl}}/students/{{studentId}}
+Authorization: Bearer {{adminToken}}
+
+### 6.4 Update Student
+PUT {{baseUrl}}/students/{{studentId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "updated@test.com",
+  "preferredTiming": "Morning"
+}
+
+### 6.5 Deactivate Student
+DELETE {{baseUrl}}/students/{{studentId}}
+Authorization: Bearer {{adminToken}}
+
+### ========================================
+### WORKFLOW 7: PLACEMENT TEST MANAGEMENT
+### ========================================
+
+### 7.1 View Pending Tests
+GET {{baseUrl}}/tests/sessions?status=COMPLETED
+Authorization: Bearer {{adminToken}}
+
+### 7.2 Assign Final Level
+PUT {{baseUrl}}/tests/sessions/{{sessionId}}/assign-level
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "finalLevelId": "{{levelId}}",
+  "recommendation": "Student shows strong fundamentals"
+}
+
+### 7.3 Move to Enrollment
+POST {{baseUrl}}/enrollments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "groupId": "{{groupId}}",
+  "enrollmentDate": "2025-09-01",
+  "status": "ACTIVE"
+}
+
+### ========================================
+### WORKFLOW 8: AUDIT & LOGS
+### ========================================
+
+### 8.1 View Audit Logs
+GET {{baseUrl}}/audit-logs?page=1&limit=50
+Authorization: Bearer {{adminToken}}
+
+### 8.2 Filter by Action
+GET {{baseUrl}}/audit-logs?action=CREATE&tableName=students
+Authorization: Bearer {{adminToken}}
+
+### 8.3 Filter by Date Range
+GET {{baseUrl}}/audit-logs?startDate=2025-09-01&endDate=2025-09-30
+Authorization: Bearer {{adminToken}}
+
+### ========================================
+### EDGE CASES & ERROR TESTING
+### ========================================
+
+### EC-1: Duplicate CPR
+POST {{baseUrl}}/students
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "userId": "{{userId}}",
+  "cpr": "123456789",
+  "firstName": "Test",
+  "dateOfBirth": "2010-01-01",
+  "gender": "Male"
+}
+# Expected: 400 - CPR already exists
+
+### EC-2: Group Capacity Exceeded
+POST {{baseUrl}}/enrollments
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "groupId": "{{fullGroupId}}",
+  "enrollmentDate": "2025-09-01"
+}
+# Expected: 400 - Group is full
+
+### EC-3: Invalid Date Range
+POST {{baseUrl}}/terms
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "programId": "{{programId}}",
+  "name": "Invalid Term",
+  "startDate": "2025-12-31",
+  "endDate": "2025-09-01"
+}
+# Expected: 400 - End date before start date
+
+### EC-4: Unauthorized Access
+GET {{baseUrl}}/students
+Authorization: Bearer {{studentToken}}
+# Expected: 403 - Forbidden
+
+### EC-5: Payment Exceeds Balance
+POST {{baseUrl}}/payments/installments/{{installmentId}}/pay
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "paymentMethod": "CASH",
+  "paymentAmount": 999999,
+  "receiptNumber": "REC-OVER"
+}
+# Expected: 400 - Amount exceeds due

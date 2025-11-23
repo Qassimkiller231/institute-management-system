@@ -1,0 +1,128 @@
+# group-management.http
+
+@baseUrl = http://localhost:3001/api
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
+
+### Variables (Update these after creating records)
+@termId = 49a33970-5bdf-44f7-8d50-8f4099a58f32
+@levelId = 16fb655c-ef9e-4038-895f-e350a5df4604
+@teacherId = fd435948-d4a9-44ac-8f4e-e8c9887f696d
+@venueId = f41e8e8e-ba98-479f-92bf-65138882e64b
+@groupId = ce7ad635-c179-46b4-beb0-8cf5fa0404f7
+
+# ==================== GROUPS ====================
+
+### Create Group
+POST {{baseUrl}}/groups
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "levelId": "{{levelId}}",
+  "teacherId": "{{teacherId}}",
+  "venueId": "{{venueId}}",
+  "groupCode": "EM-A1-01",
+  "name": "English Multiverse A1 - Group 1",
+  "capacity": 20,
+  "schedule": {
+    "days": ["Sunday", "Tuesday", "Thursday"],
+    "time": "16:00-18:00"
+  }
+}
+
+### Create Another Group
+POST {{baseUrl}}/groups
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "termId": "{{termId}}",
+  "levelId": "{{levelId}}",
+  "groupCode": "EM-A2-01",
+  "name": "English Multiverse A2 - Group 1",
+  "capacity": 15,
+  "schedule": {
+    "days": ["Monday", "Wednesday"],
+    "time": "18:00-20:00"
+  }
+}
+
+### Get All Groups
+GET {{baseUrl}}/groups
+Authorization: Bearer {{adminToken}}
+
+### Get All Groups with Pagination
+GET {{baseUrl}}/groups?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get Groups by Term
+GET {{baseUrl}}/groups?termId={{termId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Groups by Level
+GET {{baseUrl}}/groups?levelId={{levelId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Groups by Teacher
+GET {{baseUrl}}/groups?teacherId={{teacherId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Groups by Venue
+GET {{baseUrl}}/groups?venueId={{venueId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Active Groups Only
+GET {{baseUrl}}/groups?isActive=true
+Authorization: Bearer {{adminToken}}
+
+### Get Group By ID
+GET {{baseUrl}}/groups/{{groupId}}
+Authorization: Bearer {{adminToken}}
+
+### Update Group
+PUT {{baseUrl}}/groups/{{groupId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "English Multiverse A1 - Group 1 Updated",
+  "capacity": 22,
+  "isActive": true
+}
+
+### Assign Teacher to Group
+PATCH {{baseUrl}}/groups/{{groupId}}/assign-teacher
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "{{teacherId}}"
+}
+
+### Update Group Schedule
+PATCH {{baseUrl}}/groups/{{groupId}}/schedule
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "schedule": {
+    "days": ["Sunday", "Tuesday", "Thursday"],
+    "time": "17:00-19:00"
+  }
+}
+
+### Deactivate Group
+DELETE {{baseUrl}}/groups/{{groupId}}
+Authorization: Bearer {{adminToken}}
+
+# ==================== SCHEDULE CONFLICTS ====================
+
+### Check Schedule Conflicts
+GET {{baseUrl}}/groups/schedules/conflicts?venueId={{venueId}}&date=2025-12-01&startTime=16:00:00&endTime=18:00:00
+Authorization: Bearer {{adminToken}}
+
+### Check Schedule Conflicts (Excluding Group)
+GET {{baseUrl}}/groups/schedules/conflicts?venueId={{venueId}}&date=2025-12-01&startTime=16:00:00&endTime=18:00:00&excludeGroupId={{groupId}}
+Authorization: Bearer {{adminToken}}

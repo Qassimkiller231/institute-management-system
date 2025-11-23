@@ -41,8 +41,9 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
  */
 export const getAllStudents = async (req: AuthRequest, res: Response) => {
   try {
-    const filters = {
-      isActive: req.query.isActive === 'true' ? true : 
+    // Common filters
+    const baseFilters = {
+      isActive: req.query.isActive === 'true' ? true :
                 req.query.isActive === 'false' ? false : undefined,
       gender: req.query.gender as string,
       schoolType: req.query.schoolType as string,
@@ -53,7 +54,28 @@ export const getAllStudents = async (req: AuthRequest, res: Response) => {
       limit: req.query.limit ? parseInt(req.query.limit as string) : 50
     };
 
-    const result = await studentService.getAllStudents(filters);
+    // Enrollment-based filters (for dashboard)
+    const enrollmentFilters = {
+      programId: req.query.programId as string | undefined,
+      termId: req.query.termId as string | undefined,
+      groupId: req.query.groupId as string | undefined,
+      venueId: req.query.venueId as string | undefined,
+      status: req.query.status as string | undefined,
+      search: baseFilters.search,
+      page: baseFilters.page,
+      limit: baseFilters.limit
+    };
+
+    const hasEnrollmentFilter =
+      enrollmentFilters.programId ||
+      enrollmentFilters.termId ||
+      enrollmentFilters.groupId ||
+      enrollmentFilters.venueId ||
+      enrollmentFilters.status;
+
+    const result = hasEnrollmentFilter
+      ? await studentService.getStudentsByEnrollmentFilters(enrollmentFilters)
+      : await studentService.getAllStudents(baseFilters);
 
     res.status(200).json({
       success: true,
@@ -75,26 +97,26 @@ export const getAllStudents = async (req: AuthRequest, res: Response) => {
 export const getStudentById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-
-    const result = await studentService.getStudentById(id);
-
-    res.status(200).json({
-      success: true,
-      data: result
-    });
-  } catch (error: any) {
-    console.error('Get student by ID error:', error);
     
-    if (error.message === 'Student not found') {
-      return res.status(404).json({
+    // Security: Students can only view their own data
+    if (req.user?.role === 'STUDENT' && req.user?.studentId !== id) {
+      return res.status(403).json({
         success: false,
-        message: error.message
+        message: 'Insufficient permissions'
       });
     }
 
-    res.status(500).json({
+    const student = await studentService.getStudentById(id);
+
+    return res.status(200).json({
+      success: true,
+      data: student
+    });
+  } catch (error: any) {
+    console.error('getStudentById error:', error);
+    return res.status(400).json({
       success: false,
-      message: error.message || 'Failed to fetch student'
+      message: error.message || 'Failed to get student'
     });
   }
 };
@@ -167,33 +189,6 @@ export const deleteStudent = async (req: AuthRequest, res: Response) => {
  * POST /api/students/:id/phones
  * Add phone number to student
  */
-export const addPhone = async (req: AuthRequest, res: Response) => {
-  try {
-    const { id } = req.params;
-    const data = req.body;
-
-    if (!data.phoneNumber) {
-      return res.status(400).json({
-        success: false,
-        message: 'Phone number is required'
-      });
-    }
-
-    const result = await studentService.addPhone(id, data);
-
-    res.status(201).json({
-      success: true,
-      message: 'Phone number added successfully',
-      data: result
-    });
-  } catch (error: any) {
-    console.error('Add phone error:', error);
-    res.status(400).json({
-      success: false,
-      message: error.message || 'Failed to add phone number'
-    });
-  }
-};
 
 /**
  * POST /api/students/:id/parents

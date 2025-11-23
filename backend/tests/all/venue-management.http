@@ -1,0 +1,54 @@
+# venue-management.http
+
+@baseUrl = http://localhost:3001/api
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+
+### Variables
+@venueId = f41e8e8e-ba98-479f-92bf-65138882e64b
+
+# ==================== VENUES ====================
+
+### Create Venue - Country Mall
+POST {{baseUrl}}/venues
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Country Mall",
+  "code":"CM",
+  "address": "Country Mall, Saar",
+  "city": "Saar",
+  "isActive": true
+}
+
+### Create Venue - Riyadat Mall
+POST {{baseUrl}}/venues
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Riyadat Mall",
+  "code":"RM",
+  "address": "Riyadat Mall, Isa Town",
+  "city": "Isa Town",
+  "isActive": true
+}
+
+### Get All Venues
+GET {{baseUrl}}/venues
+Authorization: Bearer {{adminToken}}
+
+### Get Venue By ID
+GET {{baseUrl}}/venues/{{venueId}}
+Authorization: Bearer {{adminToken}}
+
+### Update Venue
+PUT {{baseUrl}}/venues/{{venueId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "Country Mall - Updated",
+  "address": "Country Mall, Saar, Bahrain",
+  "isActive": true
+}

@@ -1,0 +1,49 @@
+@baseUrl = http://localhost:3001
+@adminToken = YOUR_ADMIN_TOKEN_HERE
+
+### ============================================
+### CHATBOT (ADMIN ONLY)
+### ============================================
+
+### 1. Send message to chatbot
+POST {{baseUrl}}/api/chatbot/query
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "message": "What is the overall attendance?"
+}
+
+### 2. Send message about payments
+POST {{baseUrl}}/api/chatbot/query
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "message": "Show me payment summary"
+}
+
+### 3. Send message about schedule
+POST {{baseUrl}}/api/chatbot/query
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "message": "What classes are coming up?"
+}
+
+### 4. Get chat history
+GET {{baseUrl}}/api/chatbot/history?limit=20
+Authorization: Bearer {{adminToken}}
+
+### 5. Get weekly summary
+GET {{baseUrl}}/api/chatbot/summary/weekly
+Authorization: Bearer {{adminToken}}
+
+### 6. Get all FAQs
+GET {{baseUrl}}/api/chatbot/faqs
+Authorization: Bearer {{adminToken}}
+
+### 7. Clear chat history
+DELETE {{baseUrl}}/api/chatbot/history
+Authorization: Bearer {{adminToken}}

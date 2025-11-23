@@ -1,0 +1,44 @@
+# program-management.http
+
+@baseUrl = http://localhost:3001/api
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+
+### Variables (Update these after creating records)
+@programId = 742f6b2d-eb68-4b8c-afdd-c2af2c18b9d6
+@termId = 
+@levelId = 
+
+# ==================== PROGRAMS ====================
+
+### Create Program
+POST {{baseUrl}}/programs
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "English for big people",
+  "code": "EFBP",
+  "description": "English program for ages 11-17"
+}
+
+### Get All Programs
+GET {{baseUrl}}/programs
+Authorization: Bearer {{adminToken}}
+
+### Get Program By ID
+GET {{baseUrl}}/programs/{{programId}}
+Authorization: Bearer {{adminToken}}
+
+### Update Program
+PUT {{baseUrl}}/programs/{{programId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "English Multiverse Updated",
+  "description": "Updated description"
+}
+
+### Delete Program
+DELETE {{baseUrl}}/programs/{{programId}}
+Authorization: Bearer {{adminToken}}

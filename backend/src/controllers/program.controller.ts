@@ -1,6 +1,10 @@
 // src/controllers/program.controller.ts
 import { Request, Response } from 'express';
 import * as programService from '../services/program.service';
+import * as termService from '../services/term.service';
+import * as levelService from '../services/level.service';
+import * as venueService from '../services/venue.service';
+import * as hallService from '../services/hall.service';
 
 // ==================== PROGRAMS ====================
 
@@ -128,7 +132,7 @@ export const createTerm = async (req: Request, res: Response) => {
       });
     }
 
-    const term = await programService.createTerm({
+    const term = await termService.createTerm({
       programId,
       name,
       startDate,
@@ -156,7 +160,7 @@ export const getAllTerms = async (req: Request, res: Response) => {
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
 
-    const result = await programService.getAllTerms({
+    const result = await termService.getAllTerms({
       programId,
       isCurrent,
       isActive,
@@ -180,7 +184,7 @@ export const getAllTerms = async (req: Request, res: Response) => {
 export const getTermById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const term = await programService.getTermById(id);
+    const term = await termService.getTermById(id);
 
     res.json({
       success: true,
@@ -199,7 +203,7 @@ export const updateTerm = async (req: Request, res: Response) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const term = await programService.updateTerm(id, updates);
+    const term = await termService.updateTerm(id, updates);
 
     res.json({
       success: true,
@@ -228,7 +232,7 @@ export const createLevel = async (req: Request, res: Response) => {
       });
     }
 
-    const level = await programService.createLevel({
+    const level = await levelService.createLevel({
       name,
       displayName,
       orderNumber,
@@ -251,7 +255,7 @@ export const createLevel = async (req: Request, res: Response) => {
 
 export const getAllLevels = async (req: Request, res: Response) => {
   try {
-    const levels = await programService.getAllLevels();
+    const levels = await levelService.getAllLevels();
 
     res.json({
       success: true,
@@ -268,7 +272,7 @@ export const getAllLevels = async (req: Request, res: Response) => {
 export const getLevelById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const level = await programService.getLevelById(id);
+    const level = await levelService.getLevelById(id);
 
     res.json({
       success: true,
@@ -287,7 +291,7 @@ export const updateLevel = async (req: Request, res: Response) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const level = await programService.updateLevel(id, updates);
+    const level = await levelService.updateLevel(id, updates);
 
     res.json({
       success: true,
@@ -316,7 +320,7 @@ export const createVenue = async (req: Request, res: Response) => {
       });
     }
 
-    const venue = await programService.createVenue({
+    const venue = await venueService.createVenue({
       name,
       code,
       address
@@ -338,7 +342,7 @@ export const getAllVenues = async (req: Request, res: Response) => {
   try {
     const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
 
-    const venues = await programService.getAllVenues({ isActive });
+    const venues = await venueService.getAllVenues({ isActive });
 
     res.json({
       success: true,
@@ -355,7 +359,7 @@ export const getAllVenues = async (req: Request, res: Response) => {
 export const getVenueById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const venue = await programService.getVenueById(id);
+    const venue = await venueService.getVenueById(id);
 
     res.json({
       success: true,
@@ -374,7 +378,7 @@ export const updateVenue = async (req: Request, res: Response) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const venue = await programService.updateVenue(id, updates);
+    const venue = await venueService.updateVenue(id, updates);
 
     res.json({
       success: true,
@@ -403,7 +407,7 @@ export const createHall = async (req: Request, res: Response) => {
       });
     }
 
-    const hall = await programService.createHall({
+    const hall = await hallService.createHall({
       venueId,
       name,
       code,
@@ -428,7 +432,7 @@ export const getAllHalls = async (req: Request, res: Response) => {
     const venueId = req.query.venueId as string;
     const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
 
-    const halls = await programService.getAllHalls({
+    const halls = await hallService.getAllHalls({
       venueId,
       isActive
     });
@@ -448,7 +452,7 @@ export const getAllHalls = async (req: Request, res: Response) => {
 export const getHallById = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const hall = await programService.getHallById(id);
+    const hall = await hallService.getHallById(id);
 
     res.json({
       success: true,
@@ -467,7 +471,7 @@ export const updateHall = async (req: Request, res: Response) => {
     const { id } = req.params;
     const updates = req.body;
 
-    const hall = await programService.updateHall(id, updates);
+    const hall = await hallService.updateHall(id, updates);
 
     res.json({
       success: true,
@@ -486,7 +490,7 @@ export const updateHall = async (req: Request, res: Response) => {
 export const deleteHall = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    await programService.deleteHall(id);
+    await hallService.deleteHall(id);
 
     res.json({
       success: true,

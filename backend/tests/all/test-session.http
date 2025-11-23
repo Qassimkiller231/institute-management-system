@@ -1,0 +1,176 @@
+# Test Session API Tests
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+# Replace these with actual values from your database
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjM1MzE4MDYsImV4cCI6MTc2NDEzNjYwNn0.abe4ytos-g2YfE6_Xgcb4jL3OpI2TIok8oldjSKBOIE
+@teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
+
+@testId = e1d65018-e45c-4ba8-9728-4311e179a4ac
+@studentId = 4919371f-313b-47db-b05c-c3c8b40697f5
+@testSessionId = 67bd026b-c317-4745-9753-eca1f5c6af6e
+@finalLevelId = level-id-here
+
+# ==================== AUTHENTICATION ====================
+
+### Request OTP (Admin)
+POST {{baseUrl}}/api/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "method": "email"
+}
+
+### Verify OTP (Admin)
+POST {{baseUrl}}/api/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "code": "439860"
+}
+
+# Copy token to @adminToken above if changed
+
+# ==================== START TEST SESSION ====================
+
+### Start Test Session for Student (Admin)
+POST {{baseUrl}}/api/test-sessions/start
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "testId": "{{testId}}",
+  "studentId": "{{studentId}}"
+}
+
+### Start Test Session - Missing Required Fields
+POST {{baseUrl}}/api/test-sessions/start
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}"
+}
+
+# ==================== GET QUESTIONS FOR SESSION ====================
+
+### Get Questions for Session
+# After starting a session, copy "id" into @testSessionId above
+GET {{baseUrl}}/api/test-sessions/{{testSessionId}}/questions
+
+### Get Questions - Error: Invalid Session ID
+GET {{baseUrl}}/api/test-sessions/00000000-0000-0000-0000-000000000000/questions
+
+# ==================== SUBMIT MCQ ANSWERS ====================
+
+### Submit MCQ Answers (Normal)
+POST {{baseUrl}}/api/test-sessions/{{testSessionId}}/submit-mcq
+Content-Type: application/json
+
+{
+  "answers": {
+    "question-uuid-1": "went",
+    "question-uuid-2": "He goes to school every day."
+  }
+}
+
+### Submit MCQ Answers - Missing Payload
+POST {{baseUrl}}/api/test-sessions/{{testSessionId}}/submit-mcq
+Content-Type: application/json
+
+{
+}
+
+# ==================== GET SESSION DETAILS ====================
+
+### Get Session Details (Admin)
+GET {{baseUrl}}/api/test-sessions/{{testSessionId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Session Details (Teacher)
+GET {{baseUrl}}/api/test-sessions/{{testSessionId}}
+Authorization: Bearer {{teacherToken}}
+
+### Get Session Details - Error: Not Found
+GET {{baseUrl}}/api/test-sessions/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+# ==================== LIST SESSIONS ====================
+
+### List All Test Sessions (Admin)
+GET {{baseUrl}}/api/test-sessions
+Authorization: Bearer {{adminToken}}
+
+### List Placement Sessions with Status Filter
+GET {{baseUrl}}/api/test-sessions?testType=PLACEMENT&status=MCQ_COMPLETED&page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+### List Sessions (Teacher View)
+GET {{baseUrl}}/api/test-sessions?status=SPEAKING_COMPLETED
+Authorization: Bearer {{teacherToken}}
+
+# ==================== FINALIZE SESSION ====================
+
+### Finalize Session (Admin)
+POST {{baseUrl}}/api/test-sessions/{{testSessionId}}/finalize
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "finalLevelId": "{{finalLevelId}}",
+  "recommendation": "Student shows good performance, recommend A2.",
+  "passed": true
+}
+
+### Finalize Session - Missing Final Level
+POST {{baseUrl}}/api/test-sessions/{{testSessionId}}/finalize
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "passed": true
+}
+
+# ==================== AUTHORIZATION TESTS ====================
+
+### Start Session - Error: Teacher Access Denied (if restricted to admin only)
+POST {{baseUrl}}/api/test-sessions/start
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "testId": "{{testId}}",
+  "studentId": "{{studentId}}"
+}
+
+### Get Sessions - Error: No Token
+GET {{baseUrl}}/api/test-sessions
+
+### Finalize Session - Error: Invalid Token
+POST {{baseUrl}}/api/test-sessions/{{testSessionId}}/finalize
+Authorization: Bearer invalid-token-here
+Content-Type: application/json
+
+{
+  "finalLevelId": "{{finalLevelId}}",
+  "passed": true
+}
+
+# ==================== NOTES ====================
+#
+# Endpoints:
+# - POST /api/test-sessions/start (Start session)
+# - GET /api/test-sessions/:id/questions (Get MCQ questions)
+# - POST /api/test-sessions/:id/submit-mcq (Submit answers)
+# - GET /api/test-sessions/:id (Get full session)
+# - GET /api/test-sessions (List/filter sessions)
+# - POST /api/test-sessions/:id/finalize (Finalize level)
+#
+# Access Control:
+# - Admin: Full control (start, list, finalize)
+# - Teacher: Read-only (view sessions) + later speaking part
+# - Guest/Student: Only via session ID for questions/submit (if allowed by your implementation)

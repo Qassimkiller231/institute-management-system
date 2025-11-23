@@ -1,0 +1,215 @@
+# Test Management API Tests
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+# Replace these with actual values from your database
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
+
+# IDs - Replace with actual IDs
+@testId = e1d65018-e45c-4ba8-9728-4311e179a4ac
+
+# ==================== AUTHENTICATION ====================
+
+### Request OTP (Admin)
+POST {{baseUrl}}/api/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "method": "email"
+}
+
+### Verify OTP (Admin)
+POST {{baseUrl}}/api/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "code": "123456"
+}
+
+# Copy the token from response and update @adminToken above
+
+# ==================== CREATE TEST ====================
+
+### Create Placement Test (Admin)
+POST {{baseUrl}}/api/tests
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "English Multiverse Placement Test (Ages 11-17)",
+  "testType": "PLACEMENT",
+  "levelId": null,
+  "totalQuestions": 50,
+  "durationMinutes": 45,
+  "isActive": true
+}
+
+### Create Upgrade Test (Admin)
+POST {{baseUrl}}/api/tests
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "name": "B1 → B2 Upgrade Test",
+  "testType": "WRITTEN",
+  "levelId": null,
+  "totalQuestions": 30,
+  "durationMinutes": 60,
+  "isActive": true
+}
+
+### Create Test - Error: Missing Required Fields
+POST {{baseUrl}}/api/tests
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "testType": "PLACEMENT"
+}
+
+# ==================== ADD QUESTIONS ====================
+
+### Add Question to Test (Admin)
+# After creating a test, copy the "id" into @testId above
+POST {{baseUrl}}/api/tests/{{testId}}/questions
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "questionText": "What is the past tense of 'go'?",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": [
+    "went",
+    "goed",
+    "gone",
+    "going"
+  ],
+  "correctAnswer": "went",
+  "points": 2,
+  "orderNumber": 1
+}
+
+### Add True/False Question
+POST {{baseUrl}}/api/tests/{{testId}}/questions
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "questionText": "English is an international language.",
+  "questionType": "TRUE_FALSE",
+  "options": ["True", "False"],
+  "correctAnswer": "True",
+  "points": 1,
+  "orderNumber": 2
+}
+
+### Add Question - Error: Missing Correct Answer
+POST {{baseUrl}}/api/tests/{{testId}}/questions
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "questionText": "Broken question",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["A", "B"],
+  "points": 1,
+  "orderNumber": 99
+}
+
+# ==================== GET ALL TESTS ====================
+
+### Get All Tests (No Filters)
+GET {{baseUrl}}/api/tests
+Authorization: Bearer {{adminToken}}
+
+### Get Placement Tests Only
+GET {{baseUrl}}/api/tests?testType=PLACEMENT&isActive=true
+Authorization: Bearer {{adminToken}}
+
+### Get Inactive Tests
+GET {{baseUrl}}/api/tests?isActive=false
+Authorization: Bearer {{adminToken}}
+
+### Get Tests (Teacher Access)
+GET {{baseUrl}}/api/tests
+Authorization: Bearer {{teacherToken}}
+
+# ==================== GET TEST BY ID ====================
+
+### Get Test by ID (Full Details + Questions)
+GET {{baseUrl}}/api/tests/{{testId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Test by ID (Teacher Access)
+GET {{baseUrl}}/api/tests/{{testId}}
+Authorization: Bearer {{teacherToken}}
+
+### Get Test by ID - Error: Not Found
+GET {{baseUrl}}/api/tests/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+# ==================== AUTHORIZATION TESTS ====================
+
+### Create Test - Error: Teacher Access Denied
+POST {{baseUrl}}/api/tests
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "name": "Teacher Created Test",
+  "testType": "PLACEMENT",
+  "totalQuestions": 10,
+  "durationMinutes": 20
+}
+
+### Add Question - Error: Teacher Access Denied
+POST {{baseUrl}}/api/tests/{{testId}}/questions
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "questionText": "Teacher should not add this",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["A", "B"],
+  "correctAnswer": "A",
+  "points": 1,
+  "orderNumber": 10
+}
+
+### Get Tests - Error: No Token
+GET {{baseUrl}}/api/tests
+
+### Create Test - Error: Invalid Token
+POST {{baseUrl}}/api/tests
+Authorization: Bearer invalid-token-here
+Content-Type: application/json
+
+{
+  "name": "Invalid Token Test",
+  "testType": "PLACEMENT",
+  "totalQuestions": 10,
+  "durationMinutes": 20
+}
+
+# ==================== NOTES ====================
+#
+# Endpoints:
+# - POST /api/tests (Create test) [Admin]
+# - POST /api/tests/:testId/questions (Add question) [Admin]
+# - GET /api/tests (List tests) [Admin/Teacher]
+# - GET /api/tests/:testId (Get test with questions) [Admin/Teacher]
+#
+# Access Control:
+# - Admin: Full access
+# - Teacher: Read-only
+# - Student/Parent: No direct access
+#
+# Features:
+# - Support for PLACEMENT / WRITTEN / other test types
+# - Question bank per test
+# - Basic filtering by type and isActive

@@ -1,0 +1,444 @@
+### Test API Testing
+### Backend URL
+@baseUrl = http://localhost:3001/api
+@token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjM4ODgwMzUsImV4cCI6MTc2NDQ5MjgzNX0.AGpa8fFCCgFmc6THL7R8fKN7XDqotKut_lR1bgwAO4E
+@testId = 48a36f5b-1460-4433-aa2c-6e891fdaec9b
+@questionId = 036669c9-032c-4160-bd5f-0f5304cb7311
+@sessionId = 
+@studentId = 
+
+### ==================== AUTHENTICATION ====================
+
+### Login as Admin
+POST {{baseUrl}}/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "method": "email"
+}
+
+### Verify OTP
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "code": "795572"
+}
+
+### ==================== TESTS (Admin/Teacher) ====================
+
+### Create Placement Test
+POST {{baseUrl}}/tests
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "English Placement Test A1-A2",
+  "description": "Placement test for beginner levels",
+  "testType": "PLACEMENT",
+  "ageMin": 11,
+  "ageMax": 99,
+  "durationMinutes": 45,
+  "totalQuestions": 20,
+  "passingScore": 60,
+  "isActive": true
+}
+
+### Create Upgrade Test
+POST {{baseUrl}}/tests
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Level A1 to A2 Upgrade Test",
+  "description": "Test for upgrading from A1 to A2",
+  "testType": "UPGRADE",
+  "ageMin": 11,
+  "ageMax": 99,
+  "durationMinutes": 30,
+  "totalQuestions": 15,
+  "passingScore": 70,
+  "isActive": true
+}
+
+### Get All Tests
+GET {{baseUrl}}/tests
+Authorization: Bearer {{token}}
+
+### Get All Tests (Public - No Auth)
+GET {{baseUrl}}/tests
+
+### Get Active Placement Tests Only
+GET {{baseUrl}}/tests?testType=PLACEMENT&isActive=true
+Authorization: Bearer {{token}}
+
+### Get Active Upgrade Tests Only
+GET {{baseUrl}}/tests?testType=UPGRADE&isActive=true
+Authorization: Bearer {{token}}
+
+### Get Test by ID
+GET {{baseUrl}}/tests/{{testId}}
+Authorization: Bearer {{token}}
+
+### Update Test
+PUT {{baseUrl}}/tests/{{testId}}
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Updated Test Name",
+  "description": "Updated description",
+  "durationMinutes": 60,
+  "isActive": true
+}
+
+### Delete Test (Soft Delete)
+DELETE {{baseUrl}}/tests/{{testId}}
+Authorization: Bearer {{token}}
+
+### ==================== TEST QUESTIONS ====================
+
+### Add Question to Test
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "What is the correct form of 'to be' for 'I'?",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["am", "is", "are", "be"],
+  "correctAnswer": "am",
+  "points": 5,
+  "orderNumber": 1
+}
+
+### Add Multiple Questions
+# Question 2
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "Choose the correct article: ___ apple a day keeps the doctor away.",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["A", "An", "The", "No article"],
+  "correctAnswer": "An",
+  "points": 5,
+  "orderNumber": 2
+}
+
+### Question 3
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "What is the past tense of 'go'?",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["goed", "went", "gone", "going"],
+  "correctAnswer": "went",
+  "points": 5,
+  "orderNumber": 3
+}
+
+### Question 4
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "Which sentence is correct?",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": [
+    "She don't like pizza",
+    "She doesn't likes pizza",
+    "She doesn't like pizza",
+    "She not like pizza"
+  ],
+  "correctAnswer": "She doesn't like pizza",
+  "points": 5,
+  "orderNumber": 4
+}
+
+### Question 5
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "Complete: I ___ to school every day.",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["go", "goes", "going", "gone"],
+  "correctAnswer": "go",
+  "points": 5,
+  "orderNumber": 5
+}
+
+### ==================== TEST SESSIONS (Student) ====================
+
+### Start Test Session
+POST {{baseUrl}}/test-sessions/start
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "studentId": "{{studentId}}",
+  "testId": "{{testId}}"
+}
+
+### Get Session Questions
+GET {{baseUrl}}/test-sessions/{{sessionId}}/questions
+Authorization: Bearer {{token}}
+
+### Submit MCQ Answers
+POST {{baseUrl}}/test-sessions/{{sessionId}}/submit-mcq
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "answers": {
+    "question-id-1": "am",
+    "question-id-2": "An",
+    "question-id-3": "went",
+    "question-id-4": "She doesn't like pizza",
+    "question-id-5": "go"
+  }
+}
+
+### Get Test Session by ID
+GET {{baseUrl}}/test-sessions/{{sessionId}}
+Authorization: Bearer {{token}}
+
+### List All Test Sessions
+GET {{baseUrl}}/test-sessions
+Authorization: Bearer {{token}}
+
+### Filter Sessions by Status
+GET {{baseUrl}}/test-sessions?status=IN_PROGRESS
+Authorization: Bearer {{token}}
+
+### Filter Sessions by Test Type
+GET {{baseUrl}}/test-sessions?testType=PLACEMENT
+Authorization: Bearer {{token}}
+
+### ==================== FINALIZE TEST SESSION (Teacher) ====================
+
+### Finalize Test Session (After Speaking Test)
+POST {{baseUrl}}/test-sessions/{{sessionId}}/finalize
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "finalLevelId": "level-id-here",
+  "recommendation": "Student shows good understanding of A1 level. Ready for A2.",
+  "passed": true
+}
+
+### ==================== COMPLETE TEST CREATION WORKFLOW ====================
+
+### STEP 1: Create a Complete Placement Test
+POST {{baseUrl}}/tests
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "name": "Complete English Placement Test",
+  "description": "Full placement test with 10 questions covering A1-B2 levels",
+  "testType": "PLACEMENT",
+  "ageMin": 11,
+  "ageMax": 99,
+  "durationMinutes": 30,
+  "totalQuestions": 10,
+  "passingScore": 60,
+  "isActive": true
+}
+
+### STEP 2: Add 10 Questions (Copy testId from above)
+# Question 1 - A1 Level
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "Hello, my name ___ John.",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["am", "is", "are", "be"],
+  "correctAnswer": "is",
+  "points": 10,
+  "orderNumber": 1
+}
+
+### Question 2 - A1 Level
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "I ___ a student.",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["am", "is", "are", "be"],
+  "correctAnswer": "am",
+  "points": 10,
+  "orderNumber": 2
+}
+
+### Question 3 - A1 Level
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "She ___ to school every day.",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["go", "goes", "going", "to go"],
+  "correctAnswer": "goes",
+  "points": 10,
+  "orderNumber": 3
+}
+
+### Question 4 - A2 Level
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "I ___ my homework when you called.",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["do", "did", "was doing", "have done"],
+  "correctAnswer": "was doing",
+  "points": 10,
+  "orderNumber": 4
+}
+
+### Question 5 - A2 Level
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "I have ___ finished my work.",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["already", "yet", "still", "always"],
+  "correctAnswer": "already",
+  "points": 10,
+  "orderNumber": 5
+}
+
+### Question 6 - B1 Level
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "If I ___ enough money, I would buy a new car.",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["have", "had", "will have", "would have"],
+  "correctAnswer": "had",
+  "points": 10,
+  "orderNumber": 6
+}
+
+### Question 7 - B1 Level
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "The report ___ by tomorrow morning.",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["must finish", "must be finished", "must be finishing", "must have finished"],
+  "correctAnswer": "must be finished",
+  "points": 10,
+  "orderNumber": 7
+}
+
+### Question 8 - B2 Level
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "I wish I ___ to the party last night.",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["went", "had gone", "would go", "have gone"],
+  "correctAnswer": "had gone",
+  "points": 10,
+  "orderNumber": 8
+}
+
+### Question 9 - B2 Level
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "By the time you arrive, I ___ dinner.",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["will finish", "will have finished", "finish", "am finishing"],
+  "correctAnswer": "will have finished",
+  "points": 10,
+  "orderNumber": 9
+}
+
+### Question 10 - B2 Level
+POST {{baseUrl}}/tests/{{testId}}/questions
+Content-Type: application/json
+Authorization: Bearer {{token}}
+
+{
+  "questionText": "The manager insisted that we ___ the meeting on time.",
+  "questionType": "MULTIPLE_CHOICE",
+  "options": ["attend", "attended", "will attend", "would attend"],
+  "correctAnswer": "attend",
+  "points": 10,
+  "orderNumber": 10
+}
+
+### ==================== VERIFICATION ====================
+
+### Verify Test Created with All Questions
+GET {{baseUrl}}/tests/{{testId}}
+Authorization: Bearer {{token}}
+
+### ==================== QUICK TEST DATA CHECK ====================
+
+### Count All Tests
+GET {{baseUrl}}/tests
+Authorization: Bearer {{token}}
+
+### Count Active Tests
+GET {{baseUrl}}/tests?isActive=true
+Authorization: Bearer {{token}}
+
+### Count Placement Tests
+GET {{baseUrl}}/tests?testType=PLACEMENT
+Authorization: Bearer {{token}}
+
+### ==================== NOTES ====================
+# 
+# WORKFLOW:
+# 1. Login as Admin/Teacher to get token
+# 2. Create a test (POST /tests)
+# 3. Copy the testId from response
+# 4. Add questions to test (POST /tests/:testId/questions)
+# 5. Set test as active
+# 6. Students can now take the test
+#
+# TEST TYPES:
+# - PLACEMENT: For new students to find their level
+# - UPGRADE: For existing students to move to next level
+#
+# QUESTION TYPES:
+# - MULTIPLE_CHOICE: Standard MCQ with options array
+#
+# TEST SESSION STATUSES:
+# - IN_PROGRESS: Test started, not submitted
+# - MCQ_COMPLETED: MCQ part done, waiting for speaking test
+# - SPEAKING_SCHEDULED: Speaking test appointment booked
+# - SPEAKING_COMPLETED: Speaking test done, waiting for results
+# - FINAL_RESULTS: Teacher finalized the results
+# - COMPLETED: All done
+# - ABANDONED: Student didn't complete
+#

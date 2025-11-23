@@ -1,7 +1,7 @@
+// src/services/user.service.ts
 import prisma from '../utils/db';
 import { User } from '@prisma/client';
 import { Role } from '../types/auth.types';
-
 
 /**
  * Get all users with optional filters
@@ -121,7 +121,6 @@ export const updateUser = async (
       if (!canShareEmail) {
         throw new Error('Email already in use');
       }
-      // If can share, allow the update to proceed
     }
   }
 
@@ -132,6 +131,17 @@ export const updateUser = async (
     if (phoneExists) {
       throw new Error('Phone number already in use');
     }
+  }
+
+  // CASCADE: If deactivating user, also deactivate their Student/Parent profile
+  if (updates.isActive === false && existingUser.isActive === true) {
+    if (existingUser.role === 'STUDENT') {
+      await prisma.student.updateMany({
+        where: { userId: userId },
+        data: { isActive: false }
+      });
+    }
+    // Parent doesn't have isActive field, so no need to update
   }
 
   const updatedUser = await prisma.user.update({
@@ -168,6 +178,15 @@ export const deleteUser = async (userId: string) => {
   if (!user) {
     throw new Error('User not found');
   }
+
+  // CASCADE: Also deactivate Student profile if exists
+  if (user.role === 'STUDENT') {
+    await prisma.student.updateMany({
+      where: { userId: userId },
+      data: { isActive: false }
+    });
+  }
+  // Parent doesn't have isActive field
 
   // Soft delete - just deactivate
   await prisma.user.update({

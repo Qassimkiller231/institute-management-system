@@ -1,0 +1,142 @@
+# Teacher Schedule Templates API Tests
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+# Replace these with actual values from your database
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
+
+@teacherId = fd435948-d4a9-44ac-8f4e-e8c9887f696d
+
+# ==================== AUTHENTICATION ====================
+
+### Request OTP (Admin)
+POST {{baseUrl}}/api/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "method": "email"
+}
+
+### Verify OTP (Admin)
+POST {{baseUrl}}/api/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@institute.com",
+  "code": "123456"
+}
+
+# ==================== CREATE SCHEDULE TEMPLATES ====================
+
+### Create Monday Morning Template (Admin)
+POST {{baseUrl}}/api/teacher-schedules/templates
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "{{teacherId}}",
+  "dayOfWeek": 1,
+  "startTime": "09:00",
+  "endTime": "12:00"
+}
+
+### Create Wednesday Afternoon Template (Admin)
+POST {{baseUrl}}/api/teacher-schedules/templates
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "{{teacherId}}",
+  "dayOfWeek": 3,
+  "startTime": "14:00",
+  "endTime": "17:00"
+}
+
+### Create Template - Error: Missing Required Fields
+POST {{baseUrl}}/api/teacher-schedules/templates
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "{{teacherId}}"
+}
+
+# ==================== LIST TEMPLATES ====================
+
+### List Templates for Teacher (Admin)
+GET {{baseUrl}}/api/teacher-schedules/templates/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+
+### List Templates for Teacher (Teacher Self)
+GET {{baseUrl}}/api/teacher-schedules/templates/{{teacherId}}
+Authorization: Bearer {{teacherToken}}
+
+# ==================== GENERATE SPEAKING SLOTS ====================
+
+### Generate Speaking Slots from Templates (Admin)
+POST {{baseUrl}}/api/teacher-schedules/generate-slots
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "{{teacherId}}",
+  "startDate": "2025-10-20",
+  "endDate": "2025-10-27",
+  "slotDuration": 15
+}
+
+### Generate Speaking Slots - Error: Invalid Date Range
+POST {{baseUrl}}/api/teacher-schedules/generate-slots
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "{{teacherId}}",
+  "startDate": "2025-10-27",
+  "endDate": "2025-10-20",
+  "slotDuration": 15
+}
+
+# ==================== AUTHORIZATION TESTS ====================
+
+### Create Template - Error: Teacher Access Denied (if only admin can create)
+POST {{baseUrl}}/api/teacher-schedules/templates
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "{{teacherId}}",
+  "dayOfWeek": 2,
+  "startTime": "10:00",
+  "endTime": "12:00"
+}
+
+### Generate Slots - Error: Teacher Access Denied
+POST {{baseUrl}}/api/teacher-schedules/generate-slots
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "teacherId": "{{teacherId}}",
+  "startDate": "2025-10-20",
+  "endDate": "2025-10-27",
+  "slotDuration": 15
+}
+
+### List Templates - Error: No Token
+GET {{baseUrl}}/api/teacher-schedules/templates/{{teacherId}}
+
+# ==================== NOTES ====================
+#
+# Endpoints:
+# - POST /api/teacher-schedules/templates (Create template) [Admin]
+# - GET /api/teacher-schedules/templates/:teacherId (List templates) [Admin/Teacher]
+# - POST /api/teacher-schedules/generate-slots (Generate speaking slots) [Admin]
+#
+# Features:
+# - Weekly recurring availability per teacher
+# - Automatic generation of speaking slots by date range + slotDuration

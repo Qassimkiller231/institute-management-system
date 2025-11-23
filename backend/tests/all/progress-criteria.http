@@ -1,0 +1,112 @@
+# Progress Criteria – Student Completion API Tests
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+# Replace these with actual values from your database
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+
+# IDs - Replace with actual IDs
+@studentId = b9314efd-8a0b-4a78-8a16-099cd6b4a6e9
+@criteriaId = progress-criteria-id-here
+@enrollmentId = 75659e2c-393b-443f-a7a5-32bcd9442f28
+
+# ==================== SET COMPLETION ====================
+
+### Set Criteria Completion (Completed = true)
+POST {{baseUrl}}/api/progress-criteria/completion
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "criteriaId": "{{criteriaId}}",
+  "enrollmentId": "{{enrollmentId}}",
+  "completed": true,
+  "completionDate": "2025-10-20"
+}
+
+### Set Criteria Completion (Completed = false / reset)
+POST {{baseUrl}}/api/progress-criteria/completion
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "criteriaId": "{{criteriaId}}",
+  "enrollmentId": "{{enrollmentId}}",
+  "completed": false
+}
+
+# ==================== ERROR CASES ====================
+
+### Error: Missing enrollmentId
+POST {{baseUrl}}/api/progress-criteria/completion
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "criteriaId": "{{criteriaId}}",
+  "completed": true
+}
+
+### Error: Missing studentId
+POST {{baseUrl}}/api/progress-criteria/completion
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "criteriaId": "{{criteriaId}}",
+  "enrollmentId": "{{enrollmentId}}",
+  "completed": true
+}
+
+### Error: Missing criteriaId
+POST {{baseUrl}}/api/progress-criteria/completion
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "enrollmentId": "{{enrollmentId}}",
+  "completed": true
+}
+
+### Error: completed is not boolean
+POST {{baseUrl}}/api/progress-criteria/completion
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "criteriaId": "{{criteriaId}}",
+  "enrollmentId": "{{enrollmentId}}",
+  "completed": "yes"
+}
+
+### Error: Invalid completionDate format
+POST {{baseUrl}}/api/progress-criteria/completion
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "criteriaId": "{{criteriaId}}",
+  "enrollmentId": "{{enrollmentId}}",
+  "completed": true,
+  "completionDate": "20-10-2025"
+}
+
+### Error: Invalid IDs (expect 404 or generic error)
+POST {{baseUrl}}/api/progress-criteria/completion
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "00000000-0000-0000-0000-000000000000",
+  "criteriaId": "00000000-0000-0000-0000-000000000000",
+  "enrollmentId": "00000000-0000-0000-0000-000000000000",
+  "completed": true
+}

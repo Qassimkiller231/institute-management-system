@@ -1,0 +1,62 @@
+# Dashboards & Trends API Tests
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
+
+@termId = 49a33970-5bdf-44f7-8d50-8f4099a58f32
+@teacherId = fd435948-d4a9-44ac-8f4e-e8c9887f696d
+
+# ==================== ADMIN DASHBOARD ====================
+
+### Admin Dashboard (All Terms)
+GET {{baseUrl}}/api/reports/dashboard/admin
+Authorization: Bearer {{adminToken}}
+
+### Admin Dashboard (Specific Term)
+GET {{baseUrl}}/api/reports/dashboard/admin?termId={{termId}}
+Authorization: Bearer {{adminToken}}
+
+### Admin Dashboard – No Token
+GET {{baseUrl}}/api/reports/dashboard/admin
+
+### Admin Dashboard – Teacher Token (Should 403 if you enforce role)
+GET {{baseUrl}}/api/reports/dashboard/admin
+Authorization: Bearer {{teacherToken}}
+
+# ==================== TEACHER DASHBOARD ====================
+
+### Teacher Dashboard (Teacher Self)
+GET {{baseUrl}}/api/reports/dashboard/teacher/{{teacherId}}
+Authorization: Bearer {{teacherToken}}
+
+### Teacher Dashboard (Viewed by Admin)
+GET {{baseUrl}}/api/reports/dashboard/teacher/{{teacherId}}
+Authorization: Bearer {{adminToken}}
+
+### Teacher Dashboard – Invalid ID
+GET {{baseUrl}}/api/reports/dashboard/teacher/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{adminToken}}
+
+### Teacher Dashboard – No Token
+GET {{baseUrl}}/api/reports/dashboard/teacher/{{teacherId}}
+
+# ==================== TRENDS ====================
+
+### Trends – Default 6 Months (Admin)
+GET {{baseUrl}}/api/reports/analytics/trends
+Authorization: Bearer {{adminToken}}
+
+### Trends – 12 Months
+GET {{baseUrl}}/api/reports/analytics/trends?monthsBack=12
+Authorization: Bearer {{adminToken}}
+
+### Trends – Invalid monthsBack
+GET {{baseUrl}}/api/reports/analytics/trends?monthsBack=abc
+Authorization: Bearer {{adminToken}}
+
+### Trends – No Token
+GET {{baseUrl}}/api/reports/analytics/trends

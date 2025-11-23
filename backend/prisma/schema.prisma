@@ -127,6 +127,7 @@ model Phone {
   @@index([isPrimary])
 }
 
+
 model Student {
   id         String    @id @default(uuid())
   userId     String    @unique
@@ -155,6 +156,8 @@ model Student {
   road    String?
   block   String?
 
+  attendanceWarnings AttendanceWarning[]
+
   // Additional Information
   healthIssues    String?
   howHeardAbout   String?
@@ -166,13 +169,15 @@ model Student {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user               User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user               User                     @relation(fields: [userId], references: [id], onDelete: Cascade)
   phones             Phone[]
   parentStudentLinks ParentStudentLink[]
   enrollments        Enrollment[]
   testSessions       TestSession[]
   speakingSlots      SpeakingSlot[]
   attendance         Attendance[]
+  progressCompletions StudentCriteriaCompletion[]  // NEW
+  canSeePayment Boolean @default(true)
 
   @@index([cpr])
   @@index([userId])
@@ -252,8 +257,9 @@ model Level {
   mixedLevels String?
   createdAt   DateTime @default(now())
 
-  groups Group[]
-  tests  Test[]
+  groups           Group[]
+  tests            Test[]
+  progressCriteria ProgressCriteria[]  // NEW
 
   @@index([orderNumber])
 }
@@ -312,6 +318,7 @@ model Group {
   classSessions ClassSession[]
   materials     Material[]
   announcements Announcement[]
+  progressCriteria ProgressCriteria[]  // NEW
 
   @@index([termId])
   @@index([levelId])
@@ -357,11 +364,18 @@ model Enrollment {
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  student     Student              @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  group       Group                @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  // NEW – qualitative performance data
+  teacherComments     String?
+  overallPerformance  String?   // e.g. Excellent / Good / Needs Improvement
+  strengths           Json?     // e.g. ["Grammar", "Speaking"]
+  areasForImprovement Json?     // e.g. ["Listening"]
+
+  student     Student                    @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  group       Group                      @relation(fields: [groupId], references: [id], onDelete: Cascade)
   attendance  Attendance[]
   paymentPlan StudentPaymentPlan?
   refunds     Refund[]
+  progressCompletions StudentCriteriaCompletion[]  // NEW
 
   @@index([studentId])
   @@index([groupId])
@@ -483,6 +497,49 @@ model SpeakingSlot {
 }
 
 // ============================================
+// MODULE 5B: PROGRESS & CRITERIA TRACKING
+// ============================================
+
+model ProgressCriteria {
+  id          String   @id @default(uuid())
+  levelId     String?
+  groupId     String?
+  name        String
+  description String?
+  orderNumber Int?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  level      Level?                    @relation(fields: [levelId], references: [id], onDelete: SetNull)
+  group      Group?                    @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  completions StudentCriteriaCompletion[]
+
+  @@index([levelId])
+  @@index([groupId])
+  @@index([isActive])
+}
+
+model StudentCriteriaCompletion {
+  id           String    @id @default(uuid())
+  studentId    String
+  criteriaId   String
+  enrollmentId String?
+  completed    Boolean   @default(false)
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  criteria   ProgressCriteria @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
+  enrollment Enrollment?      @relation(fields: [enrollmentId], references: [id], onDelete: SetNull)
+
+  // one record per (student, criteria, enrollment) combo
+  @@unique([studentId, criteriaId, enrollmentId])
+  @@index([studentId])
+  @@index([criteriaId])
+}
+
+// ============================================
 // MODULE 6: ATTENDANCE
 // ============================================
 
@@ -537,8 +594,10 @@ model Installment {
   paymentPlanId           String
   installmentNumber       Int
   amount                  Decimal   @db.Decimal(10, 2)
-  paymentDate             DateTime  @db.Date
+  paymentDate             DateTime?  @db.Date
   paymentMethod           String    // BENEFIT_PAY, BANK_TRANSFER, CASH, CARD_MACHINE
+  dueDate                 DateTime?  @db.Date  // Add this if missing
+  paymentReminders        PaymentReminder[]
   receiptNumber           String?
   receiptUrl              String?
   receiptMakerId          String?
@@ -556,6 +615,31 @@ model Installment {
   @@index([benefitReferenceNumber])
 }
 
+model PaymentReminder {
+  id             String      @id @default(uuid())
+  installmentId  String
+  reminderType   String
+  sentAt         DateTime
+  sentVia        String
+  
+  installment    Installment @relation(fields: [installmentId], references: [id], onDelete: Cascade)
+  
+  @@index([installmentId])
+  @@index([sentAt])
+}
+
+model AttendanceWarning {
+  id                    String   @id @default(uuid())
+  studentId             String
+  attendancePercentage  Float
+  sentAt                DateTime
+  sentVia               String
+  
+  student               Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  
+  @@index([studentId])
+  @@index([sentAt])
+}
 model Refund {
   id            String    @id @default(uuid())
   installmentId String?

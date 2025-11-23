@@ -9,6 +9,9 @@ export interface JwtPayload {
   userId: string;
   email: string;
   role: string;
+  studentId?: string | null;  // ✅ Add these
+  teacherId?: string | null;  // ✅
+  parentId?: string | null;   // ✅
 }
 
 /**

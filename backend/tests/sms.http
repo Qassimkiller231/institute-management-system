@@ -1,0 +1,230 @@
+### SMS Service API Tests
+### Base URL: http://localhost:3001/api/sms
+
+### Variables (Update these with actual values)
+@baseUrl = http://localhost:3001
+@adminToken = YOUR_ADMIN_TOKEN_HERE
+@userToken = YOUR_USER_TOKEN_HERE
+@testPhone = +97312345678
+@testStudentName = Ahmed Ali
+@testAmount = 150.00
+@testDueDate = 2025-12-15
+@testUserId = YOUR_USER_ID_HERE
+
+
+### ============================================
+### 1. VERIFY TWILIO CONFIGURATION
+### ============================================
+
+### Verify Twilio Config (Admin)
+GET {{baseUrl}}/api/sms/verify-config
+Authorization: Bearer {{adminToken}}
+
+
+### ============================================
+### 2. SEND SMS
+### ============================================
+
+### Send Single SMS (Admin)
+POST {{baseUrl}}/api/sms/send
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}",
+  "message": "This is a test SMS from The Function Institute. Please ignore.",
+  "type": "GENERAL"
+}
+
+### Send OTP SMS (Admin)
+POST {{baseUrl}}/api/sms/send-otp
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}",
+  "code": "123456"
+}
+
+### Send Payment Reminder (Admin)
+POST {{baseUrl}}/api/sms/payment-reminder
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}",
+  "studentName": "{{testStudentName}}",
+  "amount": {{testAmount}},
+  "dueDate": "{{testDueDate}}",
+  "userId": "{{testUserId}}"
+}
+
+### Send Attendance Warning (Admin)
+POST {{baseUrl}}/api/sms/attendance-warning
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}",
+  "studentName": "{{testStudentName}}",
+  "attendancePercentage": 65.5,
+  "userId": "{{testUserId}}"
+}
+
+### Send Bulk SMS (Admin)
+POST {{baseUrl}}/api/sms/bulk
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "recipients": [
+    {
+      "phone": "{{testPhone}}",
+      "userId": "{{testUserId}}"
+    },
+    {
+      "phone": "+97398765432",
+      "userId": "another-user-id"
+    }
+  ],
+  "message": "Important announcement: Classes will resume on Monday. - The Function Institute",
+  "type": "ANNOUNCEMENT"
+}
+
+
+### ============================================
+### 3. SMS HISTORY & LOGS
+### ============================================
+
+### Get SMS History (Current User)
+GET {{baseUrl}}/api/sms/history?page=1&limit=10
+Authorization: Bearer {{userToken}}
+
+### Get SMS History with Type Filter
+GET {{baseUrl}}/api/sms/history?type=PAYMENT_REMINDER&page=1&limit=10
+Authorization: Bearer {{userToken}}
+
+### Get All SMS Logs (Admin)
+GET {{baseUrl}}/api/sms/logs?page=1&limit=20
+Authorization: Bearer {{adminToken}}
+
+### Get SMS Logs with Filters (Admin)
+GET {{baseUrl}}/api/sms/logs?type=OTP&startDate=2025-01-01&endDate=2025-12-31&page=1&limit=50
+Authorization: Bearer {{adminToken}}
+
+
+### ============================================
+### 4. ERROR TESTING
+### ============================================
+
+### Send SMS without Phone (Should Fail)
+POST {{baseUrl}}/api/sms/send
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "message": "Test message"
+}
+
+### Send SMS without Message (Should Fail)
+POST {{baseUrl}}/api/sms/send
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}"
+}
+
+### Send Bulk SMS with Empty Recipients (Should Fail)
+POST {{baseUrl}}/api/sms/bulk
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "recipients": [],
+  "message": "Test message"
+}
+
+### Access Admin Route as Regular User (Should Fail - 403)
+POST {{baseUrl}}/api/sms/send
+Authorization: Bearer {{userToken}}
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}",
+  "message": "This should fail"
+}
+
+### Access without Token (Should Fail - 401)
+GET {{baseUrl}}/api/sms/logs
+
+
+### ============================================
+### 5. INTEGRATION TESTS
+### ============================================
+
+### Test Complete OTP Flow
+# Step 1: Send OTP
+POST {{baseUrl}}/api/sms/send-otp
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}",
+  "code": "123456"
+}
+
+# Step 2: Check SMS History
+GET {{baseUrl}}/api/sms/history?type=OTP
+Authorization: Bearer {{userToken}}
+
+
+### Test Payment Reminder Flow
+# Step 1: Send Payment Reminder
+POST {{baseUrl}}/api/sms/payment-reminder
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phone": "{{testPhone}}",
+  "studentName": "Ahmed Ali",
+  "amount": 150.00,
+  "dueDate": "2025-12-15",
+  "userId": "{{testUserId}}"
+}
+
+# Step 2: Verify in SMS Logs
+GET {{baseUrl}}/api/sms/logs?type=PAYMENT_REMINDER
+Authorization: Bearer {{adminToken}}
+
+
+### ============================================
+### NOTES
+### ============================================
+
+# SMS Types Available:
+# - OTP: OTP authentication codes
+# - PAYMENT_REMINDER: Payment due reminders
+# - ATTENDANCE_WARNING: Low attendance warnings
+# - ANNOUNCEMENT: General announcements
+# - GENERAL: General notifications
+
+# Phone Number Format:
+# - With country code: +97312345678
+# - Without country code: 12345678 (will add +973 automatically)
+
+# Twilio Configuration Required in .env:
+# TWILIO_ACCOUNT_SID=your_account_sid
+# TWILIO_AUTH_TOKEN=your_auth_token
+# TWILIO_PHONE_NUMBER=+97312345678
+
+# Cost Estimate:
+# - ~$0.05-0.10 per SMS
+# - Test with Twilio trial account first ($15.50 free credit)
+
+# Testing Tips:
+# 1. Start with verify-config to ensure Twilio is set up correctly
+# 2. Test single SMS first before bulk
+# 3. Use your own phone number for testing
+# 4. Check SMS logs after each test
+# 5. Monitor Twilio console for delivery status

@@ -1,0 +1,106 @@
+# parent-management.http
+
+@baseUrl = http://localhost:3001/api
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+
+### Variables (Update these after creating records)
+@parentId = 8b22be73-37ab-4248-9668-7c3c0402c826
+@studentId = b9314efd-8a0b-4a78-8a16-099cd6b4a6e9
+
+# ==================== PARENTS ====================
+
+### Create Parent
+POST {{baseUrl}}/parents
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "parent1@example.com",
+  "phone": "+97333123456",
+  "firstName": "Ahmed",
+  "lastName": "Al-Khalifa"
+}
+
+### Create Parent - Shared Email with Student
+POST {{baseUrl}}/parents
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "shared@example.com",
+  "phone": "+97333654321",
+  "firstName": "Fatima",
+  "lastName": "Al-Mansoori"
+}
+
+### Get All Parents
+GET {{baseUrl}}/parents
+Authorization: Bearer {{adminToken}}
+
+### Get All Parents with Pagination
+GET {{baseUrl}}/parents?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get Active Parents Only
+GET {{baseUrl}}/parents?isActive=true
+Authorization: Bearer {{adminToken}}
+
+### Search Parents by Name
+GET {{baseUrl}}/parents?search=Ahmed
+Authorization: Bearer {{adminToken}}
+
+### Get Parent By ID
+GET {{baseUrl}}/parents/{{parentId}}
+Authorization: Bearer {{adminToken}}
+
+### Update Parent
+PUT {{baseUrl}}/parents/{{parentId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "firstName": "Ahmed Updated",
+  "lastName": "Al-Khalifa",
+  "phone": "+97333999888"
+}
+
+### Update Parent Email (to shared email)
+PUT {{baseUrl}}/parents/{{parentId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "email": "parent@example.com"
+}
+
+### Deactivate Parent
+DELETE {{baseUrl}}/parents/{{parentId}}
+Authorization: Bearer {{adminToken}}
+
+### Link Student to Parent
+POST {{baseUrl}}/parents/{{parentId}}/link-student
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "{{studentId}}",
+  "relationship": "Father"
+}
+
+### Link Another Student to Same Parent
+POST {{baseUrl}}/parents/{{parentId}}/link-student
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "studentId": "9a617c37-a2ab-47db-9213-d1feac8add95",
+  "relationship": "Mother"
+}
+
+### Search Parents
+GET {{baseUrl}}/parents/search?q=Ahmed
+Authorization: Bearer {{adminToken}}
+
+### Search Parents with Limit
+GET {{baseUrl}}/parents/search?q=Al&limit=5
+Authorization: Bearer {{adminToken}}

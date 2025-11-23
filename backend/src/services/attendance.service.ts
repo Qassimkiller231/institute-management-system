@@ -320,13 +320,13 @@ export class AttendanceService {
     if (filters?.startDate || filters?.endDate) {
       where.classSession = {
         ...where.classSession,
-        date: {}
+        sessionDate: {}
       };
       if (filters.startDate) {
-        where.classSession.date.gte = filters.startDate;
+        where.classSession.sessionDate.gte = filters.startDate;
       }
       if (filters.endDate) {
-        where.classSession.date.lte = filters.endDate;
+        where.classSession.sessionDate.lte = filters.endDate;
       }
     }
 

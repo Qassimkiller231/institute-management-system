@@ -1,0 +1,9 @@
+### Test scheduler manually
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@installmentId = 
+POST http://localhost:3001/api/notifications/test-scheduler
+Authorization: Bearer {{adminToken}}
+
+### Send manual reminder
+POST http://localhost:3001/api/notifications/payment-reminder/{{installmentId}}
+Authorization: Bearer {{adminToken}}

@@ -1,0 +1,340 @@
+### ========================================
+### TEACHER WORKFLOW - DAILY OPERATIONS
+### Institute Management System
+### ========================================
+
+@baseUrl = http://localhost:3001/api
+@teacherToken = your_teacher_token_here
+@groupId = group_id_here
+@studentId = student_id_here
+@sessionId = session_id_here
+@enrollmentId=
+@materialId=
+@teacherId=
+@levelId=
+@otherTeacherSessionId=
+@otherTeacherGroupId=
+@futureSessionId=
+
+### ========================================
+### WORKFLOW 1: LOGIN & DASHBOARD
+### ========================================
+
+### 1.1 Request OTP
+POST {{baseUrl}}/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "teacher1@test.com",
+  "method": "email"
+}
+
+### 1.2 Verify OTP
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "teacher1@test.com",
+  "code": "123456"
+}
+
+### 1.3 Get Teacher Profile
+GET {{baseUrl}}/teachers/me
+Authorization: Bearer {{teacherToken}}
+
+### 1.4 View Assigned Groups
+GET {{baseUrl}}/teachers/me/groups
+Authorization: Bearer {{teacherToken}}
+
+### ========================================
+### WORKFLOW 2: ATTENDANCE RECORDING
+### ========================================
+
+### 2.1 Get Today's Classes
+GET {{baseUrl}}/class-sessions/today
+Authorization: Bearer {{teacherToken}}
+
+### 2.2 Get Session Details
+GET {{baseUrl}}/class-sessions/{{sessionId}}
+Authorization: Bearer {{teacherToken}}
+
+### 2.3 Get Students in Session
+GET {{baseUrl}}/class-sessions/{{sessionId}}/students
+Authorization: Bearer {{teacherToken}}
+
+### 2.4 Mark Attendance - Individual
+POST {{baseUrl}}/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "classSessionId": "{{sessionId}}",
+  "studentId": "{{studentId}}",
+  "enrollmentId": "{{enrollmentId}}",
+  "status": "PRESENT",
+  "notes": "Participated actively"
+}
+
+### 2.5 Mark Attendance - Bulk
+POST {{baseUrl}}/attendance/bulk
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "classSessionId": "{{sessionId}}",
+  "attendance": [
+    {
+      "studentId": "student1_id",
+      "enrollmentId": "enrollment1_id",
+      "status": "PRESENT"
+    },
+    {
+      "studentId": "student2_id",
+      "enrollmentId": "enrollment2_id",
+      "status": "ABSENT"
+    },
+    {
+      "studentId": "student3_id",
+      "enrollmentId": "enrollment3_id",
+      "status": "LATE",
+      "notes": "Arrived 15 minutes late"
+    }
+  ]
+}
+
+### 2.6 Upload Attendance CSV
+POST {{baseUrl}}/attendance/upload-csv
+Authorization: Bearer {{teacherToken}}
+Content-Type: multipart/form-data; boundary=boundary
+
+--boundary
+Content-Disposition: form-data; name="file"; filename="attendance.csv"
+Content-Type: text/csv
+
+classSessionId,studentId,enrollmentId,status,notes
+session1,student1,enrollment1,PRESENT,
+session1,student2,enrollment2,ABSENT,Sick
+--boundary--
+
+### ========================================
+### WORKFLOW 3: VIEW STUDENT PROGRESS
+### ========================================
+
+### 3.1 Get All Students in Group
+GET {{baseUrl}}/groups/{{groupId}}/students
+Authorization: Bearer {{teacherToken}}
+
+### 3.2 Get Student Attendance Summary
+GET {{baseUrl}}/students/{{studentId}}/attendance
+Authorization: Bearer {{teacherToken}}
+
+### 3.3 Get At-Risk Students
+GET {{baseUrl}}/groups/{{groupId}}/at-risk-students
+Authorization: Bearer {{teacherToken}}
+
+### ========================================
+### WORKFLOW 4: UPLOAD MATERIALS
+### ========================================
+
+### 4.1 Upload PDF Material
+POST {{baseUrl}}/materials
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}",
+  "title": "Unit 1 Grammar Exercises",
+  "description": "Present Simple exercises",
+  "materialType": "PDF",
+  "fileUrl": "https://storage.example.com/grammar.pdf",
+  "fileSizeKb": 2048
+}
+
+### 4.2 Share Video Link
+POST {{baseUrl}}/materials
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}",
+  "title": "Pronunciation Guide",
+  "description": "British vs American pronunciation",
+  "materialType": "VIDEO",
+  "fileUrl": "https://youtube.com/watch?v=example"
+}
+
+### 4.3 Share External Link
+POST {{baseUrl}}/materials
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}",
+  "title": "Online Practice",
+  "description": "Interactive grammar exercises",
+  "materialType": "LINK",
+  "fileUrl": "https://example.com/practice"
+}
+
+### 4.4 View Group Materials
+GET {{baseUrl}}/materials?groupId={{groupId}}
+Authorization: Bearer {{teacherToken}}
+
+### 4.5 Delete Material
+DELETE {{baseUrl}}/materials/{{materialId}}
+Authorization: Bearer {{teacherToken}}
+
+### ========================================
+### WORKFLOW 5: ANNOUNCEMENTS
+### ========================================
+
+### 5.1 Create Group Announcement
+POST {{baseUrl}}/announcements
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}",
+  "title": "Class Cancelled Tomorrow",
+  "content": "Tomorrow's class is cancelled due to public holiday. Next class on Tuesday.",
+  "targetAudience": "GROUP_SPECIFIC",
+  "isPublished": true,
+  "publishedAt": "2025-11-22T10:00:00Z"
+}
+
+### 5.2 Schedule Future Announcement
+POST {{baseUrl}}/announcements
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}",
+  "title": "Upcoming Test",
+  "content": "Unit 1 test will be held next Sunday",
+  "targetAudience": "GROUP_SPECIFIC",
+  "isPublished": false,
+  "scheduledFor": "2025-11-25T08:00:00Z"
+}
+
+### 5.3 View Group Announcements
+GET {{baseUrl}}/announcements?groupId={{groupId}}
+Authorization: Bearer {{teacherToken}}
+
+### ========================================
+### WORKFLOW 6: REPORTS & ANALYTICS
+### ========================================
+
+### 6.1 Group Attendance Report
+GET {{baseUrl}}/analytics/attendance?groupId={{groupId}}
+Authorization: Bearer {{teacherToken}}
+
+### 6.2 Student Attendance Details
+GET {{baseUrl}}/analytics/attendance?studentId={{studentId}}
+Authorization: Bearer {{teacherToken}}
+
+### 6.3 Export Attendance to Excel
+GET {{baseUrl}}/analytics/attendance/export?groupId={{groupId}}&format=excel
+Authorization: Bearer {{teacherToken}}
+
+### 6.4 Group Statistics
+GET {{baseUrl}}/groups/{{groupId}}/statistics
+Authorization: Bearer {{teacherToken}}
+
+### ========================================
+### WORKFLOW 7: SPEAKING TEST (If Available)
+### ========================================
+
+### 7.1 View Speaking Test Schedule
+GET {{baseUrl}}/speaking-slots/my-slots
+Authorization: Bearer {{teacherToken}}
+
+### 7.2 View Assigned Speaking Tests
+GET {{baseUrl}}/tests/sessions?teacherId={{teacherId}}&type=SPEAKING
+Authorization: Bearer {{teacherToken}}
+
+### 7.3 Complete Speaking Test
+PUT {{baseUrl}}/tests/sessions/{{sessionId}}/speaking-results
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "speakingScore": 85,
+  "speakingLevelId": "{{levelId}}",
+  "speakingNotes": "Good pronunciation, needs more vocabulary practice",
+  "speakingCompletedAt": "2025-11-22T14:30:00Z"
+}
+
+### ========================================
+### ERROR SCENARIOS
+### ========================================
+
+### E-1: Mark Attendance for Other Teacher's Class
+POST {{baseUrl}}/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "classSessionId": "{{otherTeacherSessionId}}",
+  "studentId": "{{studentId}}",
+  "status": "PRESENT"
+}
+# Expected: 403 - Not your class
+
+### E-2: Upload Material to Other Teacher's Group
+POST {{baseUrl}}/materials
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{otherTeacherGroupId}}",
+  "title": "Test",
+  "materialType": "PDF",
+  "fileUrl": "https://example.com/test.pdf"
+}
+# Expected: 403 - Not your group
+
+### E-3: Mark Future Date Attendance
+POST {{baseUrl}}/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "classSessionId": "{{futureSessionId}}",
+  "studentId": "{{studentId}}",
+  "status": "PRESENT"
+}
+# Expected: 400 - Cannot mark future attendance
+
+### E-4: Duplicate Attendance Record
+POST {{baseUrl}}/attendance
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "classSessionId": "{{sessionId}}",
+  "studentId": "{{studentId}}",
+  "status": "PRESENT"
+}
+# Expected: 400 - Attendance already marked
+
+### ========================================
+### PERFORMANCE TESTS
+### ========================================
+
+### P-1: Load All Groups (Pagination)
+GET {{baseUrl}}/teachers/me/groups?page=1&limit=50
+Authorization: Bearer {{teacherToken}}
+
+### P-2: Large Group Attendance (50 students)
+POST {{baseUrl}}/attendance/bulk
+Authorization: Bearer {{teacherToken}}
+Content-Type: application/json
+
+{
+  "classSessionId": "{{sessionId}}",
+  "attendance": [
+    {"studentId": "s1", "enrollmentId": "e1", "status": "PRESENT"},
+    {"studentId": "s2", "enrollmentId": "e2", "status": "PRESENT"}
+    # ... add 50 records
+  ]
+}

@@ -1,0 +1,367 @@
+### ========================================
+### STUDENT WORKFLOW - PORTAL TESTING
+### Institute Management System
+### ========================================
+
+@baseUrl = http://localhost:3001/api
+@studentToken = your_student_token_here
+@enrollmentId = enrollment_id_here
+@groupId = group_id_here
+@materialId=
+@installmentId=
+
+@notificationId=
+@otherStudentId=
+@sessionId=
+@studentId=
+@placementTestId=
+@speakingSlotId=
+### ========================================
+### WORKFLOW 1: LOGIN & DASHBOARD
+### ========================================
+
+### 1.1 Request OTP (Email)
+POST {{baseUrl}}/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "student1@test.com",
+  "method": "email"
+}
+
+### 1.2 Request OTP (Phone)
+POST {{baseUrl}}/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "+97344444444",
+  "method": "sms"
+}
+
+### 1.3 Verify OTP
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "student1@test.com",
+  "code": "123456"
+}
+
+### 1.4 Get Student Profile
+GET {{baseUrl}}/students/me
+Authorization: Bearer {{studentToken}}
+
+### 1.5 View Dashboard Stats
+GET {{baseUrl}}/students/me/dashboard
+Authorization: Bearer {{studentToken}}
+
+### ========================================
+### WORKFLOW 2: VIEW ATTENDANCE
+### ========================================
+
+### 2.1 Get My Attendance
+GET {{baseUrl}}/students/me/attendance
+Authorization: Bearer {{studentToken}}
+
+### 2.2 Get Attendance by Enrollment
+GET {{baseUrl}}/students/me/attendance?enrollmentId={{enrollmentId}}
+Authorization: Bearer {{studentToken}}
+
+### 2.3 Get Attendance Summary
+GET {{baseUrl}}/students/me/attendance/summary
+Authorization: Bearer {{studentToken}}
+
+### 2.4 Check At-Risk Status
+GET {{baseUrl}}/students/me/attendance/status
+Authorization: Bearer {{studentToken}}
+
+### ========================================
+### WORKFLOW 3: VIEW SCHEDULE
+### ========================================
+
+### 3.1 Get My Groups
+GET {{baseUrl}}/students/me/groups
+Authorization: Bearer {{studentToken}}
+
+### 3.2 Get Group Details
+GET {{baseUrl}}/groups/{{groupId}}
+Authorization: Bearer {{studentToken}}
+
+### 3.3 Get Upcoming Classes
+GET {{baseUrl}}/students/me/upcoming-classes
+Authorization: Bearer {{studentToken}}
+
+### 3.4 Get Class Sessions
+GET {{baseUrl}}/students/me/class-sessions?enrollmentId={{enrollmentId}}
+Authorization: Bearer {{studentToken}}
+
+### ========================================
+### WORKFLOW 4: DOWNLOAD MATERIALS
+### ========================================
+
+### 4.1 View All My Materials
+GET {{baseUrl}}/students/me/materials
+Authorization: Bearer {{studentToken}}
+
+### 4.2 View Materials by Group
+GET {{baseUrl}}/students/me/materials?groupId={{groupId}}
+Authorization: Bearer {{studentToken}}
+
+### 4.3 Filter by Material Type
+GET {{baseUrl}}/students/me/materials?materialType=PDF
+Authorization: Bearer {{studentToken}}
+
+### 4.4 Get Material Details
+GET {{baseUrl}}/materials/{{materialId}}
+Authorization: Bearer {{studentToken}}
+
+### ========================================
+### WORKFLOW 5: VIEW PAYMENT INFO
+### ========================================
+
+### 5.1 Get My Payment Plan
+GET {{baseUrl}}/students/me/payment-plan
+Authorization: Bearer {{studentToken}}
+
+### 5.2 Get Payment Plan by Enrollment
+GET {{baseUrl}}/students/me/payment-plan?enrollmentId={{enrollmentId}}
+Authorization: Bearer {{studentToken}}
+
+### 5.3 View All Installments
+GET {{baseUrl}}/students/me/installments
+Authorization: Bearer {{studentToken}}
+
+### 5.4 View Unpaid Installments
+GET {{baseUrl}}/students/me/installments?status=UNPAID
+Authorization: Bearer {{studentToken}}
+
+### 5.5 View Payment History
+GET {{baseUrl}}/students/me/payment-history
+Authorization: Bearer {{studentToken}}
+
+### 5.6 Get Outstanding Balance
+GET {{baseUrl}}/students/me/balance
+Authorization: Bearer {{studentToken}}
+
+### ========================================
+### WORKFLOW 6: MAKE PAYMENT (Manual - Informational)
+### ========================================
+
+### 6.1 View Payment Methods
+GET {{baseUrl}}/payments/methods
+Authorization: Bearer {{studentToken}}
+
+### 6.2 Get Installment Details
+GET {{baseUrl}}/installments/{{installmentId}}
+Authorization: Bearer {{studentToken}}
+
+### Note: Actual payment is recorded by admin
+### Student can view payment status only
+
+### ========================================
+### WORKFLOW 7: VIEW NOTIFICATIONS
+### ========================================
+
+### 7.1 Get All Notifications
+GET {{baseUrl}}/students/me/notifications
+Authorization: Bearer {{studentToken}}
+
+### 7.2 Get Unread Notifications
+GET {{baseUrl}}/students/me/notifications?isRead=false
+Authorization: Bearer {{studentToken}}
+
+### 7.3 Mark Notification as Read
+PUT {{baseUrl}}/notifications/{{notificationId}}/read
+Authorization: Bearer {{studentToken}}
+
+### 7.4 Get Notifications by Type
+GET {{baseUrl}}/students/me/notifications?type=PAYMENT_REMINDER
+Authorization: Bearer {{studentToken}}
+
+### ========================================
+### WORKFLOW 8: VIEW ANNOUNCEMENTS
+### ========================================
+
+### 8.1 Get My Announcements
+GET {{baseUrl}}/students/me/announcements
+Authorization: Bearer {{studentToken}}
+
+### 8.2 Get Group Announcements
+GET {{baseUrl}}/announcements?groupId={{groupId}}
+Authorization: Bearer {{studentToken}}
+
+### 8.3 Get Recent Announcements
+GET {{baseUrl}}/students/me/announcements?limit=5
+Authorization: Bearer {{studentToken}}
+
+### ========================================
+### WORKFLOW 9: UPDATE PROFILE
+### ========================================
+
+### 9.1 View Profile
+GET {{baseUrl}}/students/me
+Authorization: Bearer {{studentToken}}
+
+### 9.2 Update Contact Info
+PUT {{baseUrl}}/students/me
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "email": "newemail@test.com",
+  "area": "Juffair",
+  "houseNo": "456"
+}
+
+### 9.3 Update Preferences
+PUT {{baseUrl}}/students/me/preferences
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "preferredTiming": "Morning",
+  "preferredCenter": "Riyadat Mall"
+}
+
+### ========================================
+### ERROR SCENARIOS
+### ========================================
+
+### E-1: Access Other Student's Data
+GET {{baseUrl}}/students/{{otherStudentId}}
+Authorization: Bearer {{studentToken}}
+# Expected: 403 - Forbidden
+
+### E-2: Access Other Student's Attendance
+GET {{baseUrl}}/students/{{otherStudentId}}/attendance
+Authorization: Bearer {{studentToken}}
+# Expected: 403 - Forbidden
+
+### E-3: Try to Mark Attendance
+POST {{baseUrl}}/attendance
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "classSessionId": "{{sessionId}}",
+  "studentId": "{{studentId}}",
+  "status": "PRESENT"
+}
+# Expected: 403 - Forbidden (Teacher only)
+
+### E-4: Try to Create Material
+POST {{baseUrl}}/materials
+Authorization: Bearer {{studentToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}",
+  "title": "Test"
+}
+# Expected: 403 - Forbidden (Teacher only)
+
+### E-5: Access Admin Routes
+GET {{baseUrl}}/analytics/dashboard
+Authorization: Bearer {{studentToken}}
+# Expected: 403 - Forbidden
+
+### ========================================
+### PAYMENT WORKFLOW (SEPARATE)
+### ========================================
+
+@paymentBaseUrl = http://localhost:3001/api/payments
+
+### PAYMENT 1: View Payment Plan
+GET {{paymentBaseUrl}}/students/me/payment-plan
+Authorization: Bearer {{studentToken}}
+
+### Response Example:
+# {
+#   "enrollmentId": "...",
+#   "totalInstallments": 4,
+#   "totalDues": 600.00,
+#   "totalPaid": 300.00,
+#   "balance": 300.00,
+#   "installments": [...]
+# }
+
+### PAYMENT 2: View Specific Installment
+GET {{paymentBaseUrl}}/installments/{{installmentId}}
+Authorization: Bearer {{studentToken}}
+
+### PAYMENT 3: Check Overdue Payments
+GET {{paymentBaseUrl}}/students/me/overdue
+Authorization: Bearer {{studentToken}}
+
+### PAYMENT 4: Download Receipt
+GET {{paymentBaseUrl}}/installments/{{installmentId}}/receipt
+Authorization: Bearer {{studentToken}}
+
+### PAYMENT 5: View Payment Timeline
+GET {{paymentBaseUrl}}/students/me/payment-timeline
+Authorization: Bearer {{studentToken}}
+
+### ========================================
+### PLACEMENT TEST (GUEST USER)
+### ========================================
+
+@testBaseUrl = http://localhost:3001/api/tests
+
+### TEST 1: View Available Tests
+GET {{testBaseUrl}}/placement/available
+# No auth required
+
+### TEST 2: Start Placement Test
+POST {{testBaseUrl}}/sessions/start
+Content-Type: application/json
+
+{
+  "testId": "{{placementTestId}}",
+  "guestName": "Ahmed Mohammed",
+  "guestEmail": "ahmed@test.com",
+  "guestPhone": "+97355555555",
+  "guestAge": 12
+}
+
+### TEST 3: Get Test Questions
+GET {{testBaseUrl}}/sessions/{{sessionId}}/questions
+
+### TEST 4: Submit MCQ Answers
+POST {{testBaseUrl}}/sessions/{{sessionId}}/submit-mcq
+Content-Type: application/json
+
+{
+  "answers": {
+    "question1_id": "answer_a",
+    "question2_id": "answer_b",
+    "question3_id": "answer_c"
+  }
+}
+
+### TEST 5: View Test Results
+GET {{testBaseUrl}}/sessions/{{sessionId}}/results
+# Guest access via session ID only
+
+### TEST 6: Book Speaking Test
+POST {{testBaseUrl}}/sessions/{{sessionId}}/book-speaking
+Content-Type: application/json
+
+{
+  "slotId": "{{speakingSlotId}}"
+}
+
+### ========================================
+### PERFORMANCE & LOAD TESTS
+### ========================================
+
+### P-1: Load Dashboard (Multiple Queries)
+GET {{baseUrl}}/students/me/dashboard
+Authorization: Bearer {{studentToken}}
+
+### P-2: Load All Materials (Large Dataset)
+GET {{baseUrl}}/students/me/materials?page=1&limit=100
+Authorization: Bearer {{studentToken}}
+
+### P-3: Load Attendance History (Full Term)
+GET {{baseUrl}}/students/me/attendance?startDate=2025-09-01&endDate=2025-12-31
+Authorization: Bearer {{studentToken}}

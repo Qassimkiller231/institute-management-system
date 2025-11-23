@@ -1,0 +1,78 @@
+# Performance & At-Risk Reports API Tests
+# Base URL: http://localhost:3001
+
+# ==================== VARIABLES ====================
+
+@baseUrl = http://localhost:3001
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
+@studentToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlMjA1MTBlNi03M2UwLTRiNzYtOWZlOS1mYmNhNjk2NTAxM2UiLCJlbWFpbCI6ImFobWVkLnN0dWRlbnRAZXhhbXBsZS5jb20iLCJyb2xlIjoiU1RVREVOVCIsImlhdCI6MTc2MzYxNTIxOSwiZXhwIjoxNzY0MjIwMDE5fQ.63GTlVXEqelnkn9uu2HnZQPCfVMtrCNr_umL7x4DRM0
+
+@groupId = ce7ad635-c179-46b4-beb0-8cf5fa0404f7
+@studentId = 44df7d55-02fe-4bf1-8944-478d4f9275ec
+@enrollmentId = 75659e2c-393b-443f-a7a5-32bcd9442f28
+
+# Common date range
+@startDate = 2025-10-01
+@endDate   = 2025-10-31
+
+# ==================== GROUP PERFORMANCE REPORT ====================
+
+### Group Performance Report (Teacher)
+GET {{baseUrl}}/api/reports/performance/group/{{groupId}}?startDate={{startDate}}&endDate={{endDate}}
+Authorization: Bearer {{teacherToken}}
+
+### Group Performance Report (Admin)
+GET {{baseUrl}}/api/reports/performance/group/{{groupId}}?startDate={{startDate}}&endDate={{endDate}}
+Authorization: Bearer {{adminToken}}
+
+### Group Performance Report – Missing Dates
+GET {{baseUrl}}/api/reports/performance/group/{{groupId}}
+Authorization: Bearer {{adminToken}}
+
+### Group Performance Report – Invalid Date
+GET {{baseUrl}}/api/reports/performance/group/{{groupId}}?startDate=bad-date&endDate={{endDate}}
+Authorization: Bearer {{adminToken}}
+
+### Group Performance Report – Invalid Group
+GET {{baseUrl}}/api/reports/performance/group/00000000-0000-0000-0000-000000000000?startDate={{startDate}}&endDate={{endDate}}
+Authorization: Bearer {{adminToken}}
+
+# ==================== STUDENT PERFORMANCE REPORT ====================
+
+### Student Performance Report (Teacher)
+GET {{baseUrl}}/api/reports/performance/student/{{studentId}}?enrollmentId={{enrollmentId}}
+Authorization: Bearer {{teacherToken}}
+
+### Student Performance Report (Admin)
+GET {{baseUrl}}/api/reports/performance/student/{{studentId}}?enrollmentId={{enrollmentId}}
+Authorization: Bearer {{adminToken}}
+
+### Student Performance Report (Student Self)
+GET {{baseUrl}}/api/reports/performance/student/{{studentId}}?enrollmentId={{enrollmentId}}
+Authorization: Bearer {{studentToken}}
+
+### Student Performance Report – Missing Enrollment
+GET {{baseUrl}}/api/reports/performance/student/{{studentId}}
+Authorization: Bearer {{adminToken}}
+
+### Student Performance Report – Invalid Student
+GET {{baseUrl}}/api/reports/performance/student/00000000-0000-0000-0000-000000000000?enrollmentId={{enrollmentId}}
+Authorization: Bearer {{adminToken}}
+
+# ==================== AT-RISK STUDENTS ====================
+
+### At-Risk Students by Group (Teacher)
+GET {{baseUrl}}/api/reports/at-risk-students?groupId={{groupId}}&threshold=75
+Authorization: Bearer {{teacherToken}}
+
+### At-Risk Students (Admin, Global Threshold)
+GET {{baseUrl}}/api/reports/at-risk-students?threshold=70
+Authorization: Bearer {{adminToken}}
+
+### At-Risk Students – Invalid Threshold
+GET {{baseUrl}}/api/reports/at-risk-students?groupId={{groupId}}&threshold=abc
+Authorization: Bearer {{adminToken}}
+
+### At-Risk Students – No Token
+GET {{baseUrl}}/api/reports/at-risk-students?groupId={{groupId}}&threshold=75

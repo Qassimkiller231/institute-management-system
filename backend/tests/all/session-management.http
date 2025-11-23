@@ -1,0 +1,157 @@
+# session-management.http
+
+@baseUrl = http://localhost:3001/api
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0NjJjY2QzOS0xMzU5LTQ2MTYtODFjMi0zYzMxYTgxZDhjZTMiLCJlbWFpbCI6ImFkbWluQGluc3RpdHV0ZS5jb20iLCJyb2xlIjoiQURNSU4iLCJpYXQiOjE3NjMzNDU0ODcsImV4cCI6MTc2Mzk1MDI4N30._imZsnAjh6mOtksjPVFtlqCNJU3Gmec-suBv_6kc1Xk
+@teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
+
+### Variables (Update these after creating records)
+@groupId = ce7ad635-c179-46b4-beb0-8cf5fa0404f7
+@hallId = 5719dc5f-1d3b-400e-86eb-f29a5dd6678e
+@sessionId = bea3897d-0a1f-47e0-9cea-87b028b766ad
+
+# ==================== SESSIONS ====================
+
+### Create Single Session
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}",
+  "hallId": "{{hallId}}",
+  "sessionDate": "2025-12-01",
+  "sessionNumber": 1,
+  "startTime": "16:00:00",
+  "endTime": "18:00:00",
+  "topic": "Introduction to English Grammar"
+}
+
+### Create Another Session
+POST {{baseUrl}}/sessions
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}",
+  "sessionDate": "2025-12-03",
+  "sessionNumber": 2,
+  "startTime": "16:00:00",
+  "endTime": "18:00:00",
+  "topic": "Present Simple Tense"
+}
+
+### Bulk Create Sessions
+POST {{baseUrl}}/sessions/bulk
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "groupId": "{{groupId}}",
+  "sessions": [
+    {
+      "sessionDate": "2025-12-05",
+      "sessionNumber": 3,
+      "startTime": "16:00:00",
+      "endTime": "18:00:00",
+      "hallId": "{{hallId}}",
+      "topic": "Past Simple Tense"
+    },
+    {
+      "sessionDate": "2025-12-08",
+      "sessionNumber": 4,
+      "startTime": "16:00:00",
+      "endTime": "18:00:00",
+      "hallId": "{{hallId}}",
+      "topic": "Future Tense"
+    },
+    {
+      "sessionDate": "2025-12-10",
+      "sessionNumber": 5,
+      "startTime": "16:00:00",
+      "endTime": "18:00:00",
+      "hallId": "{{hallId}}",
+      "topic": "Present Continuous"
+    }
+  ]
+}
+
+### Get All Sessions
+GET {{baseUrl}}/sessions
+Authorization: Bearer {{adminToken}}
+
+### Get All Sessions with Pagination
+GET {{baseUrl}}/sessions?page=1&limit=10
+Authorization: Bearer {{adminToken}}
+
+### Get Sessions by Group
+GET {{baseUrl}}/sessions?groupId={{groupId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Sessions by Status
+GET {{baseUrl}}/sessions?status=SCHEDULED
+Authorization: Bearer {{adminToken}}
+
+### Get Completed Sessions
+GET {{baseUrl}}/sessions?status=COMPLETED
+Authorization: Bearer {{adminToken}}
+
+### Get Sessions in Date Range
+GET {{baseUrl}}/sessions?dateFrom=2025-12-01&dateTo=2025-12-31
+Authorization: Bearer {{adminToken}}
+
+### Get Sessions by Group (Nested Route)
+GET {{baseUrl}}/sessions/group/{{groupId}}
+Authorization: Bearer {{adminToken}}
+
+### Get Session By ID
+GET {{baseUrl}}/sessions/{{sessionId}}
+Authorization: Bearer {{adminToken}}
+
+### Update Session
+PUT {{baseUrl}}/sessions/{{sessionId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "topic": "Introduction to English Grammar - Updated",
+  "startTime": "17:00:00",
+  "endTime": "19:00:00"
+}
+
+### Update Session Date
+PUT {{baseUrl}}/sessions/{{sessionId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "sessionDate": "2025-12-02"
+}
+
+### Update Session Hall
+PUT {{baseUrl}}/sessions/{{sessionId}}
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "hallId": "{{hallId}}"
+}
+
+### Mark Session as Completed
+PATCH {{baseUrl}}/sessions/{{sessionId}}/complete
+Authorization: Bearer {{adminToken}}
+
+### Cancel Session
+PATCH {{baseUrl}}/sessions/{{sessionId}}/cancel
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "reason": "Teacher unavailable due to emergency"
+}
+
+### Cancel Session (No Reason)
+PATCH {{baseUrl}}/sessions/{{sessionId}}/cancel
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{}

@@ -1,6 +1,7 @@
 // src/controllers/group.controller.ts
 import { Request, Response } from 'express';
 import * as groupService from '../services/group.service';
+import { checkScheduleConflicts as checkConflicts } from '../utils/schedule';
 
 // ==================== GROUPS ====================
 
@@ -189,187 +190,9 @@ export const deleteGroup = async (req: Request, res: Response) => {
   }
 };
 
-// ==================== CLASS SESSIONS ====================
-
-export const createClassSession = async (req: Request, res: Response) => {
-  try {
-    const {
-      groupId,
-      hallId,
-      sessionNumber,
-      sessionDate,
-      startTime,
-      endTime,
-      topic
-    } = req.body;
-
-    if (!groupId || !sessionNumber || !sessionDate || !startTime || !endTime) {
-      return res.status(400).json({
-        success: false,
-        message: 'Group ID, session number, date, and times are required'
-      });
-    }
-
-    const session = await groupService.createClassSession({
-      groupId,
-      hallId,
-      sessionNumber,
-      sessionDate,
-      startTime,
-      endTime,
-      topic
-    });
-
-    res.status(201).json({
-      success: true,
-      data: session
-    });
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-export const bulkCreateSessions = async (req: Request, res: Response) => {
-  try {
-    const {
-      groupId,
-      hallId,
-      startDate,
-      schedule,
-      totalSessions
-    } = req.body;
-
-    if (!groupId || !startDate || !schedule || !totalSessions) {
-      return res.status(400).json({
-        success: false,
-        message: 'Group ID, start date, schedule, and total sessions are required'
-      });
-    }
-
-    const result = await groupService.bulkCreateSessions({
-      groupId,
-      hallId,
-      startDate,
-      schedule,
-      totalSessions
-    });
-
-    res.status(201).json({
-      success: true,
-      message: `${result.totalCreated} sessions created successfully`,
-      data: {
-        groupId,
-        totalCreated: result.totalCreated,
-        firstSession: result.firstSession,
-        lastSession: result.lastSession
-      }
-    });
-  } catch (error: any) {
-    res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-export const getSessionsByGroup = async (req: Request, res: Response) => {
-  try {
-    const { groupId } = req.params;
-    const status = req.query.status as string;
-    const limit = parseInt(req.query.limit as string) || 100;
-
-    const sessions = await groupService.getSessionsByGroup(groupId, {
-      status,
-      limit
-    });
-
-    res.json({
-      success: true,
-      data: sessions,
-      total: sessions.length
-    });
-  } catch (error: any) {
-    res.status(500).json({
-      success: false,
-      message: 'Failed to fetch sessions'
-    });
-  }
-};
-
-export const updateClassSession = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const updates = req.body;
-
-    const session = await groupService.updateClassSession(id, updates);
-
-    res.json({
-      success: true,
-      message: 'Session updated successfully',
-      data: session
-    });
-  } catch (error: any) {
-    const status = error.message === 'Class session not found' ? 404 : 400;
-    res.status(status).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-export const completeSession = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { topic } = req.body;
-
-    await groupService.completeSession(id, topic);
-
-    res.json({
-      success: true,
-      message: 'Session marked as completed'
-    });
-  } catch (error: any) {
-    const status = error.message === 'Class session not found' ? 404 : 400;
-    res.status(status).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
-export const cancelSession = async (req: Request, res: Response) => {
-  try {
-    const { id } = req.params;
-    const { cancellationReason } = req.body;
-
-    if (!cancellationReason) {
-      return res.status(400).json({
-        success: false,
-        message: 'Cancellation reason is required'
-      });
-    }
-
-    await groupService.cancelSession(id, cancellationReason);
-
-    res.json({
-      success: true,
-      message: 'Session cancelled successfully'
-    });
-  } catch (error: any) {
-    const status = error.message === 'Class session not found' ? 404 : 400;
-    res.status(status).json({
-      success: false,
-      message: error.message
-    });
-  }
-};
-
 // ==================== SCHEDULE MANAGEMENT ====================
 
-export const checkScheduleConflicts = async (req: Request, res: Response) => {
+export const checkScheduleConflictsController = async (req: Request, res: Response) => {
   try {
     const { venueId, date, startTime, endTime, excludeGroupId } = req.query;
 
@@ -380,7 +203,7 @@ export const checkScheduleConflicts = async (req: Request, res: Response) => {
       });
     }
 
-    const result = await groupService.checkScheduleConflicts(
+    const result = await checkConflicts(
       venueId as string,
       date as string,
       startTime as string,
