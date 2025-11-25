@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { studentAPI, testSessionAPI } from '@/lib/api';
+import { studentAPI } from '@/lib/api';
 
 interface StudentData {
   id: string;
@@ -22,70 +22,72 @@ interface StudentData {
     id: string;
     status: string;
     mcqScore?: number;
-    speakingSlot?: {
+    finalLevelId?: string;
+    speakingSlots?: Array<{
       slotDate: string;
       startTime: string;
       teacher: {
+        firstName: string;   // ✅ Add these
+       lastName: string;  
         user: {
           email: string;
         };
       };
-    };
+    }>;
   }>;
 }
 
 type DashboardState = 
-  | 'new_student'           // No test taken
-  | 'mcq_completed'         // MCQ done, need to book speaking
-  | 'speaking_booked'       // Speaking booked, waiting
-  | 'test_completed'        // Test done, waiting for results
-  | 'enrolled_student';     // Active enrollment
+  | 'new_student'
+  | 'mcq_completed'
+  | 'speaking_booked'
+  | 'test_completed'
+  | 'enrolled_student';
 
 export default function StudentDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState<StudentData | null>(null);
   const [dashboardState, setDashboardState] = useState<DashboardState>('new_student');
-  const [error, setError] = useState(''); // Add this
+  const [error, setError] = useState('');
+
   useEffect(() => {
     loadStudentData();
   }, []);
 
   const loadStudentData = async () => {
-  try {
-    const studentId = localStorage.getItem('studentId');
-    console.log('1. StudentId from localStorage:', studentId); // Debug
-    
-    if (!studentId) {
-      console.error('No studentId found');
-      router.push('/login');
-      return;
-    }
+    try {
+      const studentId = localStorage.getItem('studentId');
+      console.log('1. StudentId from localStorage:', studentId);
+      
+      if (!studentId) {
+        console.error('No studentId found');
+        router.push('/login');
+        return;
+      }
 
-    // Get student data with enrollments and test sessions
-    console.log('2. Calling API for student:', studentId); // Debug
-    const result = await studentAPI.getById(studentId);
-    console.log('3. API Result:', result); // Debug
-    
-    if (result.success && result.data) {
-      console.log('4. Student data loaded:', result.data); // Debug
-      setStudent(result.data);
-      determineDashboardState(result.data);
-    } else {
-      console.error('5. API returned unsuccessful:', result); // Debug
-      setError('Failed to load student data: ' + (result.message || 'Unknown error'));
+      console.log('2. Calling API for student:', studentId);
+      const result = await studentAPI.getById(studentId);
+      console.log('3. API Result:', result);
+      
+      if (result.success && result.data) {
+        console.log('4. Student data loaded:', result.data);
+        setStudent(result.data);
+        determineDashboardState(result.data);
+      } else {
+        console.error('5. API returned unsuccessful:', result);
+        setError('Failed to load student data: ' + (result.message || 'Unknown error'));
+      }
+    } catch (err: any) {
+      console.error('6. CATCH ERROR:', err);
+      console.error('Error details:', err.message, err.stack);
+      setError('Network error: ' + err.message);
+    } finally {
+      setLoading(false);
     }
-  } catch (err: any) {
-    console.error('6. CATCH ERROR:', err); // Debug
-    console.error('Error details:', err.message, err.stack); // Debug
-    setError('Network error: ' + err.message);
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   const determineDashboardState = (data: StudentData) => {
-    // Check if student has active enrollment
     const hasActiveEnrollment = data.enrollments?.some(e => e.status === 'ACTIVE');
     
     if (hasActiveEnrollment) {
@@ -93,20 +95,21 @@ export default function StudentDashboard() {
       return;
     }
 
-    // Check test status
-    const latestTest = data.testSessions?.[0]; // Assuming most recent first
+    const latestTest = data.testSessions?.[0];
     
     if (!latestTest) {
       setDashboardState('new_student');
       return;
     }
 
-    if (latestTest.status === 'SPEAKING_COMPLETED' || latestTest.status === 'COMPLETED') {
+    if (latestTest.status === 'SPEAKING_COMPLETED' && latestTest.finalLevelId) {
       setDashboardState('test_completed');
-    } else if (latestTest.status === 'SPEAKING_SCHEDULED' && latestTest.speakingSlot) {
+    } else if (latestTest.status === 'SPEAKING_SCHEDULED' && latestTest.speakingSlots?.[0]) {
       setDashboardState('speaking_booked');
     } else if (latestTest.status === 'MCQ_COMPLETED') {
       setDashboardState('mcq_completed');
+    } else if (latestTest.status === 'IN_PROGRESS') {
+      setDashboardState('new_student');
     } else {
       setDashboardState('new_student');
     }
@@ -121,13 +124,24 @@ export default function StudentDashboard() {
     });
   };
 
-  const formatTime = (time: string) => {
-    return new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    });
-  };
+  const formatTime = (time: string | undefined) => {
+  if (!time) return 'Time not available';
+  
+  try {
+    // Handle HH:MM:SS format from database
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours);
+    const minute = minutes || '00';
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour > 12 ? hour - 12 : (hour === 0 ? 12 : hour);
+    
+    return `${displayHour}:${minute} ${period}`;
+  } catch (e) {
+    console.error('formatTime error:', e, 'time value:', time);
+    return 'Invalid time';
+  }
+};
+
 
   if (loading) {
     return (
@@ -141,33 +155,31 @@ export default function StudentDashboard() {
   }
 
   if (!student) {
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
-        <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
-        <p className="text-gray-700 mb-6">
-          {error || 'Unable to load student data'}
-        </p>
-        <div className="bg-gray-100 p-4 rounded mb-4">
-          <p className="text-xs text-gray-600 text-left font-mono">
-            Check browser console (F12) for details
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+          <h2 className="text-2xl font-bold text-red-600 mb-4">Error</h2>
+          <p className="text-gray-700 mb-6">
+            {error || 'Unable to load student data'}
           </p>
+          <div className="bg-gray-100 p-4 rounded mb-4">
+            <p className="text-xs text-gray-600 text-left font-mono">
+              Check browser console (F12) for details
+            </p>
+          </div>
+          <button
+            onClick={() => router.push('/login')}
+            className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
+          >
+            Back to Login
+          </button>
         </div>
-        <button
-          onClick={() => router.push('/login')}
-          className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700"
-        >
-          Back to Login
-        </button>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
-  // Render based on state
   return (
     <div className="min-h-screen bg-gray-100">
-      {/* Header */}
       <div className="bg-white shadow">
         <div className="max-w-7xl mx-auto px-4 py-6">
           <div className="flex items-center justify-between">
@@ -191,7 +203,6 @@ export default function StudentDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-8">
-        {/* NEW STUDENT - No test taken */}
         {dashboardState === 'new_student' && (
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <div className="text-blue-600 text-6xl mb-4">📝</div>
@@ -219,7 +230,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* MCQ COMPLETED - Need to book speaking */}
         {dashboardState === 'mcq_completed' && (
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <div className="text-green-600 text-6xl mb-4">✓</div>
@@ -244,8 +254,7 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* SPEAKING BOOKED - Show appointment */}
-        {dashboardState === 'speaking_booked' && student.testSessions?.[0]?.speakingSlot && (
+        {dashboardState === 'speaking_booked' && student.testSessions?.[0]?.speakingSlots?.[0] && (
           <div className="bg-white rounded-lg shadow-lg p-8">
             <div className="text-center mb-8">
               <div className="text-green-600 text-6xl mb-4">📅</div>
@@ -265,7 +274,7 @@ export default function StudentDashboard() {
                   <div>
                     <div className="text-sm text-gray-600">Date</div>
                     <div className="font-bold text-gray-900">
-                      {formatDate(student.testSessions[0].speakingSlot.slotDate)}
+                      {formatDate(student.testSessions[0].speakingSlots[0].slotDate)}
                     </div>
                   </div>
                 </div>
@@ -274,7 +283,7 @@ export default function StudentDashboard() {
                   <div>
                     <div className="text-sm text-gray-600">Time</div>
                     <div className="font-bold text-gray-900">
-                      {formatTime(student.testSessions[0].speakingSlot.startTime)}
+                      {formatTime(student.testSessions[0].speakingSlots[0].startTime)}
                     </div>
                   </div>
                 </div>
@@ -283,7 +292,7 @@ export default function StudentDashboard() {
                   <div>
                     <div className="text-sm text-gray-600">Teacher</div>
                     <div className="font-bold text-gray-900">
-                      {student.testSessions[0].speakingSlot.teacher.user.email}
+                     {student.testSessions[0].speakingSlots[0].teacher.firstName} {student.testSessions[0].speakingSlots[0].teacher.lastName}
                     </div>
                   </div>
                 </div>
@@ -298,7 +307,6 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* TEST COMPLETED - Waiting for results */}
         {dashboardState === 'test_completed' && (
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
             <div className="text-yellow-600 text-6xl mb-4">⏳</div>
@@ -322,11 +330,9 @@ export default function StudentDashboard() {
           </div>
         )}
 
-        {/* ENROLLED STUDENT - Normal dashboard */}
         {dashboardState === 'enrolled_student' && (
           <div>
             <div className="grid md:grid-cols-3 gap-6 mb-8">
-              {/* Current Level Card */}
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-gray-700">Current Level</h3>
@@ -340,7 +346,6 @@ export default function StudentDashboard() {
                 </p>
               </div>
 
-              {/* Attendance Card */}
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-gray-700">Attendance</h3>
@@ -350,7 +355,6 @@ export default function StudentDashboard() {
                 <p className="text-sm text-gray-600 mt-2">On track</p>
               </div>
 
-              {/* Payments Card */}
               <div className="bg-white rounded-lg shadow p-6">
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-gray-700">Outstanding</h3>
@@ -363,7 +367,6 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            {/* Quick Actions */}
             <div className="bg-white rounded-lg shadow p-6 mb-8">
               <h3 className="font-bold text-gray-900 text-xl mb-4">Quick Actions</h3>
               <div className="grid md:grid-cols-4 gap-4">
@@ -398,7 +401,6 @@ export default function StudentDashboard() {
               </div>
             </div>
 
-            {/* Upcoming Classes */}
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="font-bold text-gray-900 text-xl mb-4">Upcoming Classes</h3>
               <p className="text-gray-600">No upcoming classes scheduled</p>

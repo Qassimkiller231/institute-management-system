@@ -30,6 +30,18 @@ interface FinalizeSessionInput {
 }
 
 export const startTestSession = async (data: StartTestSessionInput) => {
+   const existingTest = await prisma.testSession.findFirst({
+    where: {
+      studentId: data.studentId,
+      status: {
+        in: ['IN_PROGRESS', 'MCQ_COMPLETED', 'SPEAKING_SCHEDULED']
+      }
+    }
+  });
+
+  if (existingTest) {
+    throw new Error('You already have an active placement test. Please complete it first.');
+  }
   const [student, test] = await Promise.all([
     prisma.student.findUnique({ where: { id: data.studentId } }),
     prisma.test.findUnique({ where: { id: data.testId } })

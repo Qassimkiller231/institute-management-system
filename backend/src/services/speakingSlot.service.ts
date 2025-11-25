@@ -73,6 +73,8 @@ export const getAvailableSpeakingSlots = async (
       status: s.status,
       teacher: {
         id: s.teacher.id,
+        firstName: s.teacher.firstName,    // ✅ Add these
+        lastName: s.teacher.lastName,
         user: {
           email: s.teacher.user.email
         }
@@ -90,6 +92,17 @@ export const bookSpeakingSlot = async (input: BookSpeakingSlotInput) => {
 
   if (!slot) throw new Error('Speaking slot not found');
   if (slot.status !== 'AVAILABLE') throw new Error('Slot not available');
+  const existingBooking = await prisma.speakingSlot.findFirst({
+    where: {
+      testSessionId: input.sessionId,
+      studentId: input.studentId,
+      status: { in: ['BOOKED', 'COMPLETED'] }
+    }
+  });
+
+  if (existingBooking) {
+    throw new Error('You have already booked a speaking test for this session');
+  }
   if (!session) throw new Error('Test session not found');
   if (!student) throw new Error('Student not found');
 

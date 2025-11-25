@@ -276,6 +276,25 @@ testSessions: {
   if (!student) {
     throw new Error('Student not found');
   }
+  if (student.testSessions) {
+  student.testSessions = student.testSessions.map((session: any) => {
+    if (session.speakingSlots && session.speakingSlots.length > 0) {
+      session.speakingSlots = session.speakingSlots.map((slot: any) => {
+        const startDateTime = new Date(slot.slotTime);
+        const endDateTime = new Date(startDateTime.getTime() + slot.durationMinutes * 60000);
+        const startTime = startDateTime.toTimeString().split(' ')[0]; // HH:MM:SS
+        const endTime = endDateTime.toTimeString().split(' ')[0];
+
+        return {
+          ...slot,
+          startTime,
+          endTime
+        };
+      });
+    }
+    return session;
+  });
+}
 
   return student;
 };
