@@ -34,5 +34,9 @@ router.post(
   requireTeacherOrAdmin,
   speakingSlotController.submitResult
 );
+router.put(
+  '/:id/cancel',
+  speakingSlotController.cancelSlot
+);
 
 export default router;

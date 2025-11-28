@@ -2,6 +2,9 @@
  * Generate a random 6-digit OTP code
  */
 export const generateOTP = (): string => {
+  if (process.env.NODE_ENV === 'development') {
+    return '123456';
+  }
   const otp = Math.floor(100000 + Math.random() * 900000);
   return otp.toString();
 };

@@ -480,7 +480,7 @@ model SpeakingSlot {
   slotDate        DateTime  @db.Date
   slotTime        DateTime  @db.Time
   durationMinutes Int       @default(15)
-  status          String    @default("AVAILABLE") // AVAILABLE, BOOKED, COMPLETED, CANCELLED
+  status  String  @default("AVAILABLE") // AVAILABLE, BOOKED, COMPLETED, CANCELLED, MISSED
   score           Decimal?  @db.Decimal(5, 2)
   feedback        String?
   createdAt       DateTime  @default(now())

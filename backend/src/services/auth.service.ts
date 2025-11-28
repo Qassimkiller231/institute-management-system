@@ -7,6 +7,7 @@ import {
   sendOTP,
 } from "../utils/otp";
 import * as smsService from "./sms.service";
+
 /**
  * Request OTP code for login
  */
@@ -16,8 +17,12 @@ export const requestOTP = async (
 ) => {
   // Find user by email or phone
   const isEmail = identifier.includes("@");
+  
+  // ✅ FIX: Make email case-insensitive
   const user = await prisma.user.findFirst({
-    where: isEmail ? { email: identifier } : { phone: identifier },
+    where: isEmail 
+      ? { email: { equals: identifier, mode: 'insensitive' } } 
+      : { phone: identifier },
   });
 
   if (!user) {
@@ -62,6 +67,7 @@ export const requestOTP = async (
   // Send OTP (simulated for now)
   const recipient = method === "email" ? user.email : user.phone || "";
   await sendOTP(recipient, code, method);
+  
   if (method === "sms") {
     // Send via SMS
     await smsService.sendOTP({
@@ -90,8 +96,12 @@ export const requestOTP = async (
 export const verifyOTP = async (identifier: string, code: string) => {
   // Find user
   const isEmail = identifier.includes("@");
+  
+  // ✅ FIX: Make email case-insensitive
   const user = await prisma.user.findFirst({
-    where: isEmail ? { email: identifier } : { phone: identifier },
+    where: isEmail 
+      ? { email: { equals: identifier, mode: 'insensitive' } } 
+      : { phone: identifier },
   });
 
   if (!user) {
@@ -170,9 +180,9 @@ export const verifyOTP = async (identifier: string, code: string) => {
     userId: user.id,
     email: user.email,
     role: user.role,
-    studentId, // ✅ Add these
-    teacherId, // ✅
-    parentId, // ✅
+    studentId,
+    teacherId,
+    parentId,
   });
 
   // Create session

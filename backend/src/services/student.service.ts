@@ -164,6 +164,23 @@ export const getAllStudents = async (filters: {
             isPrimary: true
           }
         },
+        enrollments: {
+          where: { status: 'ACTIVE' },
+          include: {
+            group: {
+              include: {
+                level: {
+                  select: { id: true, name: true }
+                },
+                venue: {
+                  select: { id: true, name: true }
+                }
+              }
+            }
+          },
+          take: 1,
+          orderBy: { enrollmentDate: 'desc' }
+        },
         _count: {
           select: {
             enrollments: true,
@@ -243,7 +260,7 @@ export const getStudentById = async (id: string) => {
         },
         orderBy: { enrollmentDate: 'desc' }
       },
-      // ✅ ADD THIS:
+      // âœ… ADD THIS:
 testSessions: {
   include: {
     test: true,
@@ -307,6 +324,9 @@ export const updateStudent = async (id: string, updates: {
   secondName?: string;
   thirdName?: string;
   email?: string;
+  phone?: string;
+  cpr?: string;
+  dateOfBirth?: string;
   gender?: string;
   schoolType?: string;
   schoolYear?: string;
@@ -332,6 +352,16 @@ export const updateStudent = async (id: string, updates: {
     throw new Error('Student not found');
   }
 
+  // Check CPR uniqueness if changing
+  if (updates.cpr && updates.cpr !== existing.cpr) {
+    const existingCpr = await prisma.student.findUnique({
+      where: { cpr: updates.cpr }
+    });
+    if (existingCpr && existingCpr.id !== id) {
+      throw new Error('CPR already in use by another student');
+    }
+  }
+
   // Update in transaction
   const result = await prisma.$transaction(async (tx) => {
     // CASCADE: If activating/deactivating student, do the same to user
@@ -341,6 +371,10 @@ export const updateStudent = async (id: string, updates: {
         data: { isActive: updates.isActive }
       });
     }
+
+    // Update user phone if provided
+    const userUpdates: any = {};
+    if (updates.phone !== undefined) userUpdates.phone = updates.phone;
 
     // Check email uniqueness if changing email
     if (updates.email && updates.email !== existing.email) {
@@ -357,11 +391,16 @@ export const updateStudent = async (id: string, updates: {
         // If sharing with PARENT/STUDENT, DON'T update User table
       } else if (!existingEmail || existingEmail.id === existing.userId) {
         // Email is free OR it's the student's own email - can update User table
-        await tx.user.update({
-          where: { id: existing.userId },
-          data: { email: updates.email }
-        });
+        userUpdates.email = updates.email;
       }
+    }
+
+    // Update user table if there are changes
+    if (Object.keys(userUpdates).length > 0) {
+      await tx.user.update({
+        where: { id: existing.userId },
+        data: userUpdates
+      });
     }
 
     // Update Student data
@@ -370,6 +409,8 @@ export const updateStudent = async (id: string, updates: {
     if (updates.secondName !== undefined) data.secondName = updates.secondName;
     if (updates.thirdName !== undefined) data.thirdName = updates.thirdName;
     if (updates.email !== undefined) data.email = updates.email;
+    if (updates.cpr !== undefined) data.cpr = updates.cpr;
+    if (updates.dateOfBirth !== undefined) data.dateOfBirth = new Date(updates.dateOfBirth);
     if (updates.gender !== undefined) data.gender = updates.gender;
     if (updates.schoolType !== undefined) data.schoolType = updates.schoolType;
     if (updates.schoolYear !== undefined) data.schoolYear = updates.schoolYear;
@@ -530,6 +571,7 @@ export const getStudentsByEnrollmentFilters = async (filters: {
   programId?: string;
   termId?: string;
   groupId?: string;
+  levelId?: string;
   venueId?: string;
   status?: string;
   search?: string;
@@ -547,9 +589,10 @@ export const getStudentsByEnrollmentFilters = async (filters: {
   if (filters.groupId) where.groupId = filters.groupId;
 
   // Nested group filters
-  if (filters.programId || filters.termId || filters.venueId) {
+  if (filters.programId || filters.termId || filters.levelId || filters.venueId) {
     where.group = {};
     if (filters.termId) where.group.termId = filters.termId;
+    if (filters.levelId) where.group.levelId = filters.levelId;
     if (filters.venueId) where.group.venueId = filters.venueId;
     if (filters.programId) {
       where.group.term = { programId: filters.programId };
@@ -601,13 +644,32 @@ export const getStudentsByEnrollmentFilters = async (filters: {
     prisma.enrollment.count({ where })
   ]);
 
+  // Transform enrollments to students with enrollment info
+  const studentsMap = new Map();
+  
+  enrollments.forEach(enrollment => {
+    const studentId = enrollment.student.id;
+    
+    if (!studentsMap.has(studentId)) {
+      studentsMap.set(studentId, {
+        ...enrollment.student,
+        enrollments: [{
+          group: enrollment.group,
+          status: enrollment.status
+        }]
+      });
+    }
+  });
+
+  const students = Array.from(studentsMap.values());
+
   return {
-    data: enrollments,
+    data: students,
     pagination: {
-      total,
+      total: students.length,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
+      totalPages: Math.ceil(students.length / limit)
     }
   };
 };

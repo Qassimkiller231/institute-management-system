@@ -9,8 +9,8 @@
 @teacherToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiI0YzYxNDhiNy05NTJhLTQ1ZWItYjA1NS0zMWQ5MjVlNDRkNjUiLCJlbWFpbCI6InNhcmFoLnRlYWNoZXJAaW5zdGl0dXRlLmNvbSIsInJvbGUiOiJURUFDSEVSIiwiaWF0IjoxNzYzMzkwODEzLCJleHAiOjE3NjM5OTU2MTN9.54muh3VK-Bf-3TUYbe7LIyOwqBQ4b-RUQCTLJ-GuPrc
 
 @testId = e1d65018-e45c-4ba8-9728-4311e179a4ac
-@studentId = 4919371f-313b-47db-b05c-c3c8b40697f5
-@testSessionId = 67bd026b-c317-4745-9753-eca1f5c6af6e
+@studentId = 404f6f2a-9353-4930-95be-7967e02288e3
+@testSessionId = 6fb297b2-7b1a-48f3-bc08-d88c69d05887
 @finalLevelId = level-id-here
 
 # ==================== AUTHENTICATION ====================

@@ -77,6 +77,13 @@ export const getAllGroups = async (filters: {
       skip,
       take: limit,
       include: {
+        term: {
+          include: {
+            program: {
+              select: { id: true, name: true }
+            }
+          }
+        },
         level: {
           select: { id: true, name: true, displayName: true }
         },
@@ -165,6 +172,8 @@ export const getGroupById = async (id: string) => {
 export const updateGroup = async (id: string, updates: {
   name?: string;
   capacity?: number;
+  teacherId?: string;
+  venueId?: string;
   isActive?: boolean;
 }) => {
   const existing = await prisma.group.findUnique({ where: { id } });
@@ -173,13 +182,31 @@ export const updateGroup = async (id: string, updates: {
   }
 
   const data: any = {};
-  if (updates.name) data.name = updates.name;
+  if (updates.name !== undefined) data.name = updates.name;
   if (updates.capacity !== undefined) data.capacity = updates.capacity;
+  if (updates.teacherId !== undefined) data.teacherId = updates.teacherId || null;
+  if (updates.venueId !== undefined) data.venueId = updates.venueId || null;
   if (updates.isActive !== undefined) data.isActive = updates.isActive;
 
   return await prisma.group.update({
     where: { id },
-    data
+    data,
+    include: {
+      term: {
+        include: {
+          program: true
+        }
+      },
+      level: true,
+      teacher: {
+        include: {
+          user: {
+            select: { email: true }
+          }
+        }
+      },
+      venue: true
+    }
   });
 };
 
@@ -239,4 +266,3 @@ export const deleteGroup = async (id: string) => {
     data: { isActive: false }
   });
 };
-

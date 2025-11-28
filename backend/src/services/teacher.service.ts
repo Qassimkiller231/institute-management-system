@@ -125,6 +125,18 @@ export const getAllTeachers = async (filters: {
             lastLogin: true
           }
         },
+        groups: {
+          where: { isActive: true },
+          include: {
+            level: {
+              select: { id: true, name: true }
+            },
+            venue: {
+              select: { id: true, name: true }
+            }
+          },
+          take: 5
+        },
         _count: {
           select: {
             groups: true,
@@ -274,6 +286,14 @@ export const updateTeacher = async (id: string, updates: {
 
   // Update in transaction
   const result = await prisma.$transaction(async (tx) => {
+    // CASCADE: If activating/deactivating teacher, do the same to user
+    if (updates.isActive !== undefined && updates.isActive !== existing.user.isActive) {
+      await tx.user.update({
+        where: { id: existing.userId },
+        data: { isActive: updates.isActive }
+      });
+    }
+
     // Update User if email or phone changed
     const userUpdates: any = {};
     if (updates.email && updates.email !== existing.user.email) {

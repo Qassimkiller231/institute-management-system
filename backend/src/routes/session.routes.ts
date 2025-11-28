@@ -20,7 +20,7 @@ router.patch('/:id/complete', requireAdmin, sessionController.completeSession);
 router.patch('/:id/cancel', requireAdmin, sessionController.cancelSession);
 
 // Admin or Teacher can view sessions
-router.get('/', requireTeacherOrAdmin, sessionController.getAllSessions);
-router.get('/:id', requireTeacherOrAdmin, sessionController.getSessionById);
+router.get('/', sessionController.getAllSessions);
+router.get('/:id', sessionController.getSessionById);
 
 export default router;

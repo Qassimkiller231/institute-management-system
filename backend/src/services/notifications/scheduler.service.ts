@@ -3,10 +3,85 @@ import cron from 'node-cron';
 import * as paymentReminderService from './paymentReminder.service';
 import * as attendanceWarningService from './attendanceWarning.service';
 import * as announcementService from '../announcement.service';
+import { PrismaClient } from '@prisma/client';
 
+const prisma = new PrismaClient();
 /**
  * Start all scheduled jobs
  */
+/**
+ * Check for missed speaking appointments
+ * Runs every hour
+ */
+const checkMissedSpeakingAppointments = async () => {
+  try {
+    const now = new Date();
+    
+    console.log('🔍 Checking for missed speaking appointments...');
+    
+    // Find all SPEAKING_SCHEDULED test sessions
+    const scheduledSessions = await prisma.testSession.findMany({
+      where: {
+        status: 'SPEAKING_SCHEDULED',
+      },
+      include: {
+        speakingSlots: {
+          where: {
+            status: 'BOOKED'
+          }
+        }
+      }
+    });
+
+    let missedCount = 0;
+
+    for (const session of scheduledSessions) {
+      if (!session.speakingSlots || session.speakingSlots.length === 0) continue;
+      
+      const slot = session.speakingSlots[0];
+      
+      // Combine date and time to check if appointment has passed
+      const appointmentDateTime = new Date(slot.slotDate);
+      const [hours, minutes] = slot.slotTime.toString().split(':').map(Number);
+      appointmentDateTime.setHours(hours, minutes, 0, 0);
+      
+      // Add duration + 10 minute buffer
+      appointmentDateTime.setMinutes(appointmentDateTime.getMinutes() + slot.durationMinutes + 10);
+      
+      // If appointment time + buffer has passed
+      if (appointmentDateTime < now) {
+        console.log(`⚠️ Missed appointment detected for session ${session.id}`);
+        
+        // Update speaking slot to MISSED
+        await prisma.speakingSlot.update({
+          where: { id: slot.id },
+          data: { 
+            status: 'MISSED',
+            studentId: null,
+            testSessionId: null
+          }
+        });
+        
+        // Revert test session to MCQ_COMPLETED
+        await prisma.testSession.update({
+          where: { id: session.id },
+          data: { status: 'MCQ_COMPLETED' }
+        });
+        
+        console.log(`✅ Session ${session.id} reverted to MCQ_COMPLETED`);
+        missedCount++;
+      }
+    }
+    
+    if (missedCount > 0) {
+      console.log(`✅ Processed ${missedCount} missed appointment(s)`);
+    } else {
+      console.log('✅ No missed appointments found');
+    }
+  } catch (error) {
+    console.error('❌ Error checking missed appointments:', error);
+  }
+};
 export const startScheduler = () => {
   console.log('🕒 Starting scheduler...');
   
@@ -42,6 +117,15 @@ export const startScheduler = () => {
       }
     } catch (error) {
       console.error('❌ Scheduled announcement error:', error);
+    }
+  });
+  // ✅ ADD THIS: Check for missed appointments every hour
+  cron.schedule('0 * * * *', async () => {
+    console.log('⏰ Checking for missed speaking appointments...');
+    try {
+      await checkMissedSpeakingAppointments();
+    } catch (error) {
+      console.error('❌ Missed appointment check error:', error);
     }
   });
   

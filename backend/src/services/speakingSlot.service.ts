@@ -164,3 +164,29 @@ export const listSpeakingSlotsForTeacher = async (teacherId: string) => {
     ]
   });
 };
+export const cancelSpeakingSlot = async (slotId: string, sessionId: string) => {
+  const slot = await prisma.speakingSlot.findUnique({
+    where: { id: slotId }
+  });
+
+  if (!slot) throw new Error('Speaking slot not found');
+  if (slot.status !== 'BOOKED') throw new Error('Slot is not booked');
+
+  // Make slot available again
+  await prisma.speakingSlot.update({
+    where: { id: slotId },
+    data: {
+      status: 'AVAILABLE',
+      studentId: null,
+      testSessionId: null
+    }
+  });
+
+  // Revert test session to MCQ_COMPLETED
+  await prisma.testSession.update({
+    where: { id: sessionId },
+    data: { status: 'MCQ_COMPLETED' }
+  });
+
+  return { message: 'Appointment cancelled successfully' };
+};

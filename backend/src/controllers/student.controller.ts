@@ -59,6 +59,7 @@ export const getAllStudents = async (req: AuthRequest, res: Response) => {
       programId: req.query.programId as string | undefined,
       termId: req.query.termId as string | undefined,
       groupId: req.query.groupId as string | undefined,
+      levelId: req.query.levelId as string | undefined,
       venueId: req.query.venueId as string | undefined,
       status: req.query.status as string | undefined,
       search: baseFilters.search,
@@ -70,6 +71,7 @@ export const getAllStudents = async (req: AuthRequest, res: Response) => {
       enrollmentFilters.programId ||
       enrollmentFilters.termId ||
       enrollmentFilters.groupId ||
+      enrollmentFilters.levelId ||
       enrollmentFilters.venueId ||
       enrollmentFilters.status;
 
@@ -130,6 +132,8 @@ export const updateStudent = async (req: AuthRequest, res: Response) => {
     const { id } = req.params;
     const updates = req.body;
 
+    // Allow updating isActive for reactivation
+    // Allow updating email, phone, cpr, and other student fields
     const result = await studentService.updateStudent(id, updates);
 
     res.status(200).json({

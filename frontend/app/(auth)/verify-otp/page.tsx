@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authAPI } from '@/lib/api';
-import { setToken } from '@/lib/auth';
+import { setToken, redirectByRole } from '@/lib/auth';
 
 export default function VerifyOTPPage() {
   const router = useRouter();
@@ -22,60 +22,55 @@ export default function VerifyOTPPage() {
   }, [router]);
 
   const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
-  setLoading(true);
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
-  try {
-    const result = await authAPI.verifyOTP(email, code);
-    
-    console.log('Full auth response:', result); // Debug
-    
-    if (result.success) {
-      // Save token
-      setToken(result.data.token);
-      localStorage.setItem('authToken', result.data.token);
+    try {
+      const result = await authAPI.verifyOTP(email, code);
       
-      // Save full user object
-      localStorage.setItem('user', JSON.stringify(result.data.user));
+      console.log('Full auth response:', result);
       
-      // Save role-specific IDs
-      if (result.data.user.studentId) {
-        localStorage.setItem('studentId', result.data.user.studentId);
+      if (result.success) {
+        // Save token (also sets cookie for middleware)
+        setToken(result.data.token);
+        
+        // Save full user object
+        localStorage.setItem('user', JSON.stringify(result.data.user));
+        
+        // Save role-specific IDs
+        if (result.data.user.studentId) {
+          localStorage.setItem('studentId', result.data.user.studentId);
+        }
+        if (result.data.user.teacherId) {
+          localStorage.setItem('teacherId', result.data.user.teacherId);
+        }
+        if (result.data.user.parentId) {
+          localStorage.setItem('parentId', result.data.user.parentId);
+        }
+        
+        sessionStorage.removeItem('otpEmail');
+        
+        // Check for redirect intent (e.g., placement test flow)
+        const redirectTo = sessionStorage.getItem('loginRedirect');
+        if (redirectTo) {
+          sessionStorage.removeItem('loginRedirect');
+          router.push(redirectTo);
+          return;
+        }
+        
+        // ✅ FIX: Use redirectByRole helper with correct paths
+        redirectByRole(router, result.data.user.role);
+      } else {
+        setError(result.message || 'Invalid OTP');
       }
-      if (result.data.user.teacherId) {
-        localStorage.setItem('teacherId', result.data.user.teacherId);
-      }
-      if (result.data.user.parentId) {
-        localStorage.setItem('parentId', result.data.user.parentId);
-      }
-      
-      sessionStorage.removeItem('otpEmail');
-      
-      // Check for redirect intent (e.g., placement test flow)
-      const redirectTo = sessionStorage.getItem('loginRedirect');
-      if (redirectTo) {
-        sessionStorage.removeItem('loginRedirect');
-        router.push(redirectTo);
-        return;
-      }
-      
-      // Default role-based redirect
-      const role = result.data.user.role;
-      if (role === 'ADMIN') router.push('/admin');
-      else if (role === 'TEACHER') router.push('/teacher');
-      else if (role === 'STUDENT') router.push('/student');
-      else router.push('/');
-    } else {
-      setError(result.message || 'Invalid OTP');
+    } catch (err) {
+      console.error('Verify OTP error:', err);
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Verify OTP error:', err);
-    setError('Network error. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

@@ -1,6 +1,6 @@
 // src/services/session.service.ts
-import { PrismaClient } from '@prisma/client';
-import { checkScheduleConflicts } from '../utils/schedule';
+import { PrismaClient } from "@prisma/client";
+import { checkScheduleConflicts } from "../utils/schedule";
 
 const prisma = new PrismaClient();
 
@@ -19,7 +19,7 @@ export const createSession = async (data: {
   // Verify group exists
   const group = await prisma.group.findUnique({ where: { id: data.groupId } });
   if (!group) {
-    throw new Error('Group not found');
+    throw new Error("Group not found");
   }
 
   // Check for conflicts if venue exists
@@ -32,8 +32,44 @@ export const createSession = async (data: {
     );
 
     if (conflicts.hasConflicts) {
-      throw new Error(`Schedule conflict detected: ${conflicts.conflicts.map(c => c.groupName).join(', ')}`);
+      throw new Error(
+        `Schedule conflict detected: ${conflicts.conflicts
+          .map((c) => c.groupName)
+          .join(", ")}`
+      );
     }
+  }
+
+  // ❌ MISSING in createSession service:
+
+  // 1. Validate hallId if provided
+  if (data.hallId) {
+    const hall = await prisma.hall.findUnique({
+      where: { id: data.hallId, isActive: true },
+    });
+    if (!hall) {
+      throw new Error("Hall not found or inactive");
+    }
+  }
+
+  // 2. Validate time range
+  const startTime = new Date(`1970-01-01T${data.startTime}`);
+  const endTime = new Date(`1970-01-01T${data.endTime}`);
+  if (startTime >= endTime) {
+    throw new Error("Start time must be before end time");
+  }
+
+  // 3. Validate sessionNumber
+  if (data.sessionNumber <= 0) {
+    throw new Error("Session number must be greater than 0");
+  }
+
+  // 4. Validate sessionDate is not in past
+  const sessionDate = new Date(data.sessionDate);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  if (sessionDate < today) {
+    throw new Error("Cannot create sessions in the past");
   }
 
   const session = await prisma.classSession.create({
@@ -45,23 +81,23 @@ export const createSession = async (data: {
       startTime: new Date(`1970-01-01T${data.startTime}`),
       endTime: new Date(`1970-01-01T${data.endTime}`),
       topic: data.topic,
-      status: 'SCHEDULED'
+      status: "SCHEDULED",
     },
     include: {
       group: {
         select: {
           id: true,
           name: true,
-          groupCode: true
-        }
+          groupCode: true,
+        },
       },
       hall: {
         select: {
           id: true,
-          name: true
-        }
-      }
-    }
+          name: true,
+        },
+      },
+    },
   });
 
   return session;
@@ -84,11 +120,11 @@ export const bulkCreateSessions = async (data: {
   // Verify group exists
   const group = await prisma.group.findUnique({ where: { id: data.groupId } });
   if (!group) {
-    throw new Error('Group not found');
+    throw new Error("Group not found");
   }
 
   const createdSessions = await prisma.$transaction(
-    data.sessions.map(session =>
+    data.sessions.map((session) =>
       prisma.classSession.create({
         data: {
           groupId: data.groupId,
@@ -98,15 +134,15 @@ export const bulkCreateSessions = async (data: {
           startTime: new Date(`1970-01-01T${session.startTime}`),
           endTime: new Date(`1970-01-01T${session.endTime}`),
           topic: session.topic,
-          status: 'SCHEDULED'
-        }
+          status: "SCHEDULED",
+        },
       })
     )
   );
 
   return {
     created: createdSessions.length,
-    sessions: createdSessions
+    sessions: createdSessions,
   };
 };
 
@@ -150,10 +186,10 @@ export const getAllSessions = async (filters: {
             level: {
               select: {
                 name: true,
-                displayName: true
-              }
-            }
-          }
+                displayName: true,
+              },
+            },
+          },
         },
         hall: {
           select: {
@@ -161,20 +197,20 @@ export const getAllSessions = async (filters: {
             name: true,
             venue: {
               select: {
-                name: true
-              }
-            }
-          }
+                name: true,
+              },
+            },
+          },
         },
         _count: {
           select: {
-            attendance: true
-          }
-        }
+            attendance: true,
+          },
+        },
       },
-      orderBy: { sessionDate: 'asc' }
+      orderBy: { sessionDate: "asc" },
     }),
-    prisma.classSession.count({ where })
+    prisma.classSession.count({ where }),
   ]);
 
   return {
@@ -183,8 +219,8 @@ export const getAllSessions = async (filters: {
       total,
       page,
       limit,
-      totalPages: Math.ceil(total / limit)
-    }
+      totalPages: Math.ceil(total / limit),
+    },
   };
 };
 
@@ -203,11 +239,11 @@ export const getSessionById = async (id: string) => {
             select: {
               id: true,
               firstName: true,
-              lastName: true
-            }
+              lastName: true,
+            },
           },
-          venue: true
-        }
+          venue: true,
+        },
       },
       hall: true,
       attendance: {
@@ -217,16 +253,16 @@ export const getSessionById = async (id: string) => {
               id: true,
               firstName: true,
               secondName: true,
-              thirdName: true
-            }
-          }
-        }
-      }
-    }
+              thirdName: true,
+            },
+          },
+        },
+      },
+    },
   });
 
   if (!session) {
-    throw new Error('Session not found');
+    throw new Error("Session not found");
   }
 
   return session;
@@ -241,16 +277,16 @@ export const getSessionsByGroup = async (groupId: string) => {
     include: {
       hall: {
         select: {
-          name: true
-        }
+          name: true,
+        },
       },
       _count: {
         select: {
-          attendance: true
-        }
-      }
+          attendance: true,
+        },
+      },
     },
-    orderBy: { sessionDate: 'asc' }
+    orderBy: { sessionDate: "asc" },
   });
 
   return sessions;
@@ -259,27 +295,31 @@ export const getSessionsByGroup = async (groupId: string) => {
 /**
  * Update session
  */
-export const updateSession = async (id: string, updates: {
-  hallId?: string;
-  sessionDate?: string;
-  startTime?: string;
-  endTime?: string;
-  topic?: string;
-  status?: string;
-}) => {
-  const existing = await prisma.classSession.findUnique({ 
+export const updateSession = async (
+  id: string,
+  updates: {
+    hallId?: string;
+    sessionDate?: string;
+    startTime?: string;
+    endTime?: string;
+    topic?: string;
+    status?: string;
+  }
+) => {
+  const existing = await prisma.classSession.findUnique({
     where: { id },
-    include: { group: true }
+    include: { group: true },
   });
 
   if (!existing) {
-    throw new Error('Session not found');
+    throw new Error("Session not found");
   }
 
   const data: any = {};
   if (updates.hallId !== undefined) data.hallId = updates.hallId;
   if (updates.sessionDate) data.sessionDate = new Date(updates.sessionDate);
-  if (updates.startTime) data.startTime = new Date(`1970-01-01T${updates.startTime}`);
+  if (updates.startTime)
+    data.startTime = new Date(`1970-01-01T${updates.startTime}`);
   if (updates.endTime) data.endTime = new Date(`1970-01-01T${updates.endTime}`);
   if (updates.topic !== undefined) data.topic = updates.topic;
   if (updates.status) data.status = updates.status;
@@ -292,15 +332,15 @@ export const updateSession = async (id: string, updates: {
         select: {
           id: true,
           name: true,
-          groupCode: true
-        }
+          groupCode: true,
+        },
       },
       hall: {
         select: {
-          name: true
-        }
-      }
-    }
+          name: true,
+        },
+      },
+    },
   });
 
   return session;
@@ -313,20 +353,20 @@ export const completeSession = async (id: string) => {
   const existing = await prisma.classSession.findUnique({ where: { id } });
 
   if (!existing) {
-    throw new Error('Session not found');
+    throw new Error("Session not found");
   }
 
-  if (existing.status === 'COMPLETED') {
-    throw new Error('Session is already completed');
+  if (existing.status === "COMPLETED") {
+    throw new Error("Session is already completed");
   }
 
-  if (existing.status === 'CANCELLED') {
-    throw new Error('Cannot complete a cancelled session');
+  if (existing.status === "CANCELLED") {
+    throw new Error("Cannot complete a cancelled session");
   }
 
   const session = await prisma.classSession.update({
     where: { id },
-    data: { status: 'COMPLETED' }
+    data: { status: "COMPLETED" },
   });
 
   return session;
@@ -339,23 +379,23 @@ export const cancelSession = async (id: string, reason?: string) => {
   const existing = await prisma.classSession.findUnique({ where: { id } });
 
   if (!existing) {
-    throw new Error('Session not found');
+    throw new Error("Session not found");
   }
 
-  if (existing.status === 'COMPLETED') {
-    throw new Error('Cannot cancel a completed session');
+  if (existing.status === "COMPLETED") {
+    throw new Error("Cannot cancel a completed session");
   }
 
-  if (existing.status === 'CANCELLED') {
-    throw new Error('Session is already cancelled');
+  if (existing.status === "CANCELLED") {
+    throw new Error("Session is already cancelled");
   }
 
   const session = await prisma.classSession.update({
     where: { id },
-    data: { 
-      status: 'CANCELLED',
-      cancellationReason: reason
-    }
+    data: {
+      status: "CANCELLED",
+      cancellationReason: reason,
+    },
   });
 
   return session;

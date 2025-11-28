@@ -5,7 +5,7 @@ import {
   getAvailableSpeakingSlots,
   bookSpeakingSlot,
   submitSpeakingResult,
-  listSpeakingSlotsForTeacher
+  listSpeakingSlotsForTeacher,cancelSpeakingSlot
 } from '../services/speakingSlot.service';
 
 /**
@@ -134,6 +134,36 @@ export const submitResult = async (req: AuthRequest, res: Response) => {
     return res.status(400).json({
       success: false,
       message: error.message || 'Failed to submit speaking result'
+    });
+  }
+};
+/**
+ * PUT /api/speaking-slots/:id/cancel
+ * Cancel a booked speaking slot
+ */
+export const cancelSlot = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { sessionId } = req.body;
+
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'sessionId is required'
+      });
+    }
+
+    const result = await cancelSpeakingSlot(id, sessionId);
+
+    return res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } catch (error: any) {
+    console.error('cancelSlot error:', error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to cancel slot'
     });
   }
 };

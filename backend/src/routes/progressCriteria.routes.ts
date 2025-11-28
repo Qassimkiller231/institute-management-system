@@ -7,8 +7,7 @@ import { requireAdmin, requireTeacherOrAdmin } from '../middleware/role.middlewa
 const router = Router();
 
 router.post(
-  '/completion',
-  authenticate,requireTeacherOrAdmin,              // optional, if you want only teachers/admin
+  '/completion',              // optional, if you want only teachers/admin
   setStudentCriteriaCompletionController
 );
 

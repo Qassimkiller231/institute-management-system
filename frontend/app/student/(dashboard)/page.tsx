@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { studentAPI } from '@/lib/api';
+import { getToken } from '@/lib/auth';
 
 interface StudentData {
   id: string;
@@ -24,11 +25,13 @@ interface StudentData {
     mcqScore?: number;
     finalLevelId?: string;
     speakingSlots?: Array<{
+      id: string;
       slotDate: string;
       startTime: string;
+      slotTime: string;
       teacher: {
-        firstName: string;   // ✅ Add these
-       lastName: string;  
+        firstName: string;
+        lastName: string;
         user: {
           email: string;
         };
@@ -44,12 +47,40 @@ type DashboardState =
   | 'test_completed'
   | 'enrolled_student';
 
+interface UpcomingSession {
+  id: string;
+  sessionDate: string;
+  sessionNumber: number;
+  startTime: string;
+  endTime: string;
+  topic: string | null;
+  status: string;
+  group: {
+    name: string;
+    teacher: {
+      firstName: string;
+      lastName: string;
+    } | null;
+  };
+  hall: {
+    name: string;
+    venue: {
+      name: string;
+    };
+  } | null;
+}
+
 export default function StudentDashboard() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [student, setStudent] = useState<StudentData | null>(null);
+  const [latestTest, setLatestTest] = useState<StudentData['testSessions'][0] | null>(null);
   const [dashboardState, setDashboardState] = useState<DashboardState>('new_student');
+  const [upcomingSessions, setUpcomingSessions] = useState<UpcomingSession[]>([]);
   const [error, setError] = useState('');
+  const [showCancelModal, setShowCancelModal] = useState(false);
+  const [showRescheduleModal, setShowRescheduleModal] = useState(false);
+  const [cancellingAppointment, setCancellingAppointment] = useState(false);
 
   useEffect(() => {
     loadStudentData();
@@ -74,6 +105,11 @@ export default function StudentDashboard() {
         console.log('4. Student data loaded:', result.data);
         setStudent(result.data);
         determineDashboardState(result.data);
+        
+        // Load upcoming sessions for enrolled students
+        if (result.data.enrollments?.some((e: any) => e.status === 'ACTIVE')) {
+          await loadUpcomingSessions(studentId);
+        }
       } else {
         console.error('5. API returned unsuccessful:', result);
         setError('Failed to load student data: ' + (result.message || 'Unknown error'));
@@ -87,6 +123,82 @@ export default function StudentDashboard() {
     }
   };
 
+  const loadUpcomingSessions = async (studentId: string) => {
+    try {
+      const res = await fetch(`http://localhost:3001/api/sessions?studentId=${studentId}`, {
+        headers: {
+          'Authorization': `Bearer ${getToken()}`
+        }
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const sessions = Array.isArray(data) ? data : data.data || [];
+        
+        // Filter for upcoming sessions only
+        const now = new Date();
+        now.setHours(0, 0, 0, 0); // Start of today
+        
+        const upcoming = sessions
+          .filter((s: UpcomingSession) => {
+            const sessionDate = new Date(s.sessionDate);
+            sessionDate.setHours(0, 0, 0, 0);
+            // Include today and future, exclude completed/cancelled
+            return sessionDate >= now && 
+                   s.status !== 'CANCELLED' && 
+                   s.status !== 'COMPLETED';
+          })
+          .sort((a: UpcomingSession, b: UpcomingSession) => 
+            new Date(a.sessionDate).getTime() - new Date(b.sessionDate).getTime()
+          )
+          .slice(0, 3); // Show only next 3 sessions
+        
+        console.log('Dashboard: Upcoming sessions found:', upcoming.length);
+        setUpcomingSessions(upcoming);
+      }
+    } catch (err) {
+      console.error('Error loading upcoming sessions:', err);
+    }
+  };
+
+  const handleCancelAppointment = async () => {
+    if (!student || !latestTest?.speakingSlots?.[0]) {
+      alert('Appointment data not found');
+      return;
+    }
+
+    try {
+      setCancellingAppointment(true);
+      const slotId = latestTest.speakingSlots[0].id;
+      const sessionId = latestTest.id;
+      
+      const res = await fetch(`http://localhost:3001/api/speaking-slots/${slotId}/cancel`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${getToken()}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ sessionId })
+      });
+      
+      if (!res.ok) {
+        const errorData = await res.json();
+        throw new Error(errorData.message || 'Failed to cancel appointment');
+      }
+      
+      // Refresh student data to update UI
+      await loadStudentData();
+      setShowCancelModal(false);
+      alert('Appointment cancelled successfully! You can now book a new time slot.');
+      
+    } catch (err) {
+      console.error('Error cancelling appointment:', err);
+      alert(err instanceof Error ? err.message : 'Failed to cancel appointment. Please try again.');
+    } finally {
+      setCancellingAppointment(false);
+    }
+  };
+
   const determineDashboardState = (data: StudentData) => {
     const hasActiveEnrollment = data.enrollments?.some(e => e.status === 'ACTIVE');
     
@@ -96,6 +208,7 @@ export default function StudentDashboard() {
     }
 
     const latestTest = data.testSessions?.[0];
+    setLatestTest(latestTest || null); // ✅ Save to state
     
     if (!latestTest) {
       setDashboardState('new_student');
@@ -142,6 +255,22 @@ export default function StudentDashboard() {
   }
 };
 
+  const formatSessionTime = (time: string) => {
+    try {
+      // If it's already HH:MM:SS format, extract HH:MM
+      if (typeof time === 'string' && time.includes(':')) {
+        return time.substring(0, 5);
+      }
+      // If it's a date object/timestamp, convert it
+      const date = new Date(time);
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
+      return `${hours}:${minutes}`;
+    } catch (e) {
+      console.error('formatSessionTime error:', e, 'time value:', time);
+      return '00:00';
+    }
+  };
 
   if (loading) {
     return (
@@ -369,7 +498,7 @@ export default function StudentDashboard() {
 
             <div className="bg-white rounded-lg shadow p-6 mb-8">
               <h3 className="font-bold text-gray-900 text-xl mb-4">Quick Actions</h3>
-              <div className="grid md:grid-cols-4 gap-4">
+              <div className="grid md:grid-cols-5 gap-4">
                 <button
                   onClick={() => router.push('/student/attendance')}
                   className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition"
@@ -383,6 +512,13 @@ export default function StudentDashboard() {
                 >
                   <div className="text-3xl mb-2">📈</div>
                   <div className="font-medium text-gray-900">Progress</div>
+                </button>
+                <button
+                  onClick={() => router.push('/student/materials')}
+                  className="p-4 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition"
+                >
+                  <div className="text-3xl mb-2">📚</div>
+                  <div className="font-medium text-gray-900">Materials</div>
                 </button>
                 <button
                   onClick={() => router.push('/student/payments')}
@@ -403,11 +539,115 @@ export default function StudentDashboard() {
 
             <div className="bg-white rounded-lg shadow p-6">
               <h3 className="font-bold text-gray-900 text-xl mb-4">Upcoming Classes</h3>
-              <p className="text-gray-600">No upcoming classes scheduled</p>
+              {upcomingSessions.length === 0 ? (
+                <p className="text-gray-600">No upcoming classes scheduled</p>
+              ) : (
+                <div className="space-y-3">
+                  {upcomingSessions.map((session) => (
+                    <div key={session.id} className="border-l-4 border-blue-500 pl-4 py-2">
+                      <p className="font-semibold text-gray-900">{session.group.name}</p>
+                      <p className="text-sm text-gray-600">
+                        {new Date(session.sessionDate).toLocaleDateString('en-US', { 
+                          weekday: 'short', 
+                          month: 'short', 
+                          day: 'numeric' 
+                        })} • {formatSessionTime(session.startTime)} - {formatSessionTime(session.endTime)}
+                      </p>
+                      {session.hall && (
+                        <p className="text-xs text-gray-500">
+                          📍 {session.hall.venue.name} - {session.hall.name}
+                        </p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         )}
       </div>
+
+      {/* Reschedule Modal */}
+      {showRescheduleModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold mb-4 text-gray-900">Reschedule Appointment</h3>
+            <p className="text-gray-600 mb-6">
+              To reschedule your speaking test, you need to cancel this appointment first, 
+              then book a new time slot from the available options.
+            </p>
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-yellow-800">
+                <strong>Note:</strong> After cancelling, please book a new slot as soon as possible 
+                to avoid delays in your enrollment process.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowRescheduleModal(false)}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition"
+              >
+                Keep Current
+              </button>
+              <button
+                onClick={() => {
+                  setShowRescheduleModal(false);
+                  setShowCancelModal(true);
+                }}
+                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition"
+              >
+                Proceed to Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cancel Confirmation Modal */}
+      {showCancelModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full mx-4">
+            <h3 className="text-xl font-bold mb-4 text-red-600">⚠️ Cancel Appointment</h3>
+            <p className="text-gray-700 mb-4">
+              Are you sure you want to cancel your speaking test appointment?
+            </p>
+            <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-6">
+              <p className="text-sm text-gray-700 mb-2">
+                <strong>Current appointment:</strong>
+              </p>
+              {latestTest?.speakingSlots?.[0] && (
+                <>
+                  <p className="text-sm text-gray-600">
+                    📅 {formatDate(latestTest.speakingSlots[0].slotDate)}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    ⏰ {formatTime(latestTest.speakingSlots[0].slotTime)}
+                  </p>
+                </>
+              )}
+            </div>
+            <p className="text-sm text-gray-600 mb-6">
+              After cancelling, you'll need to book a new time slot to complete your placement test.
+            </p>
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowCancelModal(false)}
+                disabled={cancellingAppointment}
+                className="flex-1 px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition disabled:opacity-50"
+              >
+                Keep Appointment
+              </button>
+              <button
+                onClick={handleCancelAppointment}
+                disabled={cancellingAppointment}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {cancellingAppointment ? 'Cancelling...' : 'Yes, Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

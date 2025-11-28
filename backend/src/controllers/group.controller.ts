@@ -24,6 +24,8 @@ export const createGroup = async (req: Request, res: Response) => {
         message: 'Term ID, level ID, and group code are required'
       });
     }
+    
+    
 
     const group = await groupService.createGroup({
       termId,

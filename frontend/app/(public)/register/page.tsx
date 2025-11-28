@@ -1,9 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { studentAPI, authAPI } from '@/lib/api';
-import { setToken } from '@/lib/auth';
+import { setToken, isAuthenticated, getUserRole } from '@/lib/auth';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -16,11 +16,63 @@ export default function RegisterPage() {
     gender: 'MALE' as 'MALE' | 'FEMALE',
     cpr: ''
   });
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+973'); // Default Bahrain
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
   const [step, setStep] = useState<'register' | 'verify'>('register');
   const [otpSent, setOtpSent] = useState(false);
   const [otpCode, setOtpCode] = useState('');
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (isAuthenticated()) {
+      const role = getUserRole();
+      if (role === 'STUDENT') router.replace('/student');
+      else if (role === 'TEACHER') router.replace('/teacher');
+      else if (role === 'ADMIN') router.replace('/admin');
+    }
+  }, [router]);
+
+  const validateForm = () => {
+    const errors: {[key: string]: string} = {};
+    
+    // Phone validation: must be 8 digits
+    const phoneDigits = formData.phone.replace(/\D/g, '');
+    if (phoneDigits.length !== 8) {
+      errors.phone = 'Phone number must be exactly 8 digits';
+    }
+    
+    // CPR validation: must be 9 digits
+    const cprDigits = formData.cpr.replace(/\D/g, '');
+    if (cprDigits.length !== 9) {
+      errors.cpr = 'CPR must be exactly 9 digits';
+    }
+    
+    // Date of Birth validation
+    if (formData.dateOfBirth) {
+      const dob = new Date(formData.dateOfBirth);
+      const today = new Date();
+      const age = today.getFullYear() - dob.getFullYear();
+      const monthDiff = today.getMonth() - dob.getMonth();
+      
+      // Check if date is in the future
+      if (dob > today) {
+        errors.dateOfBirth = 'Date of birth cannot be in the future';
+      }
+      // Check if age is at least 6
+      else if (age < 6 || (age === 6 && monthDiff < 0)) {
+        errors.dateOfBirth = 'Student must be at least 6 years old';
+      }
+      // Check if age is reasonable (not more than 100)
+      else if (age > 100) {
+        errors.dateOfBirth = 'Please enter a valid date of birth';
+      }
+    }
+    
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({
@@ -32,11 +84,24 @@ export default function RegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    
+    // Validate form first
+    if (!validateForm()) {
+      setError('Please fix the validation errors below');
+      return;
+    }
+    
     setLoading(true);
 
     try {
+      // Combine country code with phone number
+      const phoneWithCode = phoneCountryCode + formData.phone.replace(/\D/g, '');
+      
       // Step 1: Create student account
-      const result = await studentAPI.create(formData);
+      const result = await studentAPI.create({
+        ...formData,
+        phone: phoneWithCode
+      });
 
       if (result.success) {
         // Step 2: Request OTP for login
@@ -208,15 +273,35 @@ export default function RegisterPage() {
                 <label className="block text-sm font-semibold mb-2 text-gray-700">
                   Phone *
                 </label>
-                <input
-                  type="tel"
-                  name="phone"
-                  value={formData.phone}
-                  onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                  placeholder="+973 XXXX XXXX"
-                  required
-                />
+                <div className="flex gap-2">
+                  <select
+                    value={phoneCountryCode}
+                    onChange={(e) => setPhoneCountryCode(e.target.value)}
+                    className="w-32 px-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                  >
+                    <option value="+973">🇧🇭 +973</option>
+                    <option value="+966">🇸🇦 +966</option>
+                    <option value="+971">🇦🇪 +971</option>
+                    <option value="+965">🇰🇼 +965</option>
+                    <option value="+968">🇴🇲 +968</option>
+                    <option value="+974">🇶🇦 +974</option>
+                  </select>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleChange}
+                    className={`flex-1 px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
+                      validationErrors.phone ? 'border-red-500' : 'border-gray-300'
+                    }`}
+                    placeholder="XXXX XXXX"
+                    maxLength={8}
+                    required
+                  />
+                </div>
+                {validationErrors.phone && (
+                  <p className="text-red-600 text-sm mt-1">{validationErrors.phone}</p>
+                )}
               </div>
             </div>
 
@@ -231,9 +316,16 @@ export default function RegisterPage() {
                   name="dateOfBirth"
                   value={formData.dateOfBirth}
                   onChange={handleChange}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
+                  max={new Date().toISOString().split('T')[0]}
+                  min={new Date(new Date().getFullYear() - 100, 0, 1).toISOString().split('T')[0]}
+                  className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
+                    validationErrors.dateOfBirth ? 'border-red-500' : 'border-gray-300'
+                  }`}
                   required
                 />
+                {validationErrors.dateOfBirth && (
+                  <p className="text-red-600 text-sm mt-1">{validationErrors.dateOfBirth}</p>
+                )}
               </div>
               <div>
                 <label className="block text-sm font-semibold mb-2 text-gray-700">
@@ -262,10 +354,16 @@ export default function RegisterPage() {
                 name="cpr"
                 value={formData.cpr}
                 onChange={handleChange}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-                placeholder="XXXXXXXXX"
+                className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 ${
+                  validationErrors.cpr ? 'border-red-500' : 'border-gray-300'
+                }`}
+                placeholder="XXXXXXXXX (9 digits)"
+                maxLength={9}
                 required
               />
+              {validationErrors.cpr && (
+                <p className="text-red-600 text-sm mt-1">{validationErrors.cpr}</p>
+              )}
             </div>
 
             {error && (

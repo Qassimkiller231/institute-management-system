@@ -4,7 +4,10 @@ import { authenticate } from '../middleware/auth.middleware';
 import { requireTeacherOrAdmin } from '../middleware/role.middleware';
 
 const router = Router();
-
+router.get(
+  '/student/:studentId',
+  attendanceController.getStudentAttendance
+);
 // All routes require authentication
 router.use(authenticate);
 
@@ -23,11 +26,7 @@ router.post(
 );
 
 // Get attendance for a specific student (Teacher or Admin only)
-router.get(
-  '/student/:studentId',
-  requireTeacherOrAdmin,
-  attendanceController.getStudentAttendance
-);
+
 
 // Get attendance statistics for a student (Teacher or Admin only)
 router.get(
