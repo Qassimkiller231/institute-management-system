@@ -1,0 +1,223 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { getToken, getTeacherId } from '@/lib/auth';
+
+interface Group {
+  id: string;
+  groupCode: string;
+  name: string | null;
+}
+
+export default function TeacherReportsPage() {
+  const router = useRouter();
+  const [groups, setGroups] = useState<Group[]>([]);
+  const [selectedGroup, setSelectedGroup] = useState('');
+  const [reportType, setReportType] = useState<'attendance' | 'progress' | 'performance'>('attendance');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    fetchGroups();
+  }, []);
+
+  const fetchGroups = async () => {
+    try {
+      const token = getToken();
+      const teacherId = getTeacherId();
+
+      const response = await fetch(`http://localhost:3001/api/groups?teacherId=${teacherId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const data = await response.json();
+      setGroups(data.data || []);
+    } catch (err) {
+      console.error('Error fetching groups:', err);
+    }
+  };
+
+  const generateReport = async () => {
+    if (!selectedGroup) {
+      alert('Please select a group');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const token = getToken();
+      let endpoint = '';
+
+      switch (reportType) {
+        case 'attendance':
+          endpoint = `/reports/group/${selectedGroup}/attendance`;
+          break;
+        case 'progress':
+          endpoint = `/reports/group/${selectedGroup}/progress`;
+          break;
+        case 'performance':
+          endpoint = `/reports/group/${selectedGroup}/performance`;
+          break;
+      }
+
+      const response = await fetch(`http://localhost:3001/api${endpoint}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      if (!response.ok) throw new Error('Failed to generate report');
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${reportType}-report-${Date.now()}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      window.URL.revokeObjectURL(url);
+      document.body.removeChild(a);
+    } catch (err) {
+      console.error('Error generating report:', err);
+      alert('Failed to generate report. This feature is coming soon.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-gradient-to-r from-purple-600 to-pink-600 text-white py-8 px-6">
+        <div className="max-w-7xl mx-auto">
+          <button
+            onClick={() => router.push('/teacher')}
+            className="mb-4 text-purple-100 hover:text-white flex items-center gap-2"
+          >
+            ← Back to Dashboard
+          </button>
+          <h1 className="text-4xl font-bold mb-2">Reports</h1>
+          <p className="text-purple-100">Generate reports for your groups</p>
+        </div>
+      </div>
+
+      <div className="max-w-4xl mx-auto px-6 py-8">
+        <div className="bg-white rounded-lg shadow-lg p-8">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Generate Report</h2>
+
+          {/* Report Type Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-3">
+              Report Type *
+            </label>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <button
+                onClick={() => setReportType('attendance')}
+                className={`p-4 border-2 rounded-lg text-left transition-all ${
+                  reportType === 'attendance'
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="text-2xl mb-2">📊</div>
+                <div className="font-semibold text-gray-900">Attendance Report</div>
+                <div className="text-sm text-gray-600">View attendance statistics</div>
+              </button>
+
+              <button
+                onClick={() => setReportType('progress')}
+                className={`p-4 border-2 rounded-lg text-left transition-all ${
+                  reportType === 'progress'
+                    ? 'border-green-600 bg-green-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="text-2xl mb-2">📈</div>
+                <div className="font-semibold text-gray-900">Progress Report</div>
+                <div className="text-sm text-gray-600">Student progress overview</div>
+              </button>
+
+              <button
+                onClick={() => setReportType('performance')}
+                className={`p-4 border-2 rounded-lg text-left transition-all ${
+                  reportType === 'performance'
+                    ? 'border-purple-600 bg-purple-50'
+                    : 'border-gray-200 hover:border-gray-300'
+                }`}
+              >
+                <div className="text-2xl mb-2">🎯</div>
+                <div className="font-semibold text-gray-900">Performance Report</div>
+                <div className="text-sm text-gray-600">Overall class performance</div>
+              </button>
+            </div>
+          </div>
+
+          {/* Group Selection */}
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Select Group *
+            </label>
+            <select
+              value={selectedGroup}
+              onChange={(e) => setSelectedGroup(e.target.value)}
+              className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              <option value="">Choose a group...</option>
+              {groups.map((group) => (
+                <option key={group.id} value={group.id}>
+                  {group.groupCode} {group.name ? `- ${group.name}` : ''}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Generate Button */}
+          <button
+            onClick={generateReport}
+            disabled={loading || !selectedGroup}
+            className={`w-full py-4 rounded-lg font-semibold text-white transition-all ${
+              loading || !selectedGroup
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+          >
+            {loading ? (
+              <span className="flex items-center justify-center gap-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                Generating Report...
+              </span>
+            ) : (
+              'Generate Report'
+            )}
+          </button>
+
+          {/* Info Box */}
+          <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <p className="text-sm text-blue-800">
+              <strong>Note:</strong> Reports will be downloaded as PDF files. Make sure you have selected a group before generating.
+            </p>
+          </div>
+        </div>
+
+        {/* Quick Stats (Optional) */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-3xl mb-2">📚</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Total Groups</h3>
+            <p className="text-3xl font-bold text-blue-600">{groups.length}</p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-3xl mb-2">📊</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Reports</h3>
+            <p className="text-sm text-gray-600">Generate detailed analytics</p>
+          </div>
+
+          <div className="bg-white rounded-lg shadow p-6">
+            <div className="text-3xl mb-2">🎯</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-1">Insights</h3>
+            <p className="text-sm text-gray-600">Track student performance</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

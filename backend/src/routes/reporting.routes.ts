@@ -20,9 +20,9 @@ router.get(
   reportingController.getAdminDashboard
 );
 
-// Teacher Dashboard
+// Teacher Dashboard (accepts query param OR url param)
 router.get(
-  '/dashboard/teacher/:teacherId',
+  '/dashboard/teacher',
   requireTeacherOrAdmin,
   reportingController.getTeacherDashboard
 );
@@ -74,7 +74,7 @@ router.get(
 // PROGRAM ROUTES (YOUR FAILING ONES - FIXED!)
 // ============================================
 
-// ⚠️ IMPORTANT: Specific routes MUST come BEFORE general routes!
+// âš ï¸ IMPORTANT: Specific routes MUST come BEFORE general routes!
 // Placement Test Summary (specific)
 router.get(
   '/program/placement-summary',

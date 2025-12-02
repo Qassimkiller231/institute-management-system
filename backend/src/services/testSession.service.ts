@@ -30,18 +30,6 @@ interface FinalizeSessionInput {
 }
 
 export const startTestSession = async (data: StartTestSessionInput) => {
-   const existingTest = await prisma.testSession.findFirst({
-    where: {
-      studentId: data.studentId,
-      status: {
-        in: ['IN_PROGRESS', 'MCQ_COMPLETED', 'SPEAKING_SCHEDULED']
-      }
-    }
-  });
-
-  if (existingTest) {
-    throw new Error('You already have an active placement test. Please complete it first.');
-  }
   const [student, test] = await Promise.all([
     prisma.student.findUnique({ where: { id: data.studentId } }),
     prisma.test.findUnique({ where: { id: data.testId } })
@@ -50,6 +38,25 @@ export const startTestSession = async (data: StartTestSessionInput) => {
   if (!student) throw new Error('Student not found');
   if (!test || !test.isActive) throw new Error('Test not found or inactive');
 
+  // Check if student already has an active placement test session
+  const activeSession = await prisma.testSession.findFirst({
+    where: {
+      studentId: data.studentId,
+      status: {
+        in: ['IN_PROGRESS', 'MCQ_COMPLETED']
+      }
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
+  // If active session exists, throw error
+  if (activeSession) {
+    throw new Error('You already have an active placement test. Please complete it first.');
+  }
+
+  // Create new session
   const session = await prisma.testSession.create({
     data: {
       studentId: data.studentId,
@@ -67,6 +74,7 @@ export const startTestSession = async (data: StartTestSessionInput) => {
     durationMinutes: test.durationMinutes
   };
 };
+
 
 // Get questions for a session (without correct answers)
 export const getSessionQuestions = async (sessionId: string) => {
@@ -291,4 +299,42 @@ export const finalizeTestSession = async (input: FinalizeSessionInput) => {
   });
 
   return updated;
+};
+// Add this function to testSession_service.ts
+
+/**
+ * Get active test session for a student
+ * Returns the most recent IN_PROGRESS or MCQ_COMPLETED session
+ */
+export const getActiveSessionForStudent = async (studentId: string) => {
+  const activeSession = await prisma.testSession.findFirst({
+    where: {
+      studentId,
+      status: {
+        in: ['IN_PROGRESS', 'MCQ_COMPLETED']
+      }
+    },
+    include: {
+      test: true
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
+  if (!activeSession) {
+    throw new Error('No active test session found');
+  }
+
+  return {
+    id: activeSession.id,
+    testId: activeSession.testId,
+    status: activeSession.status,
+    startedAt: activeSession.startedAt,
+    score: activeSession.score,
+    test: {
+      name: activeSession.test.name,
+      durationMinutes: activeSession.test.durationMinutes
+    }
+  };
 };

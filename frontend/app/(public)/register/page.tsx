@@ -16,7 +16,7 @@ export default function RegisterPage() {
     gender: 'MALE' as 'MALE' | 'FEMALE',
     cpr: ''
   });
-  const [phoneCountryCode, setPhoneCountryCode] = useState('+973'); // Default Bahrain
+  const [phoneCountryCode, setPhoneCountryCode] = useState('+973');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [validationErrors, setValidationErrors] = useState<{[key: string]: string}>({});
@@ -37,13 +37,13 @@ export default function RegisterPage() {
   const validateForm = () => {
     const errors: {[key: string]: string} = {};
     
-    // Phone validation: must be 8 digits
+    // Phone validation
     const phoneDigits = formData.phone.replace(/\D/g, '');
     if (phoneDigits.length !== 8) {
       errors.phone = 'Phone number must be exactly 8 digits';
     }
     
-    // CPR validation: must be 9 digits
+    // CPR validation
     const cprDigits = formData.cpr.replace(/\D/g, '');
     if (cprDigits.length !== 9) {
       errors.cpr = 'CPR must be exactly 9 digits';
@@ -56,15 +56,12 @@ export default function RegisterPage() {
       const age = today.getFullYear() - dob.getFullYear();
       const monthDiff = today.getMonth() - dob.getMonth();
       
-      // Check if date is in the future
       if (dob > today) {
         errors.dateOfBirth = 'Date of birth cannot be in the future';
       }
-      // Check if age is at least 6
       else if (age < 6 || (age === 6 && monthDiff < 0)) {
         errors.dateOfBirth = 'Student must be at least 6 years old';
       }
-      // Check if age is reasonable (not more than 100)
       else if (age > 100) {
         errors.dateOfBirth = 'Please enter a valid date of birth';
       }
@@ -85,7 +82,6 @@ export default function RegisterPage() {
     e.preventDefault();
     setError('');
     
-    // Validate form first
     if (!validateForm()) {
       setError('Please fix the validation errors below');
       return;
@@ -94,17 +90,14 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      // Combine country code with phone number
       const phoneWithCode = phoneCountryCode + formData.phone.replace(/\D/g, '');
       
-      // Step 1: Create student account
       const result = await studentAPI.create({
         ...formData,
         phone: phoneWithCode
       });
 
       if (result.success) {
-        // Step 2: Request OTP for login
         const otpResult = await authAPI.requestOTP(formData.email, 'email');
         
         if (otpResult.success) {
@@ -125,46 +118,46 @@ export default function RegisterPage() {
   };
 
   const handleVerifyOTP = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setError('');
-  setLoading(true);
+    e.preventDefault();
+    setError('');
+    setLoading(true);
 
-  try {
-    const result = await authAPI.verifyOTP(formData.email, otpCode);
-    
-    console.log('Full auth response:', result); // Debug
-    
-    if (result.success) {
-      // Save token
-      setToken(result.data.token);
-      localStorage.setItem('authToken', result.data.token);
+    try {
+      const result = await authAPI.verifyOTP(formData.email, otpCode);
       
-      // Save full user object
-      localStorage.setItem('user', JSON.stringify(result.data.user));
+      console.log('Full auth response:', result);
       
-      // Save role-specific IDs
-      if (result.data.user.studentId) {
-        localStorage.setItem('studentId', result.data.user.studentId);
+      if (result.success) {
+        // Save token
+        setToken(result.data.token);
+        
+        // Save user data
+        localStorage.setItem('user', JSON.stringify(result.data.user));
+        localStorage.setItem('role', result.data.user.role);
+        
+        // Save role-specific IDs
+        if (result.data.user.studentId) {
+          localStorage.setItem('studentId', result.data.user.studentId);
+        }
+        if (result.data.user.teacherId) {
+          localStorage.setItem('teacherId', result.data.user.teacherId);
+        }
+        if (result.data.user.parentId) {
+          localStorage.setItem('parentId', result.data.user.parentId);
+        }
+        
+        // Redirect to placement test
+        router.push('/take-test');
+      } else {
+        setError(result.message || 'Invalid OTP code');
       }
-      if (result.data.user.teacherId) {
-        localStorage.setItem('teacherId', result.data.user.teacherId);
-      }
-      if (result.data.user.parentId) {
-        localStorage.setItem('parentId', result.data.user.parentId);
-      }
-      
-      // Always go to test after registration
-      router.push('/take-test');
-    } else {
-      setError(result.message || 'Invalid OTP code');
+    } catch (err) {
+      console.error('Verify OTP error:', err);
+      setError('Network error. Please try again.');
+    } finally {
+      setLoading(false);
     }
-  } catch (err) {
-    console.error('Verify OTP error:', err);
-    setError('Network error. Please try again.');
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   if (step === 'verify') {
     return (

@@ -38,5 +38,6 @@ router.put(
   '/:id/cancel',
   speakingSlotController.cancelSlot
 );
+router.post('/:id/cancel', authenticate, speakingSlotController.cancelSlot);
 
 export default router;

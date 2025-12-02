@@ -32,11 +32,12 @@ export default function VerifyOTPPage() {
       console.log('Full auth response:', result);
       
       if (result.success) {
-        // Save token (also sets cookie for middleware)
+        // Save token
         setToken(result.data.token);
         
-        // Save full user object
+        // Save user data
         localStorage.setItem('user', JSON.stringify(result.data.user));
+        localStorage.setItem('role', result.data.user.role);
         
         // Save role-specific IDs
         if (result.data.user.studentId) {
@@ -51,7 +52,7 @@ export default function VerifyOTPPage() {
         
         sessionStorage.removeItem('otpEmail');
         
-        // Check for redirect intent (e.g., placement test flow)
+        // Check for redirect intent
         const redirectTo = sessionStorage.getItem('loginRedirect');
         if (redirectTo) {
           sessionStorage.removeItem('loginRedirect');
@@ -59,7 +60,7 @@ export default function VerifyOTPPage() {
           return;
         }
         
-        // ✅ FIX: Use redirectByRole helper with correct paths
+        // Redirect by role
         redirectByRole(router, result.data.user.role);
       } else {
         setError(result.message || 'Invalid OTP');

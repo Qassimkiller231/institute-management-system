@@ -132,6 +132,7 @@ model Student {
   id         String    @id @default(uuid())
   userId     String    @unique
   cpr        String    @unique
+  currentLevel String?   @map("current_level") @db.VarChar(3)
   firstName  String
   secondName String?
   thirdName  String?
@@ -481,7 +482,12 @@ model SpeakingSlot {
   slotTime        DateTime  @db.Time
   durationMinutes Int       @default(15)
   status  String  @default("AVAILABLE") // AVAILABLE, BOOKED, COMPLETED, CANCELLED, MISSED
-  score           Decimal?  @db.Decimal(5, 2)
+
+  mcqLevel        String?   @map("mcq_level") @db.VarChar(3)
+  speakingLevel   String?   @map("speaking_level") @db.VarChar(3)
+  finalLevel      String?   @map("final_level") @db.VarChar(3)
+
+
   feedback        String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

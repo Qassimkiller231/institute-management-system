@@ -90,7 +90,10 @@ export default function Announcements() {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          targetAudience: 'GROUP'
+        })
       });
 
       if (!response.ok) {
@@ -161,7 +164,7 @@ export default function Announcements() {
           <div className="flex justify-between items-center">
             <div>
               <button
-                onClick={() => router.push('/teacher/dashboard')}
+                onClick={() => router.push('/teacher')}
                 className="text-blue-600 hover:text-blue-800 mb-2"
               >
                 ← Back to Dashboard

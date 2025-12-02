@@ -16,7 +16,9 @@ interface BookSpeakingSlotInput {
 interface SubmitSpeakingResultInput {
   sessionId: string;
   slotId: string;
-  score: number;
+  mcqLevel: string;      // A1, A2, B1, B2, C1, C2
+  speakingLevel: string;  // A1, A2, B1, B2, C1, C2
+  finalLevel: string;     // A1, A2, B1, B2, C1, C2
   feedback?: string;
 }
 
@@ -127,6 +129,21 @@ export const bookSpeakingSlot = async (input: BookSpeakingSlotInput) => {
 export const submitSpeakingResult = async (
   input: SubmitSpeakingResultInput
 ) => {
+  // Validate levels
+  const validLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
+  
+  if (!validLevels.includes(input.mcqLevel)) {
+    throw new Error('Invalid MCQ level. Must be A1, A2, B1, B2, C1, or C2');
+  }
+  
+  if (!validLevels.includes(input.speakingLevel)) {
+    throw new Error('Invalid speaking level. Must be A1, A2, B1, B2, C1, or C2');
+  }
+  
+  if (!validLevels.includes(input.finalLevel)) {
+    throw new Error('Invalid final level. Must be A1, A2, B1, B2, C1, or C2');
+  }
+
   const slot = await prisma.speakingSlot.findUnique({
     where: { id: input.slotId }
   });
@@ -136,57 +153,124 @@ export const submitSpeakingResult = async (
     throw new Error('Slot does not belong to this test session');
   }
 
-  const updatedSlot = await prisma.speakingSlot.update({
-    where: { id: input.slotId },
-    data: {
-      status: 'COMPLETED',
-      score: new Prisma.Decimal(input.score.toFixed(2)),
-      feedback: input.feedback ?? null
+  // Use transaction to update multiple records atomically
+  const result = await prisma.$transaction(async (tx) => {
+    // 1. Update speaking slot with levels
+    const updatedSlot = await tx.speakingSlot.update({
+      where: { id: input.slotId },
+      data: {
+        status: 'COMPLETED',
+        mcqLevel: input.mcqLevel,
+        speakingLevel: input.speakingLevel,
+        finalLevel: input.finalLevel,
+        feedback: input.feedback ?? null
+      }
+    });
+
+    // 2. Update test session status
+    await tx.testSession.update({
+      where: { id: input.sessionId },
+      data: { status: 'COMPLETED' }
+    });
+
+    // 3. Update student's current level with final level
+    if (slot.studentId) {
+      await tx.student.update({
+        where: { id: slot.studentId },
+        data: {
+          currentLevel: input.finalLevel
+        }
+      });
     }
+
+    return updatedSlot;
   });
 
-  await prisma.testSession.update({
-    where: { id: input.sessionId },
-    data: {
-      status: 'SPEAKING_COMPLETED'
-    }
-  });
-
-  return updatedSlot;
+  return result;
 };
 
 export const listSpeakingSlotsForTeacher = async (teacherId: string) => {
   return prisma.speakingSlot.findMany({
     where: { teacherId },
+    include: {
+      student: {
+        include: {
+          user: {
+            select: {
+              email: true,
+              phone: true
+            }
+          }
+        }
+      },
+      testSession: {
+        select: {
+          id: true,
+          score: true,
+          status: true
+        }
+      }
+    },
     orderBy: [
       { slotDate: 'asc' },
       { slotTime: 'asc' }
     ]
   });
 };
-export const cancelSpeakingSlot = async (slotId: string, sessionId: string) => {
+// speakingSlot_service.ts - CORRECTED VERSION
+
+/**
+ * Cancel a booked speaking slot
+ * Fetches studentId from session for validation
+ */
+export const cancelSpeakingSlot = async (
+  slotId: string,
+  sessionId: string
+) => {
+  // Get the test session to find the studentId
+  const session = await prisma.testSession.findUnique({
+    where: { id: sessionId }
+  });
+
+  if (!session) {
+    throw new Error('Test session not found');
+  }
+
+  const studentId = session.studentId;
+
+  // Get the speaking slot
   const slot = await prisma.speakingSlot.findUnique({
     where: { id: slotId }
   });
 
-  if (!slot) throw new Error('Speaking slot not found');
-  if (slot.status !== 'BOOKED') throw new Error('Slot is not booked');
+  if (!slot) {
+    throw new Error('Speaking slot not found');
+  }
 
-  // Make slot available again
-  await prisma.speakingSlot.update({
+  // Verify slot belongs to this student
+  if (slot.studentId !== studentId) {
+    throw new Error('Access denied. This slot does not belong to you.');
+  }
+
+  // Cancel the speaking slot - make it available again
+  const updatedSlot = await prisma.speakingSlot.update({
     where: { id: slotId },
     data: {
-      status: 'AVAILABLE',
       studentId: null,
-      testSessionId: null
+      testSessionId: null,
+      status: 'AVAILABLE',
+      score: null,
+      feedback: null
     }
   });
 
-  // Revert test session to MCQ_COMPLETED
+  // Update test session status back to MCQ_COMPLETED
   await prisma.testSession.update({
     where: { id: sessionId },
-    data: { status: 'MCQ_COMPLETED' }
+    data: {
+      status: 'MCQ_COMPLETED'
+    }
   });
 
-  return { message: 'Appointment cancelled successfully' };
+  return updatedSlot;
 };

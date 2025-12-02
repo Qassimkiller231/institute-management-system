@@ -108,19 +108,35 @@ export const bookSlot = async (req: AuthRequest, res: Response) => {
  */
 export const submitResult = async (req: AuthRequest, res: Response) => {
   try {
-    const { sessionId, slotId, score, feedback } = req.body;
+    const { 
+      sessionId, 
+      slotId, 
+      mcqLevel,
+      speakingLevel,
+      finalLevel,
+      feedback 
+    } = req.body;
 
-    if (!sessionId || !slotId || score === undefined) {
+    if (!sessionId || !slotId) {
       return res.status(400).json({
         success: false,
-        message: 'sessionId, slotId and score are required'
+        message: 'sessionId and slotId are required'
+      });
+    }
+
+    if (!mcqLevel || !speakingLevel || !finalLevel) {
+      return res.status(400).json({
+        success: false,
+        message: 'mcqLevel, speakingLevel, and finalLevel are required'
       });
     }
 
     const result = await submitSpeakingResult({
       sessionId,
       slotId,
-      score,
+      mcqLevel,
+      speakingLevel,
+      finalLevel,
       feedback
     });
 
@@ -141,10 +157,19 @@ export const submitResult = async (req: AuthRequest, res: Response) => {
  * PUT /api/speaking-slots/:id/cancel
  * Cancel a booked speaking slot
  */
+
 export const cancelSlot = async (req: AuthRequest, res: Response) => {
   try {
-    const { id } = req.params;
+    const { id } = req.params; // slotId
     const { sessionId } = req.body;
+
+    // Validate inputs
+    if (!id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Slot ID is required'
+      });
+    }
 
     if (!sessionId) {
       return res.status(400).json({
@@ -153,14 +178,32 @@ export const cancelSlot = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const result = await cancelSpeakingSlot(id, sessionId);
+    // Call service function
+    const updatedSlot = await cancelSpeakingSlot(id, sessionId);
 
     return res.status(200).json({
       success: true,
-      message: result.message
+      message: 'Speaking slot cancelled successfully',
+      data: updatedSlot
     });
   } catch (error: any) {
     console.error('cancelSlot error:', error);
+    
+    // Handle specific errors
+    if (error.message?.includes('not found')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    if (error.message?.includes('Access denied')) {
+      return res.status(403).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
     return res.status(400).json({
       success: false,
       message: error.message || 'Failed to cancel slot'

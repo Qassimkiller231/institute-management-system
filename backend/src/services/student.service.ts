@@ -207,84 +207,65 @@ export const getAllStudents = async (filters: {
 /**
  * Get student by ID with full details
  */
-export const getStudentById = async (id: string) => {
+export const getStudentById = async (studentId: string) => {
   const student = await prisma.student.findUnique({
-    where: { id },
+    where: { id: studentId },
     include: {
       user: {
         select: {
-          id: true,
           email: true,
           phone: true,
-          role: true,
-          isActive: true,
-          lastLogin: true,
-          createdAt: true
+          role: true
         }
       },
       phones: {
-        where: { isActive: true },
-        select: {
-          id: true,
-          phoneNumber: true,
-          countryCode: true,
-          isPrimary: true,
-          isVerified: true
-        }
+        where: { isActive: true }
       },
-      parentStudentLinks: {
+      enrollments: {
+        where: {
+          status: 'ACTIVE'
+        },
         include: {
-          parent: {
+          group: {
             include: {
-              user: {
+              level: {
                 select: {
-                  id: true,
-                  email: true,
-                  phone: true
+                  name: true,
+                  displayName: true
+                }
+              },
+              term: {
+                select: {
+                  name: true,
+                  startDate: true,
+                  endDate: true
+                }
+              },
+              venue: {
+                select: {
+                  name: true,
+                  address: true
                 }
               }
             }
           }
-        }
-      },
-      enrollments: {
-        where: { status: 'ACTIVE' },
-        include: {
-          group: {
-            include: {
-              level: true,
-              term: true,
-              venue: true
-            }
-          }
         },
-        orderBy: { enrollmentDate: 'desc' }
+        orderBy: {
+          enrollmentDate: 'desc'
+        }
       },
-      // âœ… ADD THIS:
-testSessions: {
-  include: {
-    test: true,
-    speakingSlots: {
-      include: {
-        teacher: {
-          include: {
-            user: {
-              select: {
-                email: true
-              }
+      testSessions: {
+        orderBy: {
+          startedAt: 'desc'
+        },
+        take: 5,
+        include: {
+          test: {
+            select: {
+              name: true,
+              testType: true
             }
           }
-        }
-      }
-    }
-  },
-  orderBy: { startedAt: 'desc' }
-},
-      _count: {
-        select: {
-          enrollments: true,
-          testSessions: true,
-          attendance: true
         }
       }
     }
@@ -293,25 +274,6 @@ testSessions: {
   if (!student) {
     throw new Error('Student not found');
   }
-  if (student.testSessions) {
-  student.testSessions = student.testSessions.map((session: any) => {
-    if (session.speakingSlots && session.speakingSlots.length > 0) {
-      session.speakingSlots = session.speakingSlots.map((slot: any) => {
-        const startDateTime = new Date(slot.slotTime);
-        const endDateTime = new Date(startDateTime.getTime() + slot.durationMinutes * 60000);
-        const startTime = startDateTime.toTimeString().split(' ')[0]; // HH:MM:SS
-        const endTime = endDateTime.toTimeString().split(' ')[0];
-
-        return {
-          ...slot,
-          startTime,
-          endTime
-        };
-      });
-    }
-    return session;
-  });
-}
 
   return student;
 };

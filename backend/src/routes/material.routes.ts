@@ -53,7 +53,6 @@ router.delete(
 // Get all materials for a specific group (Teacher or Admin only)
 router.get(
   '/group/:groupId',
-  requireTeacherOrAdmin,
   materialController.getGroupMaterials
 );
 

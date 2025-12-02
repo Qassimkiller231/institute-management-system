@@ -79,10 +79,36 @@ export class MaterialController {
   }
 
   // Get all materials for a group
+  // Get all materials for a specific group
   async getGroupMaterials(req: AuthRequest, res: Response): Promise<void> {
     try {
       const { groupId } = req.params;
       const { materialType, isActive } = req.query;
+
+      // Authorization check for students
+      if (req.user!.role === 'STUDENT') {
+        // Verify student is enrolled in this group
+        const student = await prisma.student.findUnique({
+          where: { userId: req.user!.userId },
+          include: {
+            enrollments: {
+              where: {
+                groupId: groupId,
+                status: 'ACTIVE'
+              }
+            }
+          }
+        });
+
+        if (!student || student.enrollments.length === 0) {
+          res.status(403).json({
+            success: false,
+            message: 'Access denied. You are not enrolled in this group.'
+          });
+          return;
+        }
+      }
+      // Teachers and admins can access any group (no additional check needed)
 
       const filters: any = {};
       if (materialType) filters.materialType = materialType as string;

@@ -21,6 +21,7 @@ interface Enrollment {
     term: {
       name: string;
       program: {
+        id: string;
         name: string;
       };
     };

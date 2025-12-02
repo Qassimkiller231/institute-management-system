@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken } from '@/lib/auth';
+
 interface Installment {
   id: string;
   installmentNumber: number;
@@ -48,7 +49,7 @@ export default function StudentPaymentsPage() {
           throw new Error('Student ID not found');
         }
 
-        // First get student to check canSeePayment
+        // Get student to check canSeePayment
         const studentRes = await fetch(`http://localhost:3001/api/students/${studentId}`, {
           headers: {
             'Authorization': `Bearer ${getToken()}`
@@ -56,7 +57,8 @@ export default function StudentPaymentsPage() {
         });
 
         if (!studentRes.ok) throw new Error('Failed to fetch student data');
-        const student = await studentRes.json();
+        const studentResponse = await studentRes.json();
+        const student = studentResponse.data || studentResponse;
 
         // Check if student can see payments
         if (!student.canSeePayment) {
@@ -74,9 +76,9 @@ export default function StudentPaymentsPage() {
           return;
         }
 
-        // Fetch payment plan for active enrollment
+        // Fetch payment plan - FIXED ENDPOINT
         const paymentRes = await fetch(
-          `http://localhost:3001/api/payments/enrollment/${activeEnrollment.id}`,
+          `http://localhost:3001/api/payments/plans/enrollment/${activeEnrollment.id}`,
           {
             headers: {
               'Authorization': `Bearer ${getToken()}`
@@ -85,7 +87,8 @@ export default function StudentPaymentsPage() {
         );
 
         if (paymentRes.ok) {
-          const data = await paymentRes.json();
+          const paymentResponse = await paymentRes.json();
+          const data = paymentResponse.data || paymentResponse;
           setPaymentPlan(data);
         } else {
           setPaymentPlan(null);

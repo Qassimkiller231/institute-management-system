@@ -58,6 +58,69 @@ export default function RecordAttendance() {
     }
   }, [selectedGroup]);
 
+  useEffect(() => {
+    if (selectedSession && students.length > 0) {
+      fetchExistingAttendance();
+    }
+  }, [selectedSession, students]);
+
+  const fetchExistingAttendance = async () => {
+    try {
+      const token = getToken();
+      const response = await fetch(
+        `http://localhost:3001/api/attendance/session/${selectedSession}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response.ok) {
+        const data = await response.json();
+        const existingRecords = data.data || [];
+        
+        // Pre-populate attendance state with existing data
+        const attendanceMap: Record<string, AttendanceRecord> = {};
+        existingRecords.forEach((record: any) => {
+          attendanceMap[record.studentId] = {
+            studentId: record.studentId,
+            status: record.status,
+            notes: record.notes || ''
+          };
+        });
+
+        // Add default entries for students without attendance
+        students.forEach(student => {
+          if (!attendanceMap[student.id]) {
+            attendanceMap[student.id] = {
+              studentId: student.id,
+              status: 'PRESENT',
+              notes: ''
+            };
+          }
+        });
+
+        setAttendance(attendanceMap);
+      } else {
+        // If no attendance exists (404), initialize defaults
+        initializeDefaultAttendance();
+      }
+    } catch (err) {
+      console.error('Error fetching existing attendance:', err);
+      // Initialize default attendance if fetch fails
+      initializeDefaultAttendance();
+    }
+  };
+
+  const initializeDefaultAttendance = () => {
+    const defaultAttendance: Record<string, AttendanceRecord> = {};
+    students.forEach(student => {
+      defaultAttendance[student.id] = {
+        studentId: student.id,
+        status: 'PRESENT',
+        notes: ''
+      };
+    });
+    setAttendance(defaultAttendance);
+  };
+
   const fetchGroups = async () => {
     try {
       const token = getToken();
@@ -101,17 +164,6 @@ export default function RecordAttendance() {
       const data = await response.json();
       const enrollments = data.data || [];
       
-      // Initialize attendance records
-      const initialAttendance: Record<string, AttendanceRecord> = {};
-      enrollments.forEach((enrollment: any) => {
-        initialAttendance[enrollment.student.id] = {
-          studentId: enrollment.student.id,
-          status: 'PRESENT',
-          notes: ''
-        };
-      });
-      
-      setAttendance(initialAttendance);
       setStudents(enrollments.map((e: any) => ({
         ...e.student,
         enrollmentId: e.id
@@ -184,7 +236,7 @@ export default function RecordAttendance() {
       }
 
       alert('Attendance saved successfully!');
-      router.push('/teacher/dashboard');
+      router.push('/teacher');
     } catch (err: any) {
       alert('Error: ' + err.message);
     } finally {
@@ -208,7 +260,7 @@ export default function RecordAttendance() {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <button
-            onClick={() => router.push('/teacher/dashboard')}
+            onClick={() => router.push('/teacher')}
             className="text-blue-600 hover:text-blue-800 mb-2"
           >
             ← Back to Dashboard
@@ -231,9 +283,9 @@ export default function RecordAttendance() {
                 setSelectedGroup(e.target.value);
                 setSelectedSession('');
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-medium"
             >
-              <option value="">Choose a group</option>
+              <option value="" className="text-gray-700">Choose a group</option>
               {groups.map(group => (
                 <option key={group.id} value={group.id}>
                   {group.groupCode} {group.name && `- ${group.name}`}
@@ -250,10 +302,10 @@ export default function RecordAttendance() {
             <select
               value={selectedSession}
               onChange={(e) => setSelectedSession(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-medium disabled:bg-gray-100 disabled:text-gray-500"
               disabled={!selectedGroup}
             >
-              <option value="">Choose a session</option>
+              <option value="" className="text-gray-700">Choose a session</option>
               {sessions.map(session => (
                 <option key={session.id} value={session.id}>
                   Session {session.sessionNumber} - {new Date(session.sessionDate).toLocaleDateString()} 
@@ -267,7 +319,7 @@ export default function RecordAttendance() {
         {/* Quick Mark All */}
         {selectedGroup && students.length > 0 && (
           <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h3 className="text-lg font-semibold mb-4">Quick Actions</h3>
+            <h3 className="text-lg font-semibold mb-4 text-gray-900">Quick Actions</h3>
             <div className="flex flex-wrap gap-3">
               <button
                 onClick={() => handleMarkAll('PRESENT')}
@@ -356,12 +408,12 @@ export default function RecordAttendance() {
             </div>
           </div>
         ) : selectedGroup ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center text-gray-900">
-            No students found in this group
+          <div className="bg-white rounded-lg shadow p-12 text-center">
+            <p className="text-gray-800 text-lg font-semibold">No students found in this group</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow p-12 text-center text-gray-900">
-            Please select a group to view students
+          <div className="bg-white rounded-lg shadow p-12 text-center">
+            <p className="text-gray-800 text-lg font-semibold">Please select a group to view students</p>
           </div>
         )}
 

@@ -20,6 +20,7 @@ interface Student {
   secondName?: string;
   thirdName?: string;
   enrollmentId: string;
+  levelId?: string;
 }
 
 interface Criteria {
@@ -53,6 +54,7 @@ export default function UpdateProgress() {
 
   useEffect(() => {
     if (selectedGroup) {
+      console.log('🔄 [EFFECT] Selected group changed:', selectedGroup);
       fetchStudents();
       fetchCriteria();
     }
@@ -60,20 +62,41 @@ export default function UpdateProgress() {
 
   useEffect(() => {
     if (selectedStudent && selectedGroup) {
+      console.log('🔄 [EFFECT] Selected student changed:', selectedStudent);
       fetchStudentProgress();
     }
   }, [selectedStudent, selectedGroup]);
+
+  // Debug: Log when criteria changes
+  useEffect(() => {
+    console.log('📋 [STATE] Criteria state updated:', criteria.length, 'items');
+    if (criteria.length > 0) {
+      console.log('   First 3 criteria:', criteria.slice(0, 3));
+    }
+  }, [criteria]);
 
   const fetchGroups = async () => {
     try {
       const token = getToken();
       const teacherId = getTeacherId();
       
+      console.log('📚 [DEBUG] Fetching groups for teacher:', teacherId);
+      
       const response = await fetch(`http://localhost:3001/api/groups?teacherId=${teacherId}`, {
         headers: { Authorization: `Bearer ${token}` }
       });
 
       const data = await response.json();
+      console.log('📚 [DEBUG] Groups response:', data);
+      console.log('📚 [DEBUG] Groups count:', data.data?.length || 0);
+      
+      if (data.data && data.data.length > 0) {
+        console.log('📚 [DEBUG] First group level info:', {
+          groupCode: data.data[0].groupCode,
+          level: data.data[0].level
+        });
+      }
+      
       setGroups(data.data || []);
     } catch (err) {
       console.error('Error fetching groups:', err);
@@ -85,18 +108,32 @@ export default function UpdateProgress() {
       setLoading(true);
       const token = getToken();
       
+      console.log('👥 [DEBUG] Fetching students for group:', selectedGroup);
+      
       const response = await fetch(
         `http://localhost:3001/api/enrollments?groupId=${selectedGroup}&status=ACTIVE`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       const data = await response.json();
-      const enrollments = data.data || [];
+      console.log('👥 [DEBUG] Enrollments response:', data);
       
-      setStudents(enrollments.map((e: any) => ({
+      const enrollments = data.data || [];
+      console.log('👥 [DEBUG] Enrollments count:', enrollments.length);
+      
+      if (enrollments.length > 0) {
+        console.log('👥 [DEBUG] First enrollment:', enrollments[0]);
+        console.log('👥 [DEBUG] First student:', enrollments[0].student);
+      }
+      
+      const studentsList = enrollments.map((e: any) => ({
         ...e.student,
-        enrollmentId: e.id
-      })));
+        enrollmentId: e.id,
+        levelId: e.levelId // Add level ID from enrollment
+      }));
+      
+      console.log('👥 [DEBUG] Mapped students:', studentsList);
+      setStudents(studentsList);
     } catch (err) {
       console.error('Error fetching students:', err);
     } finally {
@@ -109,17 +146,40 @@ export default function UpdateProgress() {
       const token = getToken();
       const group = groups.find(g => g.id === selectedGroup);
       
-      if (!group) return;
+      console.log('🔍 [DEBUG] fetchCriteria called');
+      console.log('   Selected Group ID:', selectedGroup);
+      console.log('   Found Group:', group);
+      console.log('   Group Level:', group?.level);
+      
+      if (!group) {
+        console.log('   ❌ No group found, returning...');
+        return;
+      }
 
-      const response = await fetch(
-        `http://localhost:3001/api/progress-criteria?levelId=${group.level.id}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const levelId = group.level.id;
+      const url = `http://localhost:3001/api/progress-criteria?levelId=${levelId}`;
+      
+      console.log('   📡 Fetching criteria from:', url);
 
+      const response = await fetch(url, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      console.log('   📥 Response status:', response.status);
+      
       const data = await response.json();
+      console.log('   📦 Response data:', data);
+      console.log('   📊 Criteria count:', data.data?.length || 0);
+      
+      if (data.data && data.data.length > 0) {
+        console.log('   ✅ Setting criteria:', data.data);
+      } else {
+        console.log('   ⚠️  No criteria found in response!');
+      }
+      
       setCriteria(data.data || []);
     } catch (err) {
-      console.error('Error fetching criteria:', err);
+      console.error('❌ Error fetching criteria:', err);
     }
   };
 
@@ -212,6 +272,18 @@ export default function UpdateProgress() {
   };
 
   const selectedStudentData = students.find(s => s.id === selectedStudent);
+  
+  console.log('🎓 [DEBUG] Selected student ID:', selectedStudent);
+  console.log('🎓 [DEBUG] Students array:', students);
+  console.log('🎓 [DEBUG] Selected student data:', selectedStudentData);
+  
+  // Check if student has a level
+  if (selectedStudentData && !selectedStudentData.levelId) {
+    console.warn('⚠️  [WARNING] Student has no level assigned! Cannot fetch criteria.');
+    console.log('   Student:', selectedStudentData.firstName, selectedStudentData.secondName);
+    console.log('   Enrollment ID:', selectedStudentData.enrollmentId);
+  }
+  
   const completedCount = Object.values(progress).filter(p => p.completed).length;
   const completionPercentage = criteria.length > 0 
     ? Math.round((completedCount / criteria.length) * 100)
@@ -223,6 +295,17 @@ export default function UpdateProgress() {
     acc[criterion.category].push(criterion);
     return acc;
   }, {} as Record<string, Criteria[]>);
+  
+  // Get student name safely
+  const getStudentName = () => {
+    if (!selectedStudentData) return 'Student';
+    const parts = [
+      selectedStudentData.firstName,
+      selectedStudentData.secondName,
+      selectedStudentData.thirdName
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(' ') : 'Student';
+  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -230,7 +313,7 @@ export default function UpdateProgress() {
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <button
-            onClick={() => router.push('/teacher/dashboard')}
+            onClick={() => router.push('/teacher')}
             className="text-blue-600 hover:text-blue-800 mb-2"
           >
             ← Back to Dashboard
@@ -252,9 +335,9 @@ export default function UpdateProgress() {
                 setSelectedGroup(e.target.value);
                 setSelectedStudent('');
               }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-medium"
             >
-              <option value="">Choose a group</option>
+              <option value="" className="text-gray-700">Choose a group</option>
               {groups.map(group => (
                 <option key={group.id} value={group.id}>
                   {group.groupCode} - {group.level.name}
@@ -270,10 +353,10 @@ export default function UpdateProgress() {
             <select
               value={selectedStudent}
               onChange={(e) => setSelectedStudent(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-medium disabled:bg-gray-100 disabled:text-gray-500"
               disabled={!selectedGroup}
             >
-              <option value="">Choose a student</option>
+              <option value="" className="text-gray-700">Choose a student</option>
               {students.map(student => (
                 <option key={student.id} value={student.id}>
                   {student.firstName} {student.secondName} {student.thirdName}
@@ -284,33 +367,69 @@ export default function UpdateProgress() {
         </div>
 
         {/* Progress Overview */}
-        {selectedStudent && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900">
-                  {selectedStudentData?.firstName} {selectedStudentData?.secondName}
-                </h2>
-                <p className="text-gray-600">Progress Overview</p>
+        {selectedStudent && selectedStudentData && (
+          <>
+            {/* Check if student has level */}
+            {!selectedStudentData.levelId ? (
+              <div className="bg-yellow-50 border-l-4 border-yellow-400 p-6 mb-6">
+                <div className="flex items-center mb-4">
+                  <div className="flex-shrink-0">
+                    <svg className="h-6 w-6 text-yellow-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                    </svg>
+                  </div>
+                  <div className="ml-3">
+                    <h3 className="text-lg font-semibold text-yellow-800">
+                      No Level Assigned to {getStudentName()}
+                    </h3>
+                    <div className="mt-2 text-sm text-yellow-700">
+                      <p>
+                        This student's enrollment does not have a level assigned. 
+                        You must assign a level (A1, A2, B1, or B2) before you can update their progress.
+                      </p>
+                    </div>
+                    <div className="mt-4">
+                      <button
+                        onClick={() => {
+                          alert('Please go to Student Management → Edit Student → Assign Level\n\nOr contact the administrator to assign a level to this student\'s enrollment.');
+                        }}
+                        className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700 font-medium"
+                      >
+                        How to Assign Level
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
-              <div className="text-right">
-                <div className="text-4xl font-bold text-blue-600">{completionPercentage}%</div>
-                <p className="text-sm text-gray-900">
-                  {completedCount} of {criteria.length} completed
-                </p>
+            ) : (
+              <div className="bg-white rounded-lg shadow p-6 mb-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-2xl font-bold text-gray-900">
+                      {getStudentName()}
+                    </h2>
+                    <p className="text-gray-600">Progress Overview</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-4xl font-bold text-blue-600">{completionPercentage}%</div>
+                    <p className="text-sm text-gray-900">
+                      {completedCount} of {criteria.length} completed
+                    </p>
+                  </div>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-4">
+                  <div
+                    className="bg-blue-600 h-4 rounded-full transition-all"
+                    style={{ width: `${completionPercentage}%` }}
+                  />
+                </div>
               </div>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-4">
-              <div
-                className="bg-blue-600 h-4 rounded-full transition-all"
-                style={{ width: `${completionPercentage}%` }}
-              />
-            </div>
-          </div>
+            )}
+          </>
         )}
 
         {/* Criteria Checklist */}
-        {selectedStudent && criteria.length > 0 ? (
+        {selectedStudent && selectedStudentData?.levelId && criteria.length > 0 ? (
           <div className="space-y-6">
             {Object.entries(groupedCriteria).map(([category, categoryCriteria]) => (
               <div key={category} className="bg-white rounded-lg shadow p-6">
@@ -349,18 +468,21 @@ export default function UpdateProgress() {
               </div>
             ))}
           </div>
+        ) : selectedStudent && selectedStudentData && !selectedStudentData.levelId ? (
+          // Student has no level - warning box above handles this, don't show duplicate message
+          null
         ) : selectedStudent && criteria.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center text-gray-900">
-            No progress criteria defined for this level
+          <div className="bg-white rounded-lg shadow p-12 text-center">
+            <p className="text-gray-800 text-lg font-semibold">No progress criteria defined for this level</p>
           </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow p-12 text-center text-gray-900">
-            Please select a group and student to update progress
+        ) : !selectedStudent ? (
+          <div className="bg-white rounded-lg shadow p-12 text-center">
+            <p className="text-gray-800 text-lg font-semibold">Please select a group and student to update progress</p>
           </div>
-        )}
+        ) : null}
 
         {/* Save Button */}
-        {selectedStudent && criteria.length > 0 && (
+        {selectedStudent && selectedStudentData?.levelId && criteria.length > 0 && (
           <div className="mt-6 flex justify-end">
             <button
               onClick={handleSave}

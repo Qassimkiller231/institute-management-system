@@ -47,6 +47,14 @@ export default function TakeTestPage() {
     loadAvailableTests();
   }, []);
 
+  // Save answers to localStorage whenever they change
+  useEffect(() => {
+    if (sessionId && Object.keys(answers).length > 0) {
+      localStorage.setItem(`test_answers_${sessionId}`, JSON.stringify(answers));
+      localStorage.setItem(`test_current_question_${sessionId}`, currentQuestion.toString());
+    }
+  }, [answers, currentQuestion, sessionId]);
+
   useEffect(() => {
     if (timeLeft > 0 && !submitted && step === "taking") {
       const timer = setTimeout(() => setTimeLeft(timeLeft - 1), 1000);
@@ -102,7 +110,7 @@ export default function TakeTestPage() {
   try {
     const studentId = localStorage.getItem('studentId');
     
-    console.log('Student ID from localStorage:', studentId); // Debug
+    console.log('Student ID from localStorage:', studentId);
     
     if (!studentId) {
       setError('Student ID not found. Please register again.');
@@ -112,10 +120,78 @@ export default function TakeTestPage() {
 
     // Start test session
     const sessionResult = await testAPI.startSession(studentId, selectedTestId);
-    console.log('Session result:', sessionResult); // Debug
+    console.log('Session result:', sessionResult);
     
     if (!sessionResult.success) {
-      // If student not found, clear localStorage and redirect
+      // Check if error is about existing active test
+      if (sessionResult.message?.includes('active placement test') || 
+          sessionResult.message?.includes('already have')) {
+        
+        console.log('Active test detected, loading existing session...');
+        
+        // Try to get active test session
+        try {
+          const activeSessionResult = await testAPI.getActiveSession(studentId);
+          console.log('Active session result:', activeSessionResult);
+          
+          if (activeSessionResult.success && activeSessionResult.session) {
+            // Load the active session
+            const activeSessionId = activeSessionResult.session.id;
+            setSessionId(activeSessionId);
+            
+            // Get questions for the active session
+            const questionsResult = await testAPI.getSessionQuestions(activeSessionId);
+            console.log('Questions result:', questionsResult);
+            
+            if (questionsResult.success && questionsResult.test) {
+              if (!questionsResult.test.questions || questionsResult.test.questions.length === 0) {
+                setError('This test has no questions. Please contact support.');
+                setLoading(false);
+                return;
+              }
+              
+              // Restore saved answers from localStorage
+              const savedAnswersStr = localStorage.getItem(`test_answers_${activeSessionId}`);
+              const savedCurrentQuestion = localStorage.getItem(`test_current_question_${activeSessionId}`);
+              
+              if (savedAnswersStr) {
+                try {
+                  const savedAnswers = JSON.parse(savedAnswersStr);
+                  console.log('Restoring saved answers:', savedAnswers);
+                  setAnswers(savedAnswers);
+                } catch (e) {
+                  console.error('Failed to parse saved answers:', e);
+                }
+              }
+              
+              if (savedCurrentQuestion) {
+                const questionIndex = parseInt(savedCurrentQuestion, 10);
+                if (!isNaN(questionIndex)) {
+                  setCurrentQuestion(questionIndex);
+                }
+              }
+              
+              // Calculate remaining time
+              const remainingMinutes = activeSessionResult.session.remainingMinutes || questionsResult.test.durationMinutes;
+              setTimeLeft(remainingMinutes * 60);
+              
+              setTest(questionsResult.test);
+              setStep('taking');
+              setLoading(false);
+              return;
+            }
+          }
+        } catch (activeError) {
+          console.error('Error loading active session:', activeError);
+        }
+        
+        // If we couldn't load active session, show the error
+        setError('You have an active test. Please contact support if you cannot access it.');
+        setLoading(false);
+        return;
+      }
+      
+      // Student not found error
       if (sessionResult.message?.includes('Student not found')) {
         localStorage.clear();
         setError('Student not found. Please register again.');
@@ -128,14 +204,14 @@ export default function TakeTestPage() {
       return;
     }
 
+    // Normal flow - new session created successfully
     setSessionId(sessionResult.session.id);
 
     // Get questions
     const questionsResult = await testAPI.getSessionQuestions(sessionResult.session.id);
-    console.log('Questions result:', questionsResult); // Debug
+    console.log('Questions result:', questionsResult);
     
     if (questionsResult.success && questionsResult.test) {
-      // Check if we have questions
       if (!questionsResult.test.questions || questionsResult.test.questions.length === 0) {
         setError('This test has no questions. Please contact support.');
         setLoading(false);
@@ -185,6 +261,10 @@ export default function TakeTestPage() {
       if (result.success) {
         setSubmitted(true);
         localStorage.setItem("testSessionId", sessionId);
+        
+        // Clear saved progress from localStorage
+        localStorage.removeItem(`test_answers_${sessionId}`);
+        localStorage.removeItem(`test_current_question_${sessionId}`);
       } else {
         setError(result.message || "Failed to submit test");
       }
@@ -386,11 +466,15 @@ if (!question) {
   );
 }
 
+  // Handle options - they can be array of strings OR array of objects
   const options = question.options
     ? Array.isArray(question.options)
       ? question.options
       : []
     : [];
+
+  // Check if options are objects or strings
+  const isObjectOptions = options.length > 0 && typeof options[0] === 'object';
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4">
@@ -436,14 +520,19 @@ if (!question) {
           </h2>
 
           <div className="space-y-3">
-            {options.map((option: string, index: number) => {
+            {options.map((option: any, index: number) => {
               const optionLabel = String.fromCharCode(65 + index);
-              const isSelected = answers[question.id] === option;
+              
+              // Handle both object {id, text, isCorrect} and string formats
+              const optionText = typeof option === 'object' ? option.text : option;
+              const optionValue = typeof option === 'object' ? option.text : option;
+              
+              const isSelected = answers[question.id] === optionValue;
 
               return (
                 <button
                   key={index}
-                  onClick={() => handleAnswerSelect(question.id, option)}
+                  onClick={() => handleAnswerSelect(question.id, optionValue)}
                   className={`w-full text-left p-4 rounded-lg border-2 transition ${
                     isSelected
                       ? "border-blue-600 bg-blue-50"
@@ -461,7 +550,7 @@ if (!question) {
                       {optionLabel}
                     </span>
                     <span className="text-gray-900 font-medium pt-1">
-                      {option}
+                      {optionText}
                     </span>
                   </div>
                 </button>

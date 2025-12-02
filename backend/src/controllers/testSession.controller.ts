@@ -184,3 +184,44 @@ export const listTestSessions = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+// Add this function to testSession_controller.ts
+
+/**
+ * GET /api/test-sessions/active?studentId=xxx
+ * Get active test session for a student
+ */
+export const getActiveSession = async (req: AuthRequest, res: Response) => {
+  try {
+    const { studentId } = req.query;
+
+    if (!studentId || typeof studentId !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'studentId query parameter is required'
+      });
+    }
+
+    const session = await testSessionService.getActiveSessionForStudent(studentId);
+
+    return res.status(200).json({
+      success: true,
+      session
+    });
+  } catch (error: any) {
+    console.error('getActiveSession error:', error);
+    
+    // If no active session found, return 404 instead of 400
+    if (error.message?.includes('No active test session')) {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+    
+    return res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to get active session'
+    });
+  }
+};

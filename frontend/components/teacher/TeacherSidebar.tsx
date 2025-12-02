@@ -14,6 +14,7 @@ export default function TeacherSidebar() {
     { icon: '📈', label: 'Progress', href: '/teacher/progress' },
     { icon: '👥', label: 'Groups', href: '/teacher/groups' },
     { icon: '📅', label: 'Schedule', href: '/teacher/schedule' },
+    { icon: '🗣️', label: 'Speaking Tests', href: '/teacher/speaking-tests' }, // NEW
     { icon: '📚', label: 'Materials', href: '/teacher/materials' },
     { icon: '📊', label: 'Reports', href: '/teacher/reports' },
     { icon: '📢', label: 'Announcements', href: '/teacher/announcements' },

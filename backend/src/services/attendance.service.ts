@@ -226,7 +226,7 @@ export class AttendanceService {
       throw new Error(`Duplicate student IDs in request: ${duplicates.join(', ')}`);
     }
 
-    // Check if any attendance already exists
+    // Check if any attendance already exists (for upsert logic)
     const existingRecords = await prisma.attendance.findMany({
       where: {
         classSessionId: data.classSessionId,
@@ -234,10 +234,9 @@ export class AttendanceService {
       }
     });
 
-    if (existingRecords.length > 0) {
-      const existingStudentIds = existingRecords.map(r => r.studentId);
-      throw new Error(`Attendance already recorded for students: ${existingStudentIds.join(', ')}`);
-    }
+    const existingStudentIds = new Set(existingRecords.map(r => r.studentId));
+    const recordsToCreate = data.records.filter(r => !existingStudentIds.has(r.studentId));
+    const recordsToUpdate = data.records.filter(r => existingStudentIds.has(r.studentId));
 
     // Get enrollments for all students
     const enrollments = await prisma.enrollment.findMany({
@@ -250,8 +249,22 @@ export class AttendanceService {
 
     const enrollmentMap = new Map(enrollments.map(e => [e.studentId, e.id]));
 
-    // Create all attendance records
-    const attendancePromises = data.records.map(record => {
+    // Update existing attendance records
+    const updatePromises = recordsToUpdate.map(record => {
+      const existingRecord = existingRecords.find(r => r.studentId === record.studentId);
+      if (!existingRecord) return null;
+
+      return prisma.attendance.update({
+        where: { id: existingRecord.id },
+        data: {
+          status: record.status,
+          notes: record.notes
+        }
+      });
+    }).filter(Boolean);
+
+    // Create new attendance records
+    const createPromises = recordsToCreate.map(record => {
       const enrollmentId = enrollmentMap.get(record.studentId);
       if (!enrollmentId) {
         throw new Error(`No active enrollment found for student: ${record.studentId}`);
@@ -282,11 +295,17 @@ export class AttendanceService {
       })
     });
 
-    const records = await Promise.all(attendancePromises);
+    // Execute all updates and creates
+    const [updatedRecords, createdRecords] = await Promise.all([
+      Promise.all(updatePromises),
+      Promise.all(createPromises)
+    ]);
+
+    const allRecords = [...createdRecords];
 
     return {
-      count: records.length,
-      records
+      count: allRecords.length,
+      records: allRecords
     };
   }
 

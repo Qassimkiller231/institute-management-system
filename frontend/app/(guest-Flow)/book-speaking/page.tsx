@@ -34,6 +34,7 @@ export default function BookSpeakingPage() {
   // Data
   const [allSlots, setAllSlots] = useState<SpeakingSlot[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
+  const [studentData, setStudentData] = useState<any>(null);
   
   // Selections
   const [selectedTeacher, setSelectedTeacher] = useState('');
@@ -48,7 +49,7 @@ export default function BookSpeakingPage() {
   const [booked, setBooked] = useState(false);
 
   useEffect(() => {
-    loadAvailableSlots();
+    loadStudentAndSession();
   }, []);
 
   // When teacher is selected, show their available dates
@@ -69,6 +70,55 @@ export default function BookSpeakingPage() {
       setAvailableTimeSlots(timeSlots);
     }
   }, [selectedTeacher, selectedDate, allSlots]);
+
+  const loadStudentAndSession = async () => {
+    try {
+      const studentId = localStorage.getItem('studentId');
+      
+      if (!studentId) {
+        setError('Please login first');
+        setLoading(false);
+        return;
+      }
+
+      // Load student data to find test session
+      const response = await fetch(`http://localhost:3001/api/students/${studentId}`, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        
+        if (result.success && result.data) {
+          setStudentData(result.data);
+          
+          // Find the latest test session with MCQ_COMPLETED status
+          const mcqCompletedSession = result.data.testSessions?.find(
+            (session: any) => session.status === 'MCQ_COMPLETED'
+          );
+          
+          if (mcqCompletedSession) {
+            // Store session ID for booking
+            localStorage.setItem('testSessionId', mcqCompletedSession.id);
+            console.log('Found test session for booking:', mcqCompletedSession.id);
+          } else {
+            setError('No completed test found. Please complete the placement test first.');
+            setLoading(false);
+            return;
+          }
+        }
+      }
+
+      // Load available slots
+      await loadAvailableSlots();
+    } catch (err) {
+      console.error('Error loading student data:', err);
+      setError('Failed to load student data');
+      setLoading(false);
+    }
+  };
 
   const loadAvailableSlots = async () => {
     try {

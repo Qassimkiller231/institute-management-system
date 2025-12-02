@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken } from '@/lib/auth';
+
 interface Criterion {
   criteriaId: string;
   name: string;
@@ -32,7 +33,6 @@ export default function StudentProgressPage() {
   useEffect(() => {
     const fetchProgress = async () => {
       try {
-        // Get student data from localStorage
         const userStr = localStorage.getItem('user');
         if (!userStr) {
           router.push('/login');
@@ -45,8 +45,8 @@ export default function StudentProgressPage() {
         if (!studentId) {
           throw new Error('Student ID not found');
         }
-        console.log(localStorage.getItem('token'))
-        // Fetch student with enrollments to get current enrollment
+
+        // Fetch student with enrollments
         const studentRes = await fetch(`http://localhost:3001/api/students/${studentId}`, {
           headers: {
             'Authorization': `Bearer ${getToken()}`
@@ -54,7 +54,8 @@ export default function StudentProgressPage() {
         });
 
         if (!studentRes.ok) throw new Error('Failed to fetch student data');
-        const student = await studentRes.json();
+        const studentResponse = await studentRes.json();
+        const student = studentResponse.data || studentResponse;
 
         // Get active enrollment
         const activeEnrollment = student.enrollments?.find((e: any) => e.status === 'ACTIVE');
@@ -72,9 +73,12 @@ export default function StudentProgressPage() {
           return;
         }
 
+        // Get levelId from enrollment
+        const levelId = activeEnrollment.group.levelId;
+
         // Fetch progress data
         const progressRes = await fetch(
-          `http://localhost:3001/api/progress-criteria/student/${studentId}/progress?enrollmentId=${activeEnrollment.id}`,
+          `http://localhost:3001/api/progress-criteria/student/${studentId}/progress?enrollmentId=${activeEnrollment.id}&levelId=${levelId}`,
           {
             headers: {
               'Authorization': `Bearer ${getToken()}`
@@ -83,21 +87,16 @@ export default function StudentProgressPage() {
         );
 
         if (!progressRes.ok) throw new Error('Failed to fetch progress data');
-        const progress = await progressRes.json();
+        const progressResponse = await progressRes.json();
+        const progress = progressResponse.data || progressResponse;
 
-        // Get level info
-        const levelRes = await fetch(`http://localhost:3001/api/levels/${activeEnrollment.group.levelId}`, {
-          headers: {
-            'Authorization': `Bearer ${getToken()}`
-          }
-        });
-        
-        const levelData = levelRes.ok ? await levelRes.json() : null;
+        // Get level name
+        const currentLevel = activeEnrollment.group.level?.name || 'Unknown';
 
         setProgressData({
           ...progress,
-          currentLevel: levelData?.name || activeEnrollment.group.level?.name || 'Unknown',
-          nextLevel: getNextLevel(levelData?.name || activeEnrollment.group.level?.name)
+          currentLevel,
+          nextLevel: getNextLevel(currentLevel)
         });
 
       } catch (err) {

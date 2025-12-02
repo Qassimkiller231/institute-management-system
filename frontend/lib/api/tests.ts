@@ -31,5 +31,18 @@ export const testAPI = {
       body: JSON.stringify({ answers })
     });
     return res.json();
+  },
+  getActiveSession: async (studentId: string) => {
+    const token = localStorage.getItem('authToken');
+    const response = await fetch(
+      `http://localhost:3001/api/test-sessions/active?studentId=${studentId}`,
+      {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    return response.json();
   }
 };

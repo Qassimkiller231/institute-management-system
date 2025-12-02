@@ -29,7 +29,8 @@ export const getAdminDashboard = async (req: AuthRequest, res: Response) => {
 // 2. Teacher Dashboard
 export const getTeacherDashboard = async (req: AuthRequest, res: Response) => {
   try {
-    const { teacherId } = req.params;
+    // Accept teacherId from either query param or URL param
+    const teacherId = req.query.teacherId as string || req.params.teacherId;
 
     if (!teacherId) {
       return res.status(400).json({
