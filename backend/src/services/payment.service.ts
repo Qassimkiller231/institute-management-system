@@ -193,6 +193,7 @@ export const recordPayment = async (
     where: { id: installmentId },
     data: {
       paymentMethod: data.paymentMethod,
+      paymentDate: new Date(), // Set payment date to now
       receiptNumber: data.receiptNumber,
       receiptUrl: data.receiptUrl,
       receiptMakerId: data.receiptMakerId,

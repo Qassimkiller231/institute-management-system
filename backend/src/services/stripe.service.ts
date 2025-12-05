@@ -5,14 +5,16 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
 });
 
 export const createPaymentIntent = async (data: {
-  amount: number; // in BHD
+  amount: number; // in BHD (but converted to USD for testing)
   currency: string;
   installmentId: string;
   studentEmail?: string;
 }) => {
+  // Use USD for test mode since BHD is not supported in Stripe test mode
+  // In production, you would use 'bhd' and multiply by 1000 (fils)
   const paymentIntent = await stripe.paymentIntents.create({
-    amount: Math.round(data.amount * 1000), // BHD to fils
-    currency: data.currency.toLowerCase(),
+    amount: Math.round(data.amount * 100), // Convert to cents for USD (in test mode)
+    currency: 'usd', // Use USD in test mode; change to 'bhd' in production
     metadata: {
       installmentId: data.installmentId,
     },
@@ -26,7 +28,9 @@ export const createPaymentIntent = async (data: {
 };
 
 export const confirmPayment = async (paymentIntentId: string) => {
-  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId);
+  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+    expand: ['latest_charge'],
+  });
 
   if (paymentIntent.status === 'succeeded') {
     return { success: true, paymentIntent };

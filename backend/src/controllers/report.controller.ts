@@ -171,6 +171,48 @@ export const downloadGroupAttendanceReport = async (
 };
 
 /**
+ * GET /api/reports/group/:groupId/attendance/preview
+ * Get group attendance data in JSON format for preview
+ */
+export const getGroupAttendanceData = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const { groupId } = req.params;
+
+    if (!groupId) {
+      return res.status(400).json({
+        success: false,
+        message: 'groupId is required'
+      });
+    }
+
+    const data = await reportService.getAttendanceReportData(groupId);
+
+    return res.status(200).json({
+      success: true,
+      data
+    });
+
+  } catch (error: any) {
+    console.error('getGroupAttendanceData error:', error);
+    
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch attendance data'
+    });
+  }
+};
+
+/**
  * GET /api/reports/group/:groupId/progress
  * Generate and download group progress report PDF
  */
@@ -210,6 +252,48 @@ export const downloadGroupProgressReport = async (
     return res.status(500).json({
       success: false,
       message: error.message || 'Failed to generate progress report'
+    });
+  }
+};
+
+/**
+ * GET /api/reports/group/:groupId/progress/preview
+ * Get group progress data in JSON format for preview
+ */
+export const getGroupProgressData = async (
+  req: AuthRequest,
+  res: Response
+) => {
+  try {
+    const { groupId } = req.params;
+
+    if (!groupId) {
+      return res.status(400).json({
+        success: false,
+        message: 'groupId is required'
+      });
+    }
+
+    const data = await reportService.getProgressReportData(groupId);
+
+    return res.status(200).json({
+      success: true,
+      data
+    });
+
+  } catch (error: any) {
+    console.error('getGroupProgressData error:', error);
+    
+    if (error.message === 'Group not found') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch progress data'
     });
   }
 };

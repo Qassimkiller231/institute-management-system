@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken,getTeacherId } from '@/lib/auth';
+import { getTeacherId } from '@/lib/auth';
+import { groupsAPI, sessionsAPI } from '@/lib/api';
 interface Session {
   id: string;
   sessionDate: string;
@@ -40,15 +41,11 @@ export default function TeacherSchedule() {
   const fetchSessions = async () => {
     try {
       setLoading(true);
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) return;
 
       // Get teacher's groups
-      const groupsRes = await fetch(
-        `http://localhost:3001/api/groups?teacherId=${teacherId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const groupsData = await groupsRes.json();
+      const groupsData = await groupsAPI.getAll({ teacherId });
       const groups = groupsData.data || [];
 
       // Calculate date range based on filter
@@ -72,14 +69,23 @@ export default function TeacherSchedule() {
       // Fetch sessions for all groups
       let allSessions: Session[] = [];
       for (const group of groups) {
-        let url = `http://localhost:3001/api/sessions?groupId=${group.id}&dateFrom=${dateFrom}`;
-        if (dateTo) url += `&dateTo=${dateTo}`;
-
-        const sessionsRes = await fetch(url, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        const sessionsData = await sessionsRes.json();
-        allSessions = [...allSessions, ...(sessionsData.data || [])];
+        const params: any = { groupId: group.id };
+        // Note: dateFrom/dateTo filtering would need to be added to sessionsAPI if backend supports it
+        const sessionsData = await sessionsAPI.getAll(params);
+        
+        // Client-side date filtering
+        let filteredSessions = sessionsData.data || [];
+        if (dateFrom || dateTo) {
+          filteredSessions = filteredSessions.filter((s: any) => {
+            const sessionDate = new Date(s.sessionDate);
+            const from = dateFrom ? new Date(dateFrom) : null;
+            const to = dateTo ? new Date(dateTo) : null;
+            if (from && sessionDate < from) return false;
+            if (to && sessionDate > to) return false;
+            return true;
+          });
+        }
+        allSessions = [...allSessions, ...filteredSessions];
       }
 
       // Sort by date and time

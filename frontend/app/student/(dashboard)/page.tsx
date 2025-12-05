@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken, getStudentId, logout } from '@/lib/auth';
+import { announcementsAPI, studentsAPI } from '@/lib/api';
+import type { Announcement } from '@/lib/api/announcements';
 
 interface StudentData {
   id: string;
@@ -12,10 +14,20 @@ interface StudentData {
   enrollments: Array<{
     id: string;
     status: string;
+    term?: {
+      id: string;
+      name: string;
+      isCurrent: boolean;
+    };
     group: {
+      id: string;
       name: string;
       level: {
         name: string;
+      };
+      term?: {
+        name: string;
+        isCurrent: boolean;
       };
     };
   }>;
@@ -24,11 +36,22 @@ interface StudentData {
     status: string;
     completedAt?: string;
   }>;
+  speakingSlots?: Array<{
+    id: string;
+    status: string;
+    slotDate: string;
+    slotTime: string;
+    teacher: {
+      firstName: string;
+      lastName: string;
+    };
+  }>;
 }
 
 export default function StudentDashboard() {
   const router = useRouter();
   const [student, setStudent] = useState<StudentData | null>(null);
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -47,28 +70,74 @@ export default function StudentDashboard() {
         return;
       }
 
-      const response = await fetch(
-        `http://localhost:3001/api/students/${studentId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
+      // Use students API
+      const result = await studentsAPI.getById(studentId);
+      
+      if (result.success) {
+        setStudent(result.data);
+        
+        // DEBUG: Log the student data
+        console.log('===== STUDENT DATA DEBUG =====');
+        console.log('Full student object:', JSON.stringify(result.data, null, 2));
+        console.log('Enrollments:', result.data.enrollments);
+        
+        if (result.data.enrollments) {
+          result.data.enrollments.forEach((e: any, index: number) => {
+            console.log(`Enrollment ${index}:`, {
+              status: e.status,
+              groupName: e.group?.name,
+              termName: e.term?.name || e.group?.term?.name,
+              isCurrent: e.term?.isCurrent || e.group?.term?.isCurrent,
+              hasTermObject: !!e.term,
+              hasGroupTermObject: !!e.group?.term,
+              fullTerm: e.term,
+              fullGroupTerm: e.group?.term
+            });
+          });
         }
-      );
+        console.log('=============================');
+        
+        // Fetch announcements for student (includes their groups + institute-wide)
+        if (result.data.enrollments) {
+          const activeGroups = result.data.enrollments
+            .filter((e: any) => e.status === 'ACTIVE' && e.group?.term?.isCurrent)
+            .map((e: any) => e.group.id);
 
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          setStudent(result.data);
+          // Fetch all announcements (backend will filter for student's groups + ALL)
+          try {
+            const announcementsResponse = await announcementsAPI.getAll({ 
+              isPublished: true 
+            });
+            
+            const allAnnouncements = announcementsResponse.data || [];
+
+            // Sort: HIGH priority first, then by date (newest first)
+            const sortedAnnouncements = allAnnouncements.sort((a: any, b: any) => {
+              if (a.priority === 'HIGH' && b.priority !== 'HIGH') return -1;
+              if (a.priority !== 'HIGH' && b.priority === 'HIGH') return 1;
+              return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+            });
+
+            console.log('===== ANNOUNCEMENTS DEBUG =====');
+            console.log('Active groups:', activeGroups);
+            console.log('All announcements fetched:', allAnnouncements);
+            console.log('Sorted announcements:', sortedAnnouncements);
+            console.log('Top 5 announcements:', sortedAnnouncements.slice(0, 5));
+            console.log('===============================');
+
+            setAnnouncements(sortedAnnouncements.slice(0, 5)); // Top 5
+          } catch (err) {
+            console.error('Failed to fetch announcements:', err);
+            setAnnouncements([]);
+          }
+        } else {
+          console.log('No enrollments found');
+          setAnnouncements([]);
         }
-      } else if (response.status === 401 || response.status === 403) {
-        // Unauthorized - redirect to login
-        console.log('Unauthorized, redirecting to login');
-        router.push('/login');
       }
     } catch (error) {
       console.error('Error loading student data:', error);
-      // On network error, check if we have valid auth
+      // On error, redirect to login if no auth
       const token = getToken();
       const studentId = getStudentId();
       if (!token || !studentId) {
@@ -79,11 +148,18 @@ export default function StudentDashboard() {
     }
   };
 
-  // Check test completion and enrollment status
-  const hasCompletedTest = student?.currentLevel != null;
-  const hasActiveEnrollment = student?.enrollments?.some(
-    e => e.status === 'ACTIVE'
-  ) ?? false;
+  // Check student test and enrollment status
+  const hasCompletedWrittenTest = student?.testSessions?.some((ts: any) => ts.status === 'COMPLETED');
+  const hasSpeakingSlot = student?.speakingSlots?.some((slot: any) => 
+    slot.status === 'BOOKED' || slot.status === 'COMPLETED'
+  );
+  const speakingSlotCompleted = student?.speakingSlots?.some((slot: any) => slot.status === 'COMPLETED');
+  const hasCurrentLevel = !!student?.currentLevel;
+  
+  const hasCurrentTermEnrollment = student?.enrollments?.some(
+    (e: any) => e.status === 'ACTIVE' && e.group?.term?.isCurrent
+  );
+  const hasPastEnrollments = (student?.enrollments?.length ?? 0) > 0 && !hasCurrentTermEnrollment;
 
   // FIXED: Use the logout function from auth.ts which clears everything properly
   const handleLogout = () => {
@@ -92,7 +168,7 @@ export default function StudentDashboard() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <div className="text-6xl mb-4">⏳</div>
           <p className="text-gray-600">Loading...</p>
@@ -101,8 +177,12 @@ export default function StudentDashboard() {
     );
   }
 
-  // STATE 1: No test completed yet - Show placement test prompt
-  if (!hasCompletedTest) {
+  // STATE 1: Has enrollment - Show dashboard regardless of test
+  if (hasCurrentTermEnrollment) {
+    // Skip to main dashboard below
+  }
+  // STATE 2: Has past enrollments but no current - Show re-enrollment
+  else if (hasPastEnrollments) {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
@@ -126,47 +206,183 @@ export default function StudentDashboard() {
         {/* Main Content */}
         <div className="max-w-4xl mx-auto px-6 py-12">
           <div className="bg-white rounded-lg shadow-lg p-8 text-center">
-            <div className="text-6xl mb-6">📝</div>
+            <div className="text-6xl mb-6">📚</div>
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
-              Complete Your Placement Test
+              Not Enrolled in Current Term
             </h2>
-            <p className="text-gray-600 text-lg mb-8">
-              To get started with your English learning journey, please take our placement test. 
-              It will help us determine the right level for you.
-            </p>
+            
+            <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
+              <div className="flex items-start gap-4">
+                <div className="text-4xl">⚠️</div>
+                <div className="text-left">
+                  <h3 className="font-semibold text-gray-900 mb-2">
+                    You were previously enrolled
+                  </h3>
+                  <p className="text-gray-700">
+                    Our records show you were a student in a previous term, but you are not 
+                    currently enrolled in the active term.
+                  </p>
+                </div>
+              </div>
+            </div>
 
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8 text-left">
-              <h3 className="font-semibold text-gray-900 mb-4">What to expect:</h3>
+              <h3 className="font-semibold text-gray-900 mb-4">To re-enroll:</h3>
               <ul className="space-y-3 text-gray-700">
                 <li className="flex items-start gap-3">
-                  <span className="text-green-600 mt-1">✓</span>
-                  <span>Multiple choice questions (45 minutes)</span>
+                  <span className="text-blue-600 mt-1">1.</span>
+                  <span>Contact the administration office</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-green-600 mt-1">✓</span>
-                  <span>Speaking test with our teachers (15 minutes)</span>
+                  <span className="text-blue-600 mt-1">2.</span>
+                  <span>Complete registration for the current term</span>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="text-green-600 mt-1">✓</span>
-                  <span>Immediate level recommendation</span>
+                  <span className="text-blue-600 mt-1">3.</span>
+                  <span>Make required payments</span>
                 </li>
               </ul>
             </div>
 
-            <button
-              onClick={() => router.push('/student/placement-test')}
-              className="bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition"
-            >
-              Start Placement Test →
-            </button>
+            <div className="text-sm text-gray-500">
+              <p>Need help? Contact us at <span className="text-blue-600">info@functioninstitute.com</span></p>
+            </div>
           </div>
         </div>
       </div>
     );
   }
 
-  // STATE 2: Test completed but no enrollment - Show waiting message
-  if (hasCompletedTest && !hasActiveEnrollment) {
+  // STATE 3: Written test complete but no speaking slot booked - Show "Book Speaking"
+  if (hasCompletedWrittenTest && !hasSpeakingSlot && !hasCurrentLevel) {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Welcome, {student?.firstName} {student?.secondName}!
+              </h1>
+              <p className="text-gray-600">Function Institute Student Portal</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-gray-600 hover:text-gray-900"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="max-w-4xl mx-auto px-6 py-12">
+          <div className="bg-white rounded-lg shadow-lg p-8 text-center">
+            <div className="text-6xl mb-6">🎉</div>
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Written Test Complete!
+            </h2>
+            <p className="text-gray-600 text-lg mb-8">
+              Great job! Now complete your speaking test to receive your final level assessment.
+            </p>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 mb-8">
+              <h3 className="font-semibold text-gray-900 mb-4 text-left">Next Step:</h3>
+              <p className="text-gray-700 text-left mb-4">
+                Book a 15-minute speaking session with one of our teachers to complete your assessment.
+              </p>
+            </div>
+
+            <a
+              href="/student/speaking-appointment"
+              className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition"
+            >
+             Book Speaking Test →
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // STATE 4: Speaking slot booked but not completed - Show appointment details
+  if (hasSpeakingSlot && !speakingSlotCompleted && !hasCurrentLevel) {
+    const bookedSlot = student?.speakingSlots?.find((slot: any) => slot.status === 'BOOKED');
+    
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {/* Header */}
+        <div className="bg-white border-b border-gray-200 px-6 py-4">
+          <div className="max-w-7xl mx-auto flex justify-between items-center">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                Welcome, {student?.firstName} {student?.secondName}!
+              </h1>
+              <p className="text-gray-600">Function Institute Student Portal</p>
+            </div>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-gray-600 hover:text-gray-900"
+            >
+              Logout
+            </button>
+          </div>
+        </div>
+
+        {/* Main Content */}
+        <div className="max-w-4xl mx-auto px-6 py-12">
+          <div className="bg-white rounded-lg shadow-lg p-8">
+            <div className="text-center mb-8">
+              <div className="text-6xl mb-4">📅</div>
+              <h2 className="text-3xl font-bold text-gray-900 mb-2">
+                Your Speaking Test Appointment
+              </h2>
+            </div>
+
+            {bookedSlot && (
+              <div className="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Date</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {new Date(bookedSlot.slotDate).toLocaleDateString()}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600 mb-1">Time</p>
+                    <p className="text-lg font-semibold text-gray-900">{bookedSlot.slotTime}</p>
+                  </div>
+                  {bookedSlot.teacher && (
+                    <div className="md:col-span-2">
+                      <p className="text-sm text-gray-600 mb-1">Teacher</p>
+                      <p className="text-lg font-semibold text-gray-900">
+                        {bookedSlot.teacher.firstName} {bookedSlot.teacher.lastName}
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+            <div className="text-center space-y-4">
+              <a
+                href="/student/speaking-appointment"
+                className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition"
+              >
+                Reschedule or Cancel
+              </a>
+              <p className="text-sm text-gray-600">
+                Please attend your speaking test on the scheduled date and time to receive your final assessment.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // STATE 5: Tests complete but no enrollment - Show level and waiting
+  if (hasCurrentLevel && !hasCurrentTermEnrollment) {
     return (
       <div className="min-h-screen bg-gray-50">
         {/* Header */}
@@ -260,7 +476,7 @@ export default function StudentDashboard() {
     );
   }
 
-  // STATE 3: Has enrollment - Show normal dashboard
+  // STATE 4: Has current term enrollment - Show normal dashboard
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -293,11 +509,53 @@ export default function StudentDashboard() {
           </div>
         </div>
 
+        {/* Announcements Section */}
+        {announcements.length > 0 && (
+          <div className="bg-white rounded-lg shadow p-6 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">📢 Announcements</h2>
+            <div className="space-y-4">
+              {announcements.map((announcement) => (
+                <div 
+                  key={announcement.id} 
+                  className={`border-l-4 rounded-r-lg p-4 ${
+                    announcement.priority === 'HIGH' ? 'border-red-500 bg-red-50' :
+                    announcement.priority === 'MEDIUM' ? 'border-yellow-500 bg-yellow-50' :
+                    'border-blue-500 bg-blue-50'
+                  }`}
+                >
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <h3 className="font-bold text-gray-900">{announcement.title}</h3>
+                      <p className="text-gray-700 mt-1">{announcement.content}</p>
+                      <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                        <span>📅 {new Date(announcement.createdAt).toLocaleDateString()}</span>
+                        {announcement.teacher && (
+                          <span>👤 {announcement.teacher.firstName} {announcement.teacher.lastName}</span>
+                        )}
+                        {announcement.group && (
+                          <span className="bg-white px-2 py-0.5 rounded border border-gray-200">
+                            {announcement.group.groupCode}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                    {announcement.priority === 'HIGH' && (
+                      <span className="px-2 py-1 bg-red-100 text-red-800 text-xs font-bold rounded">
+                        URGENT
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Active Enrollments */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">My Classes</h2>
           <div className="space-y-4">
-            {student?.enrollments.filter(e => e.status === 'ACTIVE').map((enrollment) => (
+            {student?.enrollments.filter(e => e.status === 'ACTIVE' && e.group?.term?.isCurrent).map((enrollment) => (
               <div key={enrollment.id} className="border border-gray-200 rounded-lg p-4">
                 <div className="flex items-center justify-between">
                   <div>
@@ -314,7 +572,7 @@ export default function StudentDashboard() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <button
             onClick={() => router.push('/student/schedule')}
             className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition text-center"
@@ -340,6 +598,15 @@ export default function StudentDashboard() {
             <div className="text-4xl mb-3">📚</div>
             <h3 className="font-semibold text-gray-900">Materials</h3>
             <p className="text-sm text-gray-600 mt-1">Access learning materials</p>
+          </button>
+
+          <button
+            onClick={() => router.push('/student/payments')}
+            className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition text-center"
+          >
+            <div className="text-4xl mb-3">💳</div>
+            <h3 className="font-semibold text-gray-900">Payments</h3>
+            <p className="text-sm text-gray-600 mt-1">Pay installments online</p>
           </button>
         </div>
       </div>

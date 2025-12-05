@@ -9,9 +9,10 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticate);
 
-// Admin only for create/update
+// Admin only for create/update/delete
 router.post('/', requireAdmin, termController.createTerm);
 router.put('/:id', requireAdmin, termController.updateTerm);
+router.delete('/:id', requireAdmin, termController.deleteTerm);
 
 // Anyone can view
 router.get('/', termController.getAllTerms);

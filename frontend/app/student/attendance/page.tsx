@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { getToken } from "@/lib/auth";
+import { getToken, getStudentId } from "@/lib/auth";
+import { attendanceAPI } from '@/lib/api';
 
 interface AttendanceRecord {
   id: string;
@@ -42,70 +43,29 @@ export default function StudentAttendancePage() {
   useEffect(() => {
     const fetchAttendance = async () => {
       try {
-        const userStr = localStorage.getItem("user");
-        if (!userStr) {
+        const studentId = getStudentId();
+
+        if (!studentId) {
           router.push("/login");
           return;
         }
 
-        const user = JSON.parse(userStr);
-        const studentId = user.studentId;
-
-        if (!studentId) {
-          throw new Error("Student ID not found");
-        }
-        console.log("Token:", localStorage.getItem("authToken"));
-        console.log("getToken() returns:", getToken());
-
-        // Or if import doesn't work, test directly:
-        console.log("Direct localStorage:", localStorage.getItem("authToken"));
-        // Check if studentId exists
-        console.log("StudentId:", localStorage.getItem("studentId"));
-        const res = await fetch(
-          `http://localhost:3001/api/attendance/student/${studentId}`,
-          {
-            headers: {
-              Authorization: `Bearer ${getToken()}`,
-            },
-          }
-        );
-
-        if (!res.ok) throw new Error("Failed to fetch attendance");
-        let data = await res.json();
-        data = data.data;
-
-        setRecords(data);
+        const data = await attendanceAPI.getByStudent(studentId);
+        const records = data.data || [];
+        setRecords(records);
 
         // Calculate stats
-        const totalSessions = data.length;
-        const present = data.filter(
-          (r: AttendanceRecord) => r.status === "PRESENT"
-        ).length;
-        const absent = data.filter(
-          (r: AttendanceRecord) => r.status === "ABSENT"
-        ).length;
-        const late = data.filter(
-          (r: AttendanceRecord) => r.status === "LATE"
-        ).length;
-        const excused = data.filter(
-          (r: AttendanceRecord) => r.status === "EXCUSED"
-        ).length;
-        const percentage =
-          totalSessions > 0 ? Math.round((present / totalSessions) * 100) : 0;
+        const totalSessions = records.length;
+        const present = records.filter((r: AttendanceRecord) => r.status === "PRESENT").length;
+        const absent = records.filter((r: AttendanceRecord) => r.status === "ABSENT").length;
+        const late = records.filter((r: AttendanceRecord) => r.status === "LATE").length;
+        const excused = records.filter((r: AttendanceRecord) => r.status === "EXCUSED").length;
+        const percentage = totalSessions > 0 ? Math.round((present / totalSessions) * 100) : 0;
 
-        setStats({
-          totalSessions,
-          present,
-          absent,
-          late,
-          excused,
-          percentage,
-        });
+        setStats({ totalSessions, present, absent, late, excused, percentage });
       } catch (err) {
         console.error("Error fetching attendance:", err);
-        setError(
-          err instanceof Error ? err.message : "Failed to load attendance"
-        );
+        setError(err instanceof Error ? err.message : "Failed to load attendance");
       } finally {
         setLoading(false);
       }

@@ -11,7 +11,7 @@ interface CreateMaterialInput {
   materialType: MaterialType;
   fileUrl?: string;
   fileSizeKb?: number;
-  uploadedBy: string; // Teacher ID
+  uploadedBy?: string; // Made optional for admins
 }
 
 interface UpdateMaterialInput {
@@ -38,13 +38,15 @@ export class MaterialService {
       throw new Error('Cannot add materials to inactive group');
     }
 
-    // Verify teacher exists
-    const teacher = await prisma.teacher.findUnique({
-      where: { id: data.uploadedBy }
-    });
+    // Verify teacher exists only if uploadedBy is provided
+    if (data.uploadedBy) {
+      const teacher = await prisma.teacher.findUnique({
+        where: { id: data.uploadedBy }
+      });
 
-    if (!teacher) {
-      throw new Error('Teacher not found');
+      if (!teacher) {
+        throw new Error('Teacher not found');
+      }
     }
 
     // Create material

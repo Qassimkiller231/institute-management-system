@@ -318,6 +318,62 @@ export const getLevelDescription = (level: string): string => {
 // GROUP REPORTS (Teacher Portal)
 // ============================================
 
+export const getAttendanceReportData = async (groupId: string) => {
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    include: {
+      level: true,
+      teacher: { select: { firstName: true, lastName: true } },
+      term: { include: { program: true } },
+      enrollments: {
+        where: { status: 'ACTIVE' },
+        include: {
+          student: true,
+          attendance: { orderBy: { markedAt: 'asc' } }
+        }
+      }
+    }
+  });
+
+  if (!group) throw new Error('Group not found');
+
+  const students = group.enrollments.map((enrollment) => {
+    const student = enrollment.student;
+    const attendances = enrollment.attendance;
+    const totalSessions = attendances.length;
+    const presentCount = attendances.filter((a: any) => a.status === 'PRESENT').length;
+    const lateCount = attendances.filter((a: any) => a.status === 'LATE').length;
+    const absentCount = attendances.filter((a: any) => a.status === 'ABSENT').length;
+    const attended = presentCount + lateCount;
+    const percentage = totalSessions > 0 ? Number(((attended / totalSessions) * 100).toFixed(1)) : 0;
+
+    return {
+      name: `${student.firstName} ${student.secondName || ''} ${student.thirdName || ''}`.trim(),
+      present: presentCount,
+      late: lateCount,
+      absent: absentCount,
+      percentage
+    };
+  });
+
+  const totalSessions = group.enrollments[0]?.attendance.length || 0;
+  const averageAttendance = students.length > 0
+    ? Number((students.reduce((acc, s) => acc + s.percentage, 0) / students.length).toFixed(1))
+    : 0;
+
+  return {
+    groupCode: group.groupCode,
+    groupName: group.name || '',
+    level: group.level.name,
+    teacher: group.teacher ? `${group.teacher.firstName} ${group.teacher.lastName}` : 'N/A',
+    program: group.term.program.name,
+    totalSessions,
+    averageAttendance,
+    totalStudents: students.length,
+    students
+  };
+};
+
 export const generateAttendanceReportPDF = async (groupId: string): Promise<Buffer> => {
   const group = await prisma.group.findUnique({
     where: { id: groupId },
@@ -372,6 +428,64 @@ export const generateAttendanceReportPDF = async (groupId: string): Promise<Buff
 
     doc.end();
   });
+};
+
+export const getProgressReportData = async (groupId: string) => {
+  const group = await prisma.group.findUnique({
+    where: { id: groupId },
+    include: {
+      level: true,
+      teacher: { select: { firstName: true, lastName: true } },
+      term: { include: { program: true } },
+      enrollments: {
+        where: { status: 'ACTIVE' },
+        include: {
+          student: true,
+          progressCompletions: {
+            include: { criteria: true }
+          }
+        }
+      }
+    }
+  });
+
+  if (!group) throw new Error('Group not found');
+
+  const allCriteria = await prisma.progressCriteria.findMany({
+    where: { levelId: group.levelId }
+  });
+
+  const criteriaProgress = allCriteria.map(criterion => {
+    const completedCount = group.enrollments.filter(enrollment =>
+      enrollment.progressCompletions.some(
+        (pc: any) => pc.criteriaId === criterion.id && pc.completed === true
+      )
+    ).length;
+
+    return {
+      name: criterion.name,
+      completed: completedCount,
+      total: group.enrollments.length,
+      percentage: group.enrollments.length > 0
+        ? Number(((completedCount / group.enrollments.length) * 100).toFixed(1))
+        : 0
+    };
+  });
+
+  const overallProgress = criteriaProgress.length > 0
+    ? Number((criteriaProgress.reduce((acc, c) => acc + c.percentage, 0) / criteriaProgress.length).toFixed(1))
+    : 0;
+
+  return {
+    groupCode: group.groupCode,
+    groupName: group.name || '',
+    level: group.level.name,
+    teacher: group.teacher ? `${group.teacher.firstName} ${group.teacher.lastName}` : 'N/A',
+    program: group.term.program.name,
+    totalStudents: group.enrollments.length,
+    overallProgress,
+    criteria: criteriaProgress
+  };
 };
 
 export const generateProgressReportPDF = async (groupId: string): Promise<Buffer> => {

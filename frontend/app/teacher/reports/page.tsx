@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken, getTeacherId } from '@/lib/auth';
+import { groupsAPI } from '@/lib/api';
 
 interface Group {
   id: string;
@@ -23,14 +24,10 @@ export default function TeacherReportsPage() {
 
   const fetchGroups = async () => {
     try {
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) return;
 
-      const response = await fetch(`http://localhost:3001/api/groups?teacherId=${teacherId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const data = await response.json();
+      const data = await groupsAPI.getAll({ teacherId });
       setGroups(data.data || []);
     } catch (err) {
       console.error('Error fetching groups:', err);

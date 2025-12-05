@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken, getTeacherId } from '@/lib/auth';
+import { getTeacherId } from '@/lib/auth';
+import { groupsAPI, sessionsAPI, enrollmentsAPI, attendanceAPI } from '@/lib/api';
+
 interface Group {
   id: string;
   groupCode: string;
@@ -66,42 +68,31 @@ export default function RecordAttendance() {
 
   const fetchExistingAttendance = async () => {
     try {
-      const token = getToken();
-      const response = await fetch(
-        `http://localhost:3001/api/attendance/session/${selectedSession}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const data = await attendanceAPI.getBySession(selectedSession);
+      const existingRecords = data.data || [];
+      
+      // Pre-populate attendance state with existing data
+      const attendanceMap: Record<string, AttendanceRecord> = {};
+      existingRecords.forEach((record: any) => {
+        attendanceMap[record.studentId] = {
+          studentId: record.studentId,
+          status: record.status,
+          notes: record.notes || ''
+        };
+      });
 
-      if (response.ok) {
-        const data = await response.json();
-        const existingRecords = data.data || [];
-        
-        // Pre-populate attendance state with existing data
-        const attendanceMap: Record<string, AttendanceRecord> = {};
-        existingRecords.forEach((record: any) => {
-          attendanceMap[record.studentId] = {
-            studentId: record.studentId,
-            status: record.status,
-            notes: record.notes || ''
+      // Add default entries for students without attendance
+      students.forEach(student => {
+        if (!attendanceMap[student.id]) {
+          attendanceMap[student.id] = {
+            studentId: student.id,
+            status: 'PRESENT',
+            notes: ''
           };
-        });
+        }
+      });
 
-        // Add default entries for students without attendance
-        students.forEach(student => {
-          if (!attendanceMap[student.id]) {
-            attendanceMap[student.id] = {
-              studentId: student.id,
-              status: 'PRESENT',
-              notes: ''
-            };
-          }
-        });
-
-        setAttendance(attendanceMap);
-      } else {
-        // If no attendance exists (404), initialize defaults
-        initializeDefaultAttendance();
-      }
+      setAttendance(attendanceMap);
     } catch (err) {
       console.error('Error fetching existing attendance:', err);
       // Initialize default attendance if fetch fails
@@ -123,14 +114,10 @@ export default function RecordAttendance() {
 
   const fetchGroups = async () => {
     try {
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) return;
       
-      const response = await fetch(`http://localhost:3001/api/groups?teacherId=${teacherId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const data = await response.json();
+      const data = await groupsAPI.getAll({ teacherId });
       setGroups(data.data || []);
     } catch (err) {
       console.error('Error fetching groups:', err);
@@ -139,13 +126,10 @@ export default function RecordAttendance() {
 
   const fetchSessions = async () => {
     try {
-      const token = getToken();
-      const response = await fetch(
-        `http://localhost:3001/api/sessions?groupId=${selectedGroup}&status=SCHEDULED`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const data = await response.json();
+      const data = await sessionsAPI.getAll({ 
+        groupId: selectedGroup, 
+        status: 'SCHEDULED' 
+      });
       setSessions(data.data || []);
     } catch (err) {
       console.error('Error fetching sessions:', err);
@@ -155,13 +139,10 @@ export default function RecordAttendance() {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const token = getToken();
-      const response = await fetch(
-        `http://localhost:3001/api/enrollments?groupId=${selectedGroup}&status=ACTIVE`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const data = await response.json();
+      const data = await enrollmentsAPI.getAll({ 
+        groupId: selectedGroup, 
+        status: 'ACTIVE' 
+      });
       const enrollments = data.data || [];
       
       setStudents(enrollments.map((e: any) => ({
@@ -208,8 +189,8 @@ export default function RecordAttendance() {
 
     try {
       setSaving(true);
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) return;
 
       const records = Object.values(attendance).map(record => ({
         studentId: record.studentId,
@@ -217,23 +198,11 @@ export default function RecordAttendance() {
         notes: record.notes || undefined
       }));
 
-      const response = await fetch('http://localhost:3001/api/attendance/bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          classSessionId: selectedSession,
-          records,
-          teacherId
-        })
+      await attendanceAPI.markBulk({
+        classSessionId: selectedSession,
+        records,
+        teacherId
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to save attendance');
-      }
 
       alert('Attendance saved successfully!');
       router.push('/teacher');

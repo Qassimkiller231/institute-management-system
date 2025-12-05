@@ -87,7 +87,10 @@ export const getTermDuesOverview = async (termId: string) => {
   for (const p of plans) {
     planned += Number(p.finalAmount);
     for (const inst of p.installments) {
-      paid += Number(inst.amount);
+      // Only count as paid if payment date exists
+      if (inst.paymentDate) {
+        paid += Number(inst.amount);
+      }
     }
   }
 

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken, getTeacherId } from '@/lib/auth';
+import { groupsAPI, enrollmentsAPI } from '@/lib/api';
 
 interface Group {
   id: string;
@@ -21,6 +22,7 @@ interface Student {
   thirdName?: string;
   enrollmentId: string;
   levelId?: string;
+  levelName?: string;
 }
 
 interface Criteria {
@@ -77,16 +79,12 @@ export default function UpdateProgress() {
 
   const fetchGroups = async () => {
     try {
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) return;
       
       console.log('📚 [DEBUG] Fetching groups for teacher:', teacherId);
       
-      const response = await fetch(`http://localhost:3001/api/groups?teacherId=${teacherId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const data = await response.json();
+      const data = await groupsAPI.getAll({ teacherId });
       console.log('📚 [DEBUG] Groups response:', data);
       console.log('📚 [DEBUG] Groups count:', data.data?.length || 0);
       
@@ -106,16 +104,13 @@ export default function UpdateProgress() {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const token = getToken();
       
       console.log('👥 [DEBUG] Fetching students for group:', selectedGroup);
       
-      const response = await fetch(
-        `http://localhost:3001/api/enrollments?groupId=${selectedGroup}&status=ACTIVE`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const data = await response.json();
+      const data = await enrollmentsAPI.getAll({ 
+        groupId: selectedGroup, 
+        status: 'ACTIVE' 
+      });
       console.log('👥 [DEBUG] Enrollments response:', data);
       
       const enrollments = data.data || [];
@@ -129,7 +124,8 @@ export default function UpdateProgress() {
       const studentsList = enrollments.map((e: any) => ({
         ...e.student,
         enrollmentId: e.id,
-        levelId: e.levelId // Add level ID from enrollment
+        levelId: e.levelId,
+        levelName: e.level?.name || 'Not Assigned'
       }));
       
       console.log('👥 [DEBUG] Mapped students:', studentsList);
@@ -408,7 +404,14 @@ export default function UpdateProgress() {
                     <h2 className="text-2xl font-bold text-gray-900">
                       {getStudentName()}
                     </h2>
-                    <p className="text-gray-600">Progress Overview</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <p className="text-gray-600">Progress Overview</p>
+                      {selectedStudentData.levelName && (
+                        <span className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs font-bold rounded border border-blue-200">
+                          {selectedStudentData.levelName}
+                        </span>
+                      )}
+                    </div>
                   </div>
                   <div className="text-right">
                     <div className="text-4xl font-bold text-blue-600">{completionPercentage}%</div>

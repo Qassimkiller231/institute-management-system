@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { getToken, getTeacherId } from "@/lib/auth";
+import { getTeacherId } from "@/lib/auth";
+import { speakingSlotAPI } from "@/lib/api";
 import {
   getMCQLevel,
   suggestFinalLevel,
@@ -75,32 +76,24 @@ export default function SubmitSpeakingResult() {
 
   const loadSlotData = async () => {
     try {
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) {
+        setError("Teacher ID not found");
+        setLoading(false);
+        return;
+      }
 
-      const response = await fetch(
-        `http://localhost:3001/api/speaking-slots/teacher/${teacherId}`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        if (result.success) {
-          const foundSlot = result.data.find((s: SlotData) => s.id === slotId);
-          if (foundSlot) {
-            setSlot(foundSlot);
-          } else {
-            setError("Slot not found");
-          }
+      const result = await speakingSlotAPI.getByTeacher(teacherId);
+      
+      if (result.success) {
+        const foundSlot = result.data.find((s: SlotData) => s.id === slotId);
+        if (foundSlot) {
+          setSlot(foundSlot);
         } else {
-          setError("Failed to load slots");
+          setError("Slot not found");
         }
       } else {
-        setError("Failed to fetch slots");
+        setError("Failed to load slots");
       }
     } catch (err) {
       console.error("Error loading slot:", err);
@@ -122,28 +115,14 @@ export default function SubmitSpeakingResult() {
     setError("");
 
     try {
-      const token = getToken();
-
-      const response = await fetch(
-        "http://localhost:3001/api/speaking-slots/submit-result",
-        {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            slotId: slotId,
-            sessionId: slot.testSessionId,
-            mcqLevel: mcqLevel,
-            speakingLevel: speakingLevel,
-            finalLevel: finalLevel,
-            feedback: feedback.trim() || undefined,
-          }),
-        }
-      );
-
-      const result = await response.json();
+      const result = await speakingSlotAPI.submitResult({
+        slotId: slotId,
+        sessionId: slot.testSessionId,
+        mcqLevel: mcqLevel,
+        speakingLevel: speakingLevel,
+        finalLevel: finalLevel,
+        feedback: feedback.trim() || undefined,
+      });
 
       if (result.success) {
         alert("Speaking test result submitted successfully!");

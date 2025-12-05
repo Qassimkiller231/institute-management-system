@@ -107,6 +107,25 @@ export default function TeacherManagement() {
   };
 
   const handleCreate = async () => {
+    // Validation
+    if (!formData.email || !formData.phone || !formData.firstName || !formData.lastName) {
+      alert('Please fill in all required fields (Email, Phone, First Name, Last Name)');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    // Phone validation
+    if (formData.phone.length < 8) {
+      alert('Please enter a valid phone number');
+      return;
+    }
+
     try {
       const token = getToken();
       const response = await fetch('http://localhost:3001/api/teachers', {
@@ -126,6 +145,7 @@ export default function TeacherManagement() {
       alert('Teacher created successfully!');
       setShowModal(false);
       resetForm();
+      resetFilters();
       fetchTeachers();
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -236,6 +256,13 @@ export default function TeacherManagement() {
     setSelectedTeacher(null);
   };
 
+  const resetFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('');
+    setLevelFilter('');
+    setVenueFilter('');
+  };
+
   const filteredTeachers = teachers.filter(t => {
     const matchesSearch = t.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -283,6 +310,15 @@ export default function TeacherManagement() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+            <button
+              onClick={resetFilters}
+              className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+            >
+              Reset Filters
+            </button>
+          </div>
           <div className="grid md:grid-cols-4 gap-4">
             <input
               type="text"
@@ -330,7 +366,7 @@ export default function TeacherManagement() {
             <p className="mt-4 text-gray-600">Loading teachers...</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white rounded-lg shadow overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>

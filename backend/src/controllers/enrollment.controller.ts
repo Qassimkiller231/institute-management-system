@@ -98,6 +98,28 @@ export const getEnrollmentById = async (req: AuthRequest, res: Response) => {
 };
 
 /**
+ * PUT /enrollments/:id - Update enrollment (group, status, etc.)
+ */
+export const updateEnrollment = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    const result = await enrollmentService.updateEnrollment(id, updateData);
+    
+    res.json({
+      success: true,
+      data: result
+    });
+  } catch (error: any) {
+    res.status(error.statusCode || 500).json({
+      success: false,
+      message: error.message || 'Failed to update enrollment'
+    });
+  }
+};
+
+/**
  * PUT /api/enrollments/:id/status
  * Update enrollment status
  */

@@ -9,6 +9,7 @@ export const createProgram = async (data: {
   name: string;
   code: string;
   description?: string;
+  duration?: number;
   minAge?: number;
   maxAge?: number;
 }) => {
@@ -26,6 +27,7 @@ export const createProgram = async (data: {
       name: data.name,
       code: data.code,
       description: data.description,
+      duration: data.duration,
       minAge: data.minAge,
       maxAge: data.maxAge,
       isActive: true
@@ -52,14 +54,17 @@ export const getAllPrograms = async (filters: {
       where,
       skip,
       take: limit,
-      include: {
-        terms: {
-          select: {
-            id: true,
-            name: true,
-            isCurrent: true
-          }
-        },
+      select: {
+        id: true,
+        name: true,
+        code: true,
+        description: true,
+        duration: true,
+        minAge: true,
+        maxAge: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
         _count: {
           select: {
             terms: true
@@ -109,6 +114,7 @@ export const getProgramById = async (id: string) => {
 export const updateProgram = async (id: string, updates: {
   name?: string;
   description?: string;
+  duration?: number;
   minAge?: number;
   maxAge?: number;
   isActive?: boolean;
@@ -121,6 +127,7 @@ export const updateProgram = async (id: string, updates: {
   const data: any = {};
   if (updates.name) data.name = updates.name;
   if (updates.description !== undefined) data.description = updates.description;
+  if (updates.duration !== undefined) data.duration = updates.duration;
   if (updates.minAge !== undefined) data.minAge = updates.minAge;
   if (updates.maxAge !== undefined) data.maxAge = updates.maxAge;
   if (updates.isActive !== undefined) data.isActive = updates.isActive;

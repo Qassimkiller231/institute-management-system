@@ -2,20 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken, getTeacherId } from '@/lib/auth';
-interface Material {
-  id: string;
-  title: string;
-  description?: string;
-  materialType: string;
-  fileUrl?: string;
-  fileSizeKb?: number;
-  uploadedAt: string;
-  group: {
-    groupCode: string;
-    name?: string;
-  };
-}
+import { getTeacherId } from '@/lib/auth';
+import { groupsAPI, materialsAPI } from '@/lib/api';
+import MaterialCard, { MaterialCardData } from '@/components/shared/MaterialCard';
 
 interface Group {
   id: string;
@@ -23,14 +12,16 @@ interface Group {
   name?: string;
 }
 
-export default function UploadMaterials() {
+export default function TeacherMaterialsPage() {
   const router = useRouter();
-  const [materials, setMaterials] = useState<Material[]>([]);
+  const [materials, setMaterials] = useState<MaterialCardData[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedGroup, setSelectedGroup] = useState('all');
+  const [searchTerm, setSearchTerm] = useState('');
   const [showModal, setShowModal] = useState(false);
+  const [editingMaterial, setEditingMaterial] = useState<MaterialCardData | null>(null);
   const [formData, setFormData] = useState({
     groupId: '',
     title: '',
@@ -52,14 +43,10 @@ export default function UploadMaterials() {
 
   const fetchGroups = async () => {
     try {
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) return;
       
-      const response = await fetch(`http://localhost:3001/api/groups?teacherId=${teacherId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const data = await response.json();
+      const data = await groupsAPI.getAll({ teacherId });
       setGroups(data.data || []);
     } catch (err) {
       console.error('Error fetching groups:', err);
@@ -69,36 +56,24 @@ export default function UploadMaterials() {
   const fetchMaterials = async () => {
     try {
       setLoading(true);
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) return;
 
       // Get all groups for this teacher
-      const groupsRes = await fetch(
-        `http://localhost:3001/api/groups?teacherId=${teacherId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const groupsData = await groupsRes.json();
+      const groupsData = await groupsAPI.getAll({ teacherId });
       const teacherGroups = groupsData.data || [];
 
-      let allMaterials: Material[] = [];
+      let allMaterials: MaterialCardData[] = [];
 
       if (selectedGroup === 'all') {
         // Fetch materials from all groups
         for (const group of teacherGroups) {
-          const materialsRes = await fetch(
-            `http://localhost:3001/api/materials?groupId=${group.id}`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          const materialsData = await materialsRes.json();
+          const materialsData = await materialsAPI.getAll({ groupId: group.id });
           allMaterials = [...allMaterials, ...(materialsData.data || [])];
         }
       } else {
         // Fetch materials from selected group only
-        const materialsRes = await fetch(
-          `http://localhost:3001/api/materials?groupId=${selectedGroup}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const materialsData = await materialsRes.json();
+        const materialsData = await materialsAPI.getAll({ groupId: selectedGroup });
         allMaterials = materialsData.data || [];
       }
 
@@ -123,24 +98,17 @@ export default function UploadMaterials() {
 
     try {
       setUploading(true);
-      const token = getToken();
 
-      const response = await fetch('http://localhost:3001/api/materials', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to upload material');
+      if (editingMaterial) {
+        await materialsAPI.update(editingMaterial.id, formData);
+        alert('Material updated successfully!');
+      } else {
+        await materialsAPI.create(formData);
+        alert('Material uploaded successfully!');
       }
 
-      alert('Material uploaded successfully!');
       setShowModal(false);
+      setEditingMaterial(null);
       resetForm();
       fetchMaterials();
     } catch (err: any) {
@@ -150,18 +118,23 @@ export default function UploadMaterials() {
     }
   };
 
+  const handleEdit = (material: MaterialCardData) => {
+    setEditingMaterial(material);
+    setFormData({
+      groupId: material.group.id || '',
+      title: material.title,
+      description: material.description || '',
+      materialType: material.materialType,
+      fileUrl: material.fileUrl || ''
+    });
+    setShowModal(true);
+  };
+
   const handleDelete = async (id: string, title: string) => {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
 
     try {
-      const token = getToken();
-      const response = await fetch(`http://localhost:3001/api/materials/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Failed to delete material');
-
+      await materialsAPI.delete(id);
       alert('Material deleted successfully!');
       fetchMaterials();
     } catch (err: any) {
@@ -177,22 +150,7 @@ export default function UploadMaterials() {
       materialType: 'PDF',
       fileUrl: ''
     });
-  };
-
-  const getMaterialIcon = (type: string) => {
-    switch (type) {
-      case 'PDF': return '📄';
-      case 'VIDEO': return '🎥';
-      case 'LINK': return '🔗';
-      case 'IMAGE': return '🖼️';
-      default: return '📎';
-    }
-  };
-
-  const formatFileSize = (sizeInKb?: number) => {
-    if (!sizeInKb) return 'N/A';
-    if (sizeInKb < 1024) return `${sizeInKb} KB`;
-    return `${(sizeInKb / 1024).toFixed(2)} MB`;
+    setEditingMaterial(null);
   };
 
   return (
@@ -221,23 +179,39 @@ export default function UploadMaterials() {
       </header>
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Filter */}
+        {/* Search and Filter */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
-            Filter by Group
-          </label>
-          <select
-            value={selectedGroup}
-            onChange={(e) => setSelectedGroup(e.target.value)}
-            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-          >
-            <option value="all">All Groups</option>
-            {groups.map(group => (
-              <option key={group.id} value={group.id}>
-                {group.groupCode} {group.name && `- ${group.name}`}
-              </option>
-            ))}
-          </select>
+          <div className="grid md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Filter by Group
+              </label>
+              <select
+                value={selectedGroup}
+                onChange={(e) => setSelectedGroup(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="all">All Groups</option>
+                {groups.map(group => (
+                  <option key={group.id} value={group.id}>
+                    {group.groupCode} {group.name && `- ${group.name}`}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Search Materials
+              </label>
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by title or description..."
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Stats */}
@@ -266,7 +240,7 @@ export default function UploadMaterials() {
           </div>
         </div>
 
-        {/* Materials Grid */}
+        {/* Materials Grid - NOW USING SHARED COMPONENT */}
         {loading ? (
           <div className="text-center py-12">
             <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
@@ -274,46 +248,19 @@ export default function UploadMaterials() {
           </div>
         ) : materials.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {materials.map(material => (
-              <div key={material.id} className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-                <div className="flex items-start justify-between mb-4">
-                  <span className="text-4xl">{getMaterialIcon(material.materialType)}</span>
-                  <button
-                    onClick={() => handleDelete(material.id, material.title)}
-                    className="text-red-600 hover:text-red-800 text-sm"
-                  >
-                    Delete
-                  </button>
-                </div>
-
-                <h3 className="font-semibold text-gray-900 mb-2">{material.title}</h3>
-                
-                {material.description && (
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                    {material.description}
-                  </p>
-                )}
-
-                <div className="space-y-1 text-sm text-gray-500 mb-4">
-                  <div>Group: {material.group.groupCode}</div>
-                  <div>Type: {material.materialType}</div>
-                  <div>Size: {formatFileSize(material.fileSizeKb)}</div>
-                  <div>
-                    Uploaded: {new Date(material.uploadedAt).toLocaleDateString()}
-                  </div>
-                </div>
-
-                {material.fileUrl && (
-                  <a
-                    href={material.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block text-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-                  >
-                    View/Download
-                  </a>
-                )}
-              </div>
+            {materials.filter(m => 
+              m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              m.description?.toLowerCase().includes(searchTerm.toLowerCase())
+            ).map(material => (
+              <MaterialCard
+                key={material.id}
+                material={material}
+                canDelete={true}
+                canEdit={true}
+                showTeacher={false}
+                onDelete={handleDelete}
+                onEdit={handleEdit}
+              />
             ))}
           </div>
         ) : (
@@ -327,7 +274,9 @@ export default function UploadMaterials() {
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <h2 className="text-2xl font-bold mb-6">Upload New Material</h2>
+            <h2 className="text-2xl font-bold mb-6">
+              {editingMaterial ? 'Edit Material' : 'Upload New Material'}
+            </h2>
 
             <div className="space-y-4">
               <div>
@@ -337,7 +286,7 @@ export default function UploadMaterials() {
                 <select
                   value={formData.groupId}
                   onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
                   required
                 >
                   <option value="">Select Group</option>
@@ -357,7 +306,7 @@ export default function UploadMaterials() {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
                   placeholder="e.g., Unit 5 Vocabulary List"
                   required
                 />
@@ -370,7 +319,7 @@ export default function UploadMaterials() {
                 <textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
                   rows={3}
                   placeholder="Brief description of the material..."
                 />
@@ -383,7 +332,7 @@ export default function UploadMaterials() {
                 <select
                   value={formData.materialType}
                   onChange={(e) => setFormData({ ...formData, materialType: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
                 >
                   <option value="PDF">PDF Document</option>
                   <option value="VIDEO">Video</option>
@@ -401,7 +350,7 @@ export default function UploadMaterials() {
                   type="url"
                   value={formData.fileUrl}
                   onChange={(e) => setFormData({ ...formData, fileUrl: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
                   placeholder="https://..."
                   required
                 />
@@ -426,7 +375,7 @@ export default function UploadMaterials() {
                 disabled={uploading}
                 className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400"
               >
-                {uploading ? 'Uploading...' : 'Upload Material'}
+                {uploading ? 'Saving...' : editingMaterial ? 'Update Material' : 'Upload Material'}
               </button>
             </div>
           </div>

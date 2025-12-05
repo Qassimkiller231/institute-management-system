@@ -2,7 +2,11 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken } from '@/lib/auth';
+import { Elements } from '@stripe/react-stripe-js';
+import { stripePromise } from '@/lib/stripe/config';
+import { getToken, getStudentId } from '@/lib/auth';
+import { studentsAPI } from '@/lib/api';
+import StripePaymentForm from '@/components/payments/StripePaymentForm';
 
 interface Installment {
   id: string;
@@ -32,33 +36,22 @@ export default function StudentPaymentsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [canSeePayment, setCanSeePayment] = useState(true);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
+  const [selectedInstallment, setSelectedInstallment] = useState<Installment | null>(null);
 
   useEffect(() => {
     const fetchPayments = async () => {
       try {
-        const userStr = localStorage.getItem('user');
-        if (!userStr) {
+        const studentId = getStudentId();
+
+        if (!studentId) {
           router.push('/login');
           return;
         }
 
-        const user = JSON.parse(userStr);
-        const studentId = user.studentId;
-
-        if (!studentId) {
-          throw new Error('Student ID not found');
-        }
-
         // Get student to check canSeePayment
-        const studentRes = await fetch(`http://localhost:3001/api/students/${studentId}`, {
-          headers: {
-            'Authorization': `Bearer ${getToken()}`
-          }
-        });
-
-        if (!studentRes.ok) throw new Error('Failed to fetch student data');
-        const studentResponse = await studentRes.json();
-        const student = studentResponse.data || studentResponse;
+        const result = await studentsAPI.getById(studentId);
+        const student = result.data || result;
 
         // Check if student can see payments
         if (!student.canSeePayment) {
@@ -125,7 +118,8 @@ export default function StudentPaymentsPage() {
       'BENEFIT_PAY': 'BenefitPay',
       'BANK_TRANSFER': 'Bank Transfer',
       'CASH': 'Cash',
-      'CARD_MACHINE': 'Card Machine'
+      'CARD_MACHINE': 'Card Machine',
+      'ONLINE_PAYMENT': 'Online Payment'
     };
     return methods[method] || method;
   };
@@ -147,6 +141,18 @@ export default function StudentPaymentsPage() {
       return { label: 'Overdue', color: 'bg-red-100 text-red-800 border-red-200' };
     }
     return { label: 'Pending', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' };
+  };
+
+  const handlePayNow = (installment: Installment) => {
+    setSelectedInstallment(installment);
+    setShowPaymentModal(true);
+  };
+
+  const handlePaymentSuccess = () => {
+    setShowPaymentModal(false);
+    setSelectedInstallment(null);
+    alert('Payment successful! 🎉 Your payment has been recorded.');
+    window.location.reload(); // Refresh to show updated payment status
   };
 
   if (loading) {
@@ -341,6 +347,9 @@ export default function StudentPaymentsPage() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                     Receipt
                   </th>
+                  <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    Actions
+                  </th>
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
@@ -386,6 +395,19 @@ export default function StudentPaymentsPage() {
                             <span className="text-gray-400">-</span>
                           )}
                         </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-center">
+                          {!isPaid(installment) && (
+                            <button
+                              onClick={() => handlePayNow(installment)}
+                              className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 font-semibold"
+                            >
+                              💳 Pay Now
+                            </button>
+                          )}
+                          {isPaid(installment) && (
+                            <span className="text-green-600 text-sm font-semibold">✓ Paid</span>
+                          )}
+                        </td>
                       </tr>
                     );
                   })}
@@ -397,10 +419,38 @@ export default function StudentPaymentsPage() {
         {/* Info Box */}
         <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
           <p className="text-sm text-blue-800">
-            <strong>Note:</strong> For payment inquiries or to make a payment, please contact the administration office or your parent/guardian.
+            <strong>💳 Online Payments:</strong> You can pay your installments securely online using a credit/debit card. Click "Pay Now" on any pending installment to get started.
+          </p>
+          <p className="text-sm text-blue-800 mt-2">
+            <strong>Note:</strong> For other payment methods or inquiries, please contact the administration office.
           </p>
         </div>
       </div>
+
+      {/* Stripe Payment Modal */}
+      {showPaymentModal && selectedInstallment && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-8 max-w-md w-full">
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">
+              Pay Installment #{selectedInstallment.installmentNumber}
+            </h2>
+            <p className="text-gray-600 mb-6">
+              Make a secure payment using your credit or debit card
+            </p>
+            
+            <Elements stripe={stripePromise}>
+              <StripePaymentForm 
+                installment={{
+                  id: selectedInstallment.id,
+                  amount: selectedInstallment.amount
+                }}
+                onSuccess={handlePaymentSuccess}
+                onCancel={() => setShowPaymentModal(false)}
+              />
+            </Elements>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

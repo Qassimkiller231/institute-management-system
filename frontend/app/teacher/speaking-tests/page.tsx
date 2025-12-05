@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken, getTeacherId, logout } from '@/lib/auth';
+import { getTeacherId, logout } from '@/lib/auth';
+import { speakingSlotAPI } from '@/lib/api';
 
 interface SpeakingSlot {
   id: string;
@@ -41,7 +42,6 @@ export default function TeacherSpeakingTests() {
 
   const loadSpeakingSlots = async () => {
     try {
-      const token = getToken();
       const teacherId = getTeacherId();
 
       if (!teacherId) {
@@ -49,26 +49,13 @@ export default function TeacherSpeakingTests() {
         return;
       }
 
-      const response = await fetch(
-        `http://localhost:3001/api/speaking-slots/teacher/${teacherId}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        }
-      );
-
-      if (response.ok) {
-        const result = await response.json();
-        console.log('Speaking slots:', result);
-        
-        if (result.success) {
-          setSlots(result.data || []);
-        } else {
-          setError(result.message || 'Failed to load speaking slots');
-        }
+      const result = await speakingSlotAPI.getByTeacher(teacherId);
+      console.log('Speaking slots:', result);
+      
+      if (result.success) {
+        setSlots(result.data || []);
       } else {
-        setError('Failed to fetch speaking slots');
+        setError(result.message || 'Failed to load speaking slots');
       }
     } catch (err) {
       console.error('Error loading speaking slots:', err);

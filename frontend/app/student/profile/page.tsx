@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken, removeToken } from '@/lib/auth';
+import { getToken, removeToken, getStudentId } from '@/lib/auth';
+import { studentsAPI } from '@/lib/api';
 interface StudentProfile {
   id: string;
   firstName: string;
@@ -60,27 +61,15 @@ export default function StudentProfilePage() {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const userStr = localStorage.getItem('user');
-        if (!userStr) {
+        const studentId = getStudentId();
+
+        if (!studentId) {
           router.push('/login');
           return;
         }
 
-        const user = JSON.parse(userStr);
-        const studentId = user.studentId;
-
-        if (!studentId) {
-          throw new Error('Student ID not found');
-        }
-
-        const res = await fetch(`http://localhost:3001/api/students/${studentId}`, {
-          headers: {
-            'Authorization': `Bearer ${getToken()}`
-          }
-        });
-
-        if (!res.ok) throw new Error('Failed to fetch profile');
-        const data = await res.json();
+        const result = await studentsAPI.getById(studentId);
+        const data = result.data || result;
         setProfile(data);
         setEditData(data);
 

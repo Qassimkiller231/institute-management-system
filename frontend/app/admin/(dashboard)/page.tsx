@@ -2,13 +2,16 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken, logout } from '@/lib/auth';
-
+import { reportingAPI } from '@/lib/api';
 interface DashboardStats {
-  studentsCount: number;
-  teachersCount: number;
-  activeGroups: number;
-  totalRevenue: number;
+  overview: {
+    totalStudents: number;
+    totalTeachers: number;
+    activeGroups: number;
+    totalRevenue: number;
+    activeEnrollments: number;
+    pendingPayments: number;
+  };
   enrollmentStats: {
     pendingTests: number;
     testCompleted: number;
@@ -16,12 +19,22 @@ interface DashboardStats {
     enrolled: number;
     withdrew: number;
   };
-  averageAttendance: number;
+  attendanceOverview: {
+    averageAttendance: number;
+    atRiskStudents: number;
+    excellentAttendance: number;
+  };
+  financialSummary: {
+    collectedThisMonth: number;
+    expectedThisMonth: number;
+    collectionRate: number;
+    overdueAmount: number;
+  };
   recentActivity: Array<{
-    id: string;
-    type: string;
+    action: string;
     description: string;
     timestamp: string;
+    userId: string;
   }>;
 }
 
@@ -39,21 +52,19 @@ export default function AdminDashboard() {
   const fetchDashboard = async () => {
     try {
       setLoading(true);
-      const token = getToken();
-      const url = selectedTerm 
-        ? `http://localhost:3001/api/reports/dashboard/admin?termId=${selectedTerm}`
-        : 'http://localhost:3001/api/reports/dashboard/admin';
+      setError('');
+
+      const response = await reportingAPI.getDashboardAnalytics(selectedTerm);
+      console.log('Dashboard response:', response); // Debug log
       
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch dashboard');
-
-      const data = await response.json();
-      setStats(data.dashboard);
+      if (response.success && response.dashboard) {
+        setStats(response.dashboard);
+      } else {
+        setError('No dashboard data received');
+      }
     } catch (err: any) {
-      setError(err.message);
+      console.error('Dashboard error:', err);
+      setError(err.message || 'Failed to load dashboard');
     } finally {
       setLoading(false);
     }
@@ -90,68 +101,71 @@ export default function AdminDashboard() {
   if (!stats) return null;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
-          <div className="flex justify-between items-center">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
-              <p className="text-gray-600 mt-1">The Function Institute Management System</p>
-            </div>
-            <button
-              onClick={logout}
-              className="px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition"
-            >
-              Logout
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div>
+      {/* Stats Grid */}
+      <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           {/* Total Students */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-600 font-medium">Total Students</h3>
-              <span className="text-3xl">🎓</span>
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition border-l-4 border-blue-600">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Students</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.overview.totalStudents || 0}</p>
+              </div>
+              <div className="bg-blue-100 p-3 rounded-full">
+                <svg className="w-8 h-8 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
             </div>
-            <p className="text-4xl font-bold text-blue-600">{stats.studentsCount || 0}</p>
-            <p className="text-sm text-gray-500 mt-2">Registered students</p>
+            <p className="text-xs text-gray-500">Registered students</p>
           </div>
 
           {/* Total Teachers */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-600 font-medium">Total Teachers</h3>
-              <span className="text-3xl">👨‍🏫</span>
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition border-l-4 border-green-600">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Teachers</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.overview.totalTeachers || 0}</p>
+              </div>
+              <div className="bg-green-100 p-3 rounded-full">
+                <svg className="w-8 h-8 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
             </div>
-            <p className="text-4xl font-bold text-green-600">{stats.teachersCount || 0}</p>
-            <p className="text-sm text-gray-500 mt-2">Active teachers</p>
+            <p className="text-xs text-gray-500">Active teachers</p>
           </div>
 
           {/* Active Groups */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-600 font-medium">Active Groups</h3>
-              <span className="text-3xl">👥</span>
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition border-l-4 border-purple-600">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">Active Groups</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{stats.overview.activeGroups || 0}</p>
+              </div>
+              <div className="bg-purple-100 p-3 rounded-full">
+                <svg className="w-8 h-8 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
             </div>
-            <p className="text-4xl font-bold text-purple-600">{stats.activeGroups || 0}</p>
-            <p className="text-sm text-gray-500 mt-2">Running classes</p>
+            <p className="text-xs text-gray-500">Running classes</p>
           </div>
 
           {/* Total Revenue */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-600 font-medium">Total Revenue</h3>
-              <span className="text-3xl">💰</span>
+          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition border-l-4 border-emerald-600">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <p className="text-sm font-medium text-gray-600 uppercase tracking-wide">Total Revenue</p>
+                <p className="text-3xl font-bold text-gray-900 mt-1">{(stats.overview.totalRevenue || 0).toFixed(2)} <span className="text-xl text-gray-600">BD</span></p>
+              </div>
+              <div className="bg-emerald-100 p-3 rounded-full">
+                <svg className="w-8 h-8 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
             </div>
-            <p className="text-4xl font-bold text-emerald-600">
-              {(stats.totalRevenue || 0).toFixed(2)} BD
-            </p>
-            <p className="text-sm text-gray-500 mt-2">Total collected</p>
+            <p className="text-xs text-gray-500">Total collected</p>
           </div>
         </div>
 
@@ -189,12 +203,12 @@ export default function AdminDashboard() {
             <div className="flex-1 bg-gray-200 rounded-full h-8">
               <div
                 className="bg-blue-600 h-8 rounded-full flex items-center justify-center text-white font-semibold transition-all"
-                style={{ width: `${stats.averageAttendance || 0}%` }}
+                style={{ width: `${stats.attendanceOverview.averageAttendance || 0}%` }}
               >
-                {stats.averageAttendance || 0}%
+                {stats.attendanceOverview.averageAttendance || 0}%
               </div>
             </div>
-            <span className="text-2xl font-bold text-gray-900">{stats.averageAttendance || 0}%</span>
+            <span className="text-2xl font-bold text-gray-900">{stats.attendanceOverview.averageAttendance || 0}%</span>
           </div>
           <p className="text-sm text-gray-500 mt-2">Average attendance across all groups</p>
         </div>
@@ -205,42 +219,57 @@ export default function AdminDashboard() {
           <div className="grid md:grid-cols-4 gap-4">
             <button
               onClick={() => router.push('/admin/students')}
-              className="p-6 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition"
+              className="p-6 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition group"
             >
-              <div className="text-4xl mb-3">👨‍🎓</div>
+              <div className="mb-3">
+                <svg className="w-10 h-10 text-gray-400 group-hover:text-blue-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              </div>
               <div className="font-semibold text-gray-900">Manage Students</div>
               <div className="text-sm text-gray-500 mt-1">Add, edit, view students</div>
             </button>
 
             <button
               onClick={() => router.push('/admin/teachers')}
-              className="p-6 border-2 border-gray-300 rounded-lg hover:border-green-600 hover:bg-green-50 transition"
+              className="p-6 border-2 border-gray-300 rounded-lg hover:border-green-600 hover:bg-green-50 transition group"
             >
-              <div className="text-4xl mb-3">👩‍🏫</div>
+              <div className="mb-3">
+                <svg className="w-10 h-10 text-gray-400 group-hover:text-green-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
               <div className="font-semibold text-gray-900">Manage Teachers</div>
               <div className="text-sm text-gray-500 mt-1">Add, edit, view teachers</div>
             </button>
 
             <button
               onClick={() => router.push('/admin/groups')}
-              className="p-6 border-2 border-gray-300 rounded-lg hover:border-purple-600 hover:bg-purple-50 transition"
+              className="p-6 border-2 border-gray-300 rounded-lg hover:border-purple-600 hover:bg-purple-50 transition group"
             >
-              <div className="text-4xl mb-3">📚</div>
+              <div className="mb-3">
+                <svg className="w-10 h-10 text-gray-400 group-hover:text-purple-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
               <div className="font-semibold text-gray-900">Manage Groups</div>
               <div className="text-sm text-gray-500 mt-1">Create, edit groups</div>
             </button>
 
             <button
               onClick={() => router.push('/admin/enrollments')}
-              className="p-6 border-2 border-gray-300 rounded-lg hover:border-orange-600 hover:bg-orange-50 transition"
+              className="p-6 border-2 border-gray-300 rounded-lg hover:border-orange-600 hover:bg-orange-50 transition group"
             >
-              <div className="text-4xl mb-3">📝</div>
+              <div className="mb-3">
+                <svg className="w-10 h-10 text-gray-400 group-hover:text-orange-600 transition" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              </div>
               <div className="font-semibold text-gray-900">Enrollments</div>
               <div className="text-sm text-gray-500 mt-1">Manage enrollments</div>
             </button>
           </div>
         </div>
-      </main>
-    </div>
-  );
+      </div>
+    );
 }

@@ -414,7 +414,173 @@ async function main() {
   console.log('  ✅ Created 3 class sessions (2 for A1, 1 for A2)');
 
   // ============================================
-  // 9. SUMMARY
+  // 9. CREATE PAYMENT PLANS & INSTALLMENTS
+  // ============================================
+  console.log('💰 Creating payment plans and installments...');
+
+  // Payment plan for student 1 (Ali) - 3 installments, first paid
+  const paymentPlan1 = await prisma.studentPaymentPlan.create({
+    data: {
+      enrollmentId: enrollment1.id,
+      totalAmount: 500.00,
+      discountAmount: 0,
+      finalAmount: 500.00,
+      totalInstallments: 3,
+      status: 'ACTIVE'
+    }
+  });
+
+  await prisma.installment.create({
+    data: {
+      paymentPlanId: paymentPlan1.id,
+      installmentNumber: 1,
+      amount: 166.67,
+      dueDate: new Date('2025-01-15'),
+      paymentDate: new Date('2025-01-10'),
+      paymentMethod: 'BENEFIT_PAY',
+      benefitReferenceNumber: 'BEN-2025-001',
+      receiptNumber: 'REC-2025-001'
+    }
+  });
+
+  await prisma.installment.create({
+    data: {
+      paymentPlanId: paymentPlan1.id,
+      installmentNumber: 2,
+      amount: 166.67,
+      dueDate: new Date('2025-02-15'),
+      paymentMethod: 'BENEFIT_PAY'
+    }
+  });
+
+  await prisma.installment.create({
+    data: {
+      paymentPlanId: paymentPlan1.id,
+      installmentNumber: 3,
+      amount: 166.66,
+      dueDate: new Date('2025-03-15'),
+      paymentMethod: 'BENEFIT_PAY'
+    }
+  });
+
+  // Payment plan for student 2 (Sara) - 2 installments, none paid
+  const paymentPlan2 = await prisma.studentPaymentPlan.create({
+    data: {
+      enrollmentId: enrollment2.id,
+      totalAmount: 450.00,
+      discountAmount: 50.00,
+      discountReason: '10% early bird discount',
+      finalAmount: 400.00,
+      totalInstallments: 2,
+      status: 'ACTIVE'
+    }
+  });
+
+  await prisma.installment.create({
+    data: {
+      paymentPlanId: paymentPlan2.id,
+      installmentNumber: 1,
+      amount: 200.00,
+      dueDate: new Date('2025-01-20'),
+      paymentMethod: 'BENEFIT_PAY'
+    }
+  });
+
+  await prisma.installment.create({
+    data: {
+      paymentPlanId: paymentPlan2.id,
+      installmentNumber: 2,
+      amount: 200.00,
+      dueDate: new Date('2025-02-20'),
+      paymentMethod: 'BENEFIT_PAY'
+    }
+  });
+
+  // Payment plan for student 3 (Mohammed) - 4 installments, 2 paid
+  const paymentPlan3 = await prisma.studentPaymentPlan.create({
+    data: {
+      enrollmentId: enrollment3.id,
+      totalAmount: 600.00,
+      discountAmount: 0,
+      finalAmount: 600.00,
+      totalInstallments: 4,
+      status: 'ACTIVE'
+    }
+  });
+
+  await prisma.installment.create({
+    data: {
+      paymentPlanId: paymentPlan3.id,
+      installmentNumber: 1,
+      amount: 150.00,
+      dueDate: new Date('2025-01-05'),
+      paymentDate: new Date('2025-01-03'),
+      paymentMethod: 'CASH',
+      receiptNumber: 'REC-2025-002'
+    }
+  });
+
+  await prisma.installment.create({
+    data: {
+      paymentPlanId: paymentPlan3.id,
+      installmentNumber: 2,
+      amount: 150.00,
+      dueDate: new Date('2025-01-25'),
+      paymentDate: new Date('2025-01-25'),
+      paymentMethod: 'BANK_TRANSFER',
+      receiptNumber: 'REC-2025-003'
+    }
+  });
+
+  await prisma.installment.create({
+    data: {
+      paymentPlanId: paymentPlan3.id,
+      installmentNumber: 3,
+      amount: 150.00,
+      dueDate: new Date('2025-02-25'),
+      paymentMethod: 'BENEFIT_PAY'
+    }
+  });
+
+  await prisma.installment.create({
+    data: {
+      paymentPlanId: paymentPlan3.id,
+      installmentNumber: 4,
+      amount: 150.00,
+      dueDate: new Date('2025-03-25'),
+      paymentMethod: 'BENEFIT_PAY'
+    }
+  });
+
+  // Payment plan for student 4 (Layla) - 1 installment (full payment), paid
+  const paymentPlan4 = await prisma.studentPaymentPlan.create({
+    data: {
+      enrollmentId: enrollment4.id,
+      totalAmount: 550.00,
+      discountAmount: 100.00,
+      discountReason: 'Full payment discount',
+      finalAmount: 450.00,
+      totalInstallments: 1,
+      status: 'COMPLETED'
+    }
+  });
+
+  await prisma.installment.create({
+    data: {
+      paymentPlanId: paymentPlan4.id,
+      installmentNumber: 1,
+      amount: 450.00,
+      dueDate: new Date('2024-12-01'),
+      paymentDate: new Date('2024-12-01'),
+      paymentMethod: 'CARD_MACHINE',
+      receiptNumber: 'REC-2024-099'
+    }
+  });
+
+  console.log('  ✅ Created 4 payment plans with 10 installments total');
+
+  // ============================================
+  // 10. SUMMARY
   // ============================================
   console.log('\n✨ Database seeded successfully!\n');
   console.log('📊 Summary:');
@@ -427,6 +593,8 @@ async function main() {
   console.log('  - Levels: 2 (A1, A2)');
   console.log('  - Groups: 2 (A1-Group1: 3 students, A2-Group1: 1 student)');
   console.log('  - Sessions: 3 (2 today for A1, 1 today for A2)');
+  console.log('  - Payment Plans: 4 (varying installment schedules)');
+  console.log('  - Installments: 10 (mix of paid/pending/overdue)');
   console.log('\n🔐 Login Credentials:');
   console.log('  Teacher 1 (Ahmed): phone: 39001122');
   console.log('  Teacher 2 (Fatima): phone: 39003344');

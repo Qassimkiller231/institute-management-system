@@ -7,7 +7,9 @@ import {
   getPlacementTestReportData,
   emailPlacementTestReport,
   downloadGroupAttendanceReport,
+  getGroupAttendanceData,
   downloadGroupProgressReport,
+  getGroupProgressData,
   downloadGroupPerformanceReport
 } from '../controllers/report.controller';
 
@@ -49,10 +51,22 @@ router.post('/placement-test/:studentId/email', emailPlacementTestReport);
 router.get('/group/:groupId/attendance', requireTeacherOrAdmin, downloadGroupAttendanceReport);
 
 /**
+ * GET /api/reports/group/:groupId/attendance/preview
+ * Get group attendance data in JSON format
+ */
+router.get('/group/:groupId/attendance/preview', requireTeacherOrAdmin, getGroupAttendanceData);
+
+/**
  * GET /api/reports/group/:groupId/progress
  * Download group progress report as PDF
  */
 router.get('/group/:groupId/progress', requireTeacherOrAdmin, downloadGroupProgressReport);
+
+/**
+ * GET /api/reports/group/:groupId/progress/preview
+ * Get group progress data in JSON format
+ */
+router.get('/group/:groupId/progress/preview', requireTeacherOrAdmin, getGroupProgressData);
 
 /**
  * GET /api/reports/group/:groupId/performance

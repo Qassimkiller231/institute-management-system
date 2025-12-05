@@ -13,6 +13,7 @@ interface Student {
   dateOfBirth: string;
   gender: string;
   email?: string;
+  currentLevel?: string;
   isActive: boolean;
   user: {
     email: string;
@@ -65,7 +66,8 @@ export default function StudentManagement() {
     secondName: '',
     thirdName: '',
     dateOfBirth: '',
-    gender: 'MALE'
+    gender: 'MALE',
+    currentLevelId: ''
   });
 
   useEffect(() => {
@@ -129,15 +131,60 @@ export default function StudentManagement() {
   }, [levelFilter, venueFilter]);
 
   const handleCreate = async () => {
+    // Validation
+    if (!formData.email || !formData.phone || !formData.firstName || !formData.cpr || !formData.dateOfBirth) {
+      alert('Please fill in all required fields (Email, Phone, First Name, CPR, Date of Birth)');
+      return;
+    }
+
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(formData.email)) {
+      alert('Please enter a valid email address');
+      return;
+    }
+
+    // Phone validation (basic)
+    if (formData.phone.length < 8) {
+      alert('Please enter a valid phone number');
+      return;
+    }
+
+    // CPR validation (9 digits)
+    if (formData.cpr.length !== 9 || !/^\d+$/.test(formData.cpr)) {
+      alert('CPR must be exactly 9 digits');
+      return;
+    }
+
+    // Age validation (minimum 6 years old)
+    const birthDate = new Date(formData.dateOfBirth);
+    const today = new Date();
+    const age = today.getFullYear() - birthDate.getFullYear();
+    const monthDiff = today.getMonth() - birthDate.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birthDate.getDate())) {
+      // Subtract 1 from age if birthday hasn't occurred this year
+    }
+    if (age < 6) {
+      alert('Student must be at least 6 years old');
+      return;
+    }
+
     try {
       const token = getToken();
+      
+      // Find the selected level name from currentLevelId
+      const selectedLevel = levels.find(l => l.id === formData.currentLevelId);
+      
       const response = await fetch('http://localhost:3001/api/students', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify(formData)
+        body: JSON.stringify({
+          ...formData,
+          currentLevel: selectedLevel?.name || null
+        })
       });
 
       if (!response.ok) {
@@ -148,6 +195,7 @@ export default function StudentManagement() {
       alert('Student created successfully!');
       setShowModal(false);
       resetForm();
+      resetFilters();
       fetchStudents();
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -157,8 +205,18 @@ export default function StudentManagement() {
   const handleUpdate = async () => {
     if (!selectedStudent) return;
 
+    // Validation
+    if (!formData.email || !formData.phone || !formData.firstName || !formData.cpr || !formData.dateOfBirth) {
+      alert('Please fill in all required fields');
+      return;
+    }
+
     try {
       const token = getToken();
+      
+      // Find the selected level name
+      const selectedLevel = levels.find(l => l.id === formData.currentLevelId);
+      
       const response = await fetch(`http://localhost:3001/api/students/${selectedStudent.id}`, {
         method: 'PUT',
         headers: {
@@ -173,7 +231,8 @@ export default function StudentManagement() {
           gender: formData.gender,
           email: formData.email,
           phone: formData.phone,
-          cpr: formData.cpr
+          cpr: formData.cpr,
+          currentLevel: selectedLevel?.name || null
         })
       });
 
@@ -242,6 +301,10 @@ export default function StudentManagement() {
   const openEditModal = (student: Student) => {
     setModalMode('edit');
     setSelectedStudent(student);
+    
+    // Find the level ID from the student's currentLevel name
+    const currentLevel = levels.find(l => l.name === student.currentLevel);
+    
     setFormData({
       email: student.user.email,
       phone: student.user.phone || '',
@@ -250,7 +313,8 @@ export default function StudentManagement() {
       secondName: student.secondName || '',
       thirdName: student.thirdName || '',
       dateOfBirth: student.dateOfBirth.split('T')[0],
-      gender: student.gender
+      gender: student.gender,
+      currentLevelId: currentLevel?.id || ''
     });
     setShowModal(true);
   };
@@ -264,9 +328,18 @@ export default function StudentManagement() {
       secondName: '',
       thirdName: '',
       dateOfBirth: '',
-      gender: 'MALE'
+      gender: 'MALE',
+      currentLevelId: ''
     });
     setSelectedStudent(null);
+  };
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setGenderFilter('');
+    setStatusFilter('');
+    setLevelFilter('');
+    setVenueFilter('');
   };
 
   const filteredStudents = students.filter(s => {
@@ -309,6 +382,15 @@ export default function StudentManagement() {
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}
         <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+            <button
+              onClick={resetFilters}
+              className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+            >
+              Reset Filters
+            </button>
+          </div>
           <div className="grid md:grid-cols-5 gap-4">
             <input
               type="text"
@@ -365,7 +447,7 @@ export default function StudentManagement() {
             <p className="mt-4 text-gray-600">Loading students...</p>
           </div>
         ) : (
-          <div className="bg-white rounded-lg shadow overflow-hidden">
+          <div className="bg-white rounded-lg shadow overflow-x-auto">
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
@@ -374,7 +456,8 @@ export default function StudentManagement() {
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Phone</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Gender</th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Level</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Current Level</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Enrolled Level</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Venue</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
@@ -399,6 +482,15 @@ export default function StudentManagement() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {student.gender}
+                    </td>
+                    <td className="px-6 py-4 whitespace-nowrap text-sm">
+                      {student.currentLevel ? (
+                        <span className="px-2 py-1 bg-indigo-100 text-indigo-800 rounded-full text-xs font-semibold">
+                          {student.currentLevel}
+                        </span>
+                      ) : (
+                        <span className="text-gray-400">Not Set</span>
+                      )}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {student.enrollments?.[0]?.group?.level?.name || 'N/A'}
@@ -558,6 +650,21 @@ export default function StudentManagement() {
                   <option value="MALE">Male</option>
                   <option value="FEMALE">Female</option>
                 </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Current Level (Optional)</label>
+                <select
+                  value={formData.currentLevelId}
+                  onChange={(e) => setFormData({ ...formData, currentLevelId: e.target.value })}
+                  className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                >
+                  <option value="">Not Set</option>
+                  {levels.map(level => (
+                    <option key={level.id} value={level.id}>{level.name}</option>
+                  ))}
+                </select>
+                <p className="text-xs text-gray-600 mt-1">Set after placement test or manually assign</p>
               </div>
             </div>
 

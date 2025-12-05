@@ -259,7 +259,6 @@ export const cancelSpeakingSlot = async (
       studentId: null,
       testSessionId: null,
       status: 'AVAILABLE',
-      score: null,
       feedback: null
     }
   });

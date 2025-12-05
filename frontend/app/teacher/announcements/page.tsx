@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken, getTeacherId } from '@/lib/auth';
+import { getTeacherId } from '@/lib/auth';
+import { groupsAPI, announcementsAPI } from '@/lib/api';
 
 interface Announcement {
   id: string;
@@ -26,7 +27,7 @@ export default function Announcements() {
   const router = useRouter();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading,setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     groupId: '',
@@ -42,14 +43,10 @@ export default function Announcements() {
 
   const fetchGroups = async () => {
     try {
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) return;
       
-      const response = await fetch(`http://localhost:3001/api/groups?teacherId=${teacherId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const data = await response.json();
+      const data = await groupsAPI.getAll({ teacherId });
       setGroups(data.data || []);
     } catch (err) {
       console.error('Error fetching groups:', err);
@@ -59,14 +56,10 @@ export default function Announcements() {
   const fetchAnnouncements = async () => {
     try {
       setLoading(true);
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) return;
       
-      const response = await fetch(`http://localhost:3001/api/announcements?teacherId=${teacherId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const data = await response.json();
+      const data = await announcementsAPI.getAll({ teacherId });
       setAnnouncements(data.data || []);
     } catch (err) {
       console.error('Error fetching announcements:', err);
@@ -82,24 +75,10 @@ export default function Announcements() {
     }
 
     try {
-      const token = getToken();
-
-      const response = await fetch('http://localhost:3001/api/announcements', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          targetAudience: 'GROUP'
-        })
+      await announcementsAPI.create({
+        ...formData,
+        targetAudience: 'GROUP'
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create announcement');
-      }
 
       alert('Announcement created successfully!');
       setShowModal(false);
@@ -114,14 +93,7 @@ export default function Announcements() {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
 
     try {
-      const token = getToken();
-      const response = await fetch(`http://localhost:3001/api/announcements/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Failed to delete announcement');
-
+      await announcementsAPI.delete(id);
       alert('Announcement deleted successfully!');
       fetchAnnouncements();
     } catch (err: any) {
@@ -229,7 +201,7 @@ export default function Announcements() {
                     </div>
                     <p className="text-gray-700 mb-3 whitespace-pre-wrap">{announcement.content}</p>
                     <div className="flex items-center space-x-4 text-sm text-gray-900">
-                      <span>📚 {announcement.group.groupCode}</span>
+                      <span>📚 {announcement.group?.groupCode || 'No Group'}</span>
                       <span>📅 {new Date(announcement.createdAt).toLocaleDateString()}</span>
                     </div>
                   </div>
@@ -264,7 +236,7 @@ export default function Announcements() {
                 <select
                   value={formData.groupId}
                   onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
                   required
                 >
                   <option value="">Select Group</option>
@@ -284,7 +256,7 @@ export default function Announcements() {
                   type="text"
                   value={formData.title}
                   onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
                   placeholder="e.g., Important: Class Rescheduled"
                   required
                 />
@@ -297,7 +269,7 @@ export default function Announcements() {
                 <textarea
                   value={formData.content}
                   onChange={(e) => setFormData({ ...formData, content: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
                   rows={6}
                   placeholder="Write your announcement here..."
                   required
@@ -311,7 +283,7 @@ export default function Announcements() {
                 <select
                   value={formData.priority}
                   onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900"
                 >
                   <option value="LOW">🟢 Low - General Information</option>
                   <option value="MEDIUM">🟡 Medium - Important Notice</option>

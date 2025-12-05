@@ -29,41 +29,41 @@ export class MaterialController {
       }
 
       // Get teacher ID
-      let uploadedBy: string;
+    let uploadedBy: string | undefined;
+    
+    if (req.user!.role === 'TEACHER') {
+      const teacher = await prisma.teacher.findUnique({
+        where: { userId: req.user!.userId }
+      });
       
-      if (req.user!.role === 'TEACHER') {
-        const teacher = await prisma.teacher.findUnique({
-          where: { userId: req.user!.userId }
-        });
-        
-        if (!teacher) {
-          res.status(403).json({
-            success: false,
-            message: 'Teacher record not found'
-          });
-          return;
-        }
-        uploadedBy = teacher.id;
-      } else if (req.user!.role === 'ADMIN') {
-        // Admin must provide teacherId or we use a default
-        uploadedBy = req.body.teacherId || req.user!.userId;
-      } else {
+      if (!teacher) {
         res.status(403).json({
           success: false,
-          message: 'Only teachers and admins can upload materials'
+          message: 'Teacher record not found'
         });
         return;
       }
-
-      const material = await materialService.createMaterial({
-        groupId,
-        title,
-        description,
-        materialType,
-        fileUrl,
-        fileSizeKb,
-        uploadedBy
+      uploadedBy = teacher.id;
+    } else if (req.user!.role === 'ADMIN') {
+      // Admin can optionally provide teacherId, otherwise uploadedBy is undefined
+      uploadedBy = req.body.teacherId;
+    } else {
+      res.status(403).json({
+        success: false,
+        message: 'Only teachers and admins can upload materials'
       });
+      return;
+    }
+
+    const material = await materialService.createMaterial({
+      groupId,
+      title,
+      description,
+      materialType,
+      fileUrl,
+      fileSizeKb,
+      uploadedBy
+    });
 
       res.status(201).json({
         success: true,

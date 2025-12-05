@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { getToken, logout, getTeacherId } from "@/lib/auth";
+import { reportsAPI, speakingSlotAPI, type DashboardStats } from "@/lib/api";
 
 interface AssignedGroup {
   groupId: string;
@@ -27,14 +28,6 @@ interface PendingTasks {
   speakingTestsScheduled: number;
 }
 
-interface DashboardStats {
-  teacherId: string;
-  teacherName: string;
-  assignedGroups: AssignedGroup[];
-  todaySchedule: TodayClass[];
-  pendingTasks: PendingTasks;
-}
-
 export default function TeacherDashboard() {
   const router = useRouter();
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -42,24 +35,26 @@ export default function TeacherDashboard() {
   const [error, setError] = useState("");
   const [selectedTerm, setSelectedTerm] = useState<string>("");
   const [speakingTestsCount, setSpeakingTestsCount] = useState(0);
+  
   useEffect(() => {
     loadSpeakingTestsCount();
   }, []);
+  
   const loadSpeakingTestsCount = async () => {
     const teacherId = getTeacherId();
-    const response = await fetch(
-      `http://localhost:3001/api/speaking-slots/teacher/${teacherId}`,
-      { headers: { Authorization: `Bearer ${getToken()}` } }
-    );
-
-    if (response.ok) {
-      const result = await response.json();
+    if (!teacherId) return;
+    
+    try {
+      const result = await speakingSlotAPI.getByTeacher(teacherId);
       const booked = result.data.filter(
         (s: any) => s.status === "BOOKED"
       ).length;
       setSpeakingTestsCount(booked);
+    } catch (err) {
+      console.error('Error loading speaking tests:', err);
     }
   };
+  
   useEffect(() => {
     fetchDashboard();
   }, [selectedTerm]);
@@ -67,15 +62,7 @@ export default function TeacherDashboard() {
   const fetchDashboard = async () => {
     try {
       setLoading(true);
-      const token = getToken();
       const teacherId = getTeacherId();
-
-      // Check if token exists
-      if (!token) {
-        setError("Authentication token not found. Please log in again.");
-        router.push("/login");
-        return;
-      }
 
       // Check if teacherId exists
       if (!teacherId) {
@@ -84,27 +71,18 @@ export default function TeacherDashboard() {
         return;
       }
 
-      const url = selectedTerm
-        ? `http://localhost:3001/api/reports/dashboard/teacher?teacherId=${teacherId}&termId=${selectedTerm}`
-        : `http://localhost:3001/api/reports/dashboard/teacher?teacherId=${teacherId}`;
-
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-
-      if (!response.ok) {
-        if (response.status === 401) {
-          setError("Session expired. Please log in again.");
-          router.push("/login");
-          return;
-        }
-        throw new Error("Failed to fetch dashboard");
+      const params: { teacherId: string; termId?: string } = { teacherId };
+      if (selectedTerm) {
+        params.termId = selectedTerm;
       }
 
-      const data = await response.json();
+      const data = await reportsAPI.getTeacherDashboard(params);
       setStats(data.dashboard);
     } catch (err: any) {
       setError(err.message);
+      if (err.message.includes('Session expired')) {
+        router.push("/login");
+      }
     } finally {
       setLoading(false);
     }

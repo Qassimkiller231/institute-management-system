@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken, getTeacherId } from '@/lib/auth';
+import { getTeacherId } from '@/lib/auth';
+import { groupsAPI } from '@/lib/api';
 import GroupCard, { GroupCardData } from '@/components/shared/GroupCard';
 
 export default function TeacherGroupsPage() {
@@ -18,16 +19,13 @@ export default function TeacherGroupsPage() {
   const fetchGroups = async () => {
     try {
       setLoading(true);
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) {
+        setError('Teacher ID not found');
+        return;
+      }
 
-      const response = await fetch(`http://localhost:3001/api/groups?teacherId=${teacherId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch groups');
-
-      const data = await response.json();
+      const data = await groupsAPI.getAll({ teacherId });
       setGroups(data.data || []);
     } catch (err: any) {
       setError(err.message);

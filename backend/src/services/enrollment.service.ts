@@ -167,6 +167,12 @@ export const getAllEnrollments = async (filters: {
                 name: true,
                 startDate: true,
                 endDate: true,
+                program: {
+                  select: {
+                    id: true,
+                    name: true
+                  }
+                }
               },
             },
             venue: {
@@ -288,6 +294,49 @@ export const getEnrollmentById = async (id: string) => {
   if (!enrollment) {
     throw new Error("Enrollment not found");
   }
+
+  return enrollment;
+};
+
+/**
+ * Update enrollment (group, status, etc.)
+ */
+export const updateEnrollment = async (id: string, data: { groupId?: string; status?: string }) => {
+  const existing = await prisma.enrollment.findUnique({ where: { id } });
+
+  if (!existing) {
+    throw new Error("Enrollment not found");
+  }
+
+  // Validate status if provided
+  if (data.status) {
+    const validStatuses = ["ACTIVE", "COMPLETED", "WITHDRAWN"];
+    if (!validStatuses.includes(data.status)) {
+      throw new Error("Invalid status. Must be ACTIVE, COMPLETED, or WITHDRAWN");
+    }
+  }
+
+  const enrollment = await prisma.enrollment.update({
+    where: { id },
+    data,
+    include: {
+      student: {
+        select: {
+          id: true,
+          firstName: true,
+          secondName: true,
+          thirdName: true,
+        },
+      },
+      group: {
+        select: {
+          id: true,
+          groupCode: true,
+          name: true,
+        },
+      },
+    },
+  });
 
   return enrollment;
 };

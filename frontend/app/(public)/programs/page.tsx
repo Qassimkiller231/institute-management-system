@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { programAPI } from '@/lib/api';
+import { programsAPI } from '@/lib/api';
 
 interface Program {
   id: string;
@@ -26,7 +26,7 @@ export default function BrowseProgramsPage() {
 
   const loadPrograms = async () => {
     try {
-      const result = await programAPI.getAll();
+      const result = await programsAPI.getAll();
       console.log('Programs API response:', result); // Debug log
       
       if (result.success) {

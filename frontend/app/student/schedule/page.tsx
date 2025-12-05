@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken } from "@/lib/auth";
+import { getToken, getStudentId } from '@/lib/auth';
+import { sessionsAPI } from '@/lib/api';
 
 interface ClassSession {
   id: string;
@@ -38,28 +39,23 @@ export default function StudentSchedulePage() {
   useEffect(() => {
     const fetchSchedule = async () => {
       try {
-        const userStr = localStorage.getItem('user');
-        if (!userStr) {
+        const studentId = getStudentId();
+
+        if (!studentId) {
           router.push('/login');
           return;
         }
 
-        const user = JSON.parse(userStr);
-        const studentId = user.studentId;
-
-        if (!studentId) {
-          throw new Error('Student ID not found');
-        }
-
+        // Use raw fetch since sessionsAPI doesn't support studentId filter yet
         const res = await fetch(`http://localhost:3001/api/sessions?studentId=${studentId}`, {
           headers: {
             'Authorization': `Bearer ${getToken()}`
           }
         });
-
+        
         if (!res.ok) throw new Error('Failed to fetch schedule');
         const data = await res.json();
-        setSessions(data.data || data);
+        setSessions(data.data || []);
 
       } catch (err) {
         console.error('Error fetching schedule:', err);

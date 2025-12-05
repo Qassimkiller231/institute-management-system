@@ -424,9 +424,14 @@ export const confirmStripePayment = async (req: AuthRequest, res: Response) => {
 
     const result = await stripeService.confirmPayment(paymentIntentId);
 
+    // Extract receipt URL from Stripe (if available)
+    const paymentIntent = result.paymentIntent as any;
+    const receiptUrl = paymentIntent.latest_charge?.receipt_url || null;
+
     await paymentService.recordPayment(installmentId, {
-      paymentMethod: 'CARD_MACHINE',
+      paymentMethod: 'ONLINE_PAYMENT',
       receiptNumber: `STRIPE-${paymentIntentId}`,
+      receiptUrl: receiptUrl,
       notes: `Stripe Payment Intent: ${paymentIntentId}`,
       receiptMakerId: req.user!.userId,
     });

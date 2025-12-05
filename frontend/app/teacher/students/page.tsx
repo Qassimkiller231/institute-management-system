@@ -2,7 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken, getTeacherId } from '@/lib/auth';
+import { getTeacherId } from '@/lib/auth';
+import { groupsAPI, enrollmentsAPI } from '@/lib/api';
+
 interface Student {
   id: string;
   firstName: string;
@@ -57,14 +59,9 @@ export default function ViewStudents() {
 
   const fetchGroups = async () => {
     try {
-      const token = getToken();
       const teacherId = getTeacherId();
-      
-      const response = await fetch(`http://localhost:3001/api/groups?teacherId=${teacherId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const data = await response.json();
+      if (!teacherId) return;
+      const data = await groupsAPI.getAll({ teacherId });
       setGroups(data.data || []);
     } catch (err) {
       console.error('Error fetching groups:', err);
@@ -74,15 +71,11 @@ export default function ViewStudents() {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) return;
       
       // Get all groups for this teacher
-      const groupsRes = await fetch(
-        `http://localhost:3001/api/groups?teacherId=${teacherId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      const groupsData = await groupsRes.json();
+      const groupsData = await groupsAPI.getAll({ teacherId });
       const teacherGroups = groupsData.data || [];
 
       // Get enrollments for all groups (or selected group)
@@ -91,11 +84,10 @@ export default function ViewStudents() {
       if (selectedGroup === 'all') {
         // Fetch students from all groups
         for (const group of teacherGroups) {
-          const enrollRes = await fetch(
-            `http://localhost:3001/api/enrollments?groupId=${group.id}&status=ACTIVE`,
-            { headers: { Authorization: `Bearer ${token}` } }
-          );
-          const enrollData = await enrollRes.json();
+          const enrollData = await enrollmentsAPI.getAll({ 
+            groupId: group.id, 
+            status: 'ACTIVE' 
+          });
           const enrollments = enrollData.data || [];
           
           enrollments.forEach((enrollment: any) => {
@@ -116,11 +108,10 @@ export default function ViewStudents() {
         }
       } else {
         // Fetch students from selected group only
-        const enrollRes = await fetch(
-          `http://localhost:3001/api/enrollments?groupId=${selectedGroup}&status=ACTIVE`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        const enrollData = await enrollRes.json();
+        const enrollData = await enrollmentsAPI.getAll({ 
+          groupId: selectedGroup, 
+          status: 'ACTIVE' 
+        });
         const enrollments = enrollData.data || [];
         
         const group = teacherGroups.find((g: any) => g.id === selectedGroup);

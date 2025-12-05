@@ -11,6 +11,7 @@ router.use(authenticate);
 
 // Admin only for create/update/withdraw
 router.post('/', requireAdmin, enrollmentController.createEnrollment);
+router.put('/:id', requireAdmin, enrollmentController.updateEnrollment);
 router.put('/:id/status', requireAdmin, enrollmentController.updateEnrollmentStatus);
 router.put('/:id/withdraw', requireAdmin, enrollmentController.withdrawEnrollment);
 

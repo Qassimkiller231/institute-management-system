@@ -39,6 +39,11 @@ interface Group {
   id: string;
   groupCode: string;
   name?: string;
+  term: {
+    program: {
+      id: string;
+    };
+  };
 }
 
 interface Program {
@@ -66,6 +71,8 @@ export default function EnrollmentManagement() {
     status: 'ACTIVE',
     enrollmentDate: new Date().toISOString().split('T')[0]
   });
+  const [selectedProgramId, setSelectedProgramId] = useState('');
+  const [enrolledStudentIds, setEnrolledStudentIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     fetchEnrollments();
@@ -73,6 +80,16 @@ export default function EnrollmentManagement() {
     fetchGroups();
     fetchPrograms();
   }, []);
+
+  // Track enrolled student IDs
+  useEffect(() => {
+    const enrolled = new Set(
+      enrollments
+        .filter(e => e.status === 'ACTIVE')
+        .map(e => e.student.id)
+    );
+    setEnrolledStudentIds(enrolled);
+  }, [enrollments]);
 
   const fetchEnrollments = async () => {
     try {
@@ -110,10 +127,12 @@ export default function EnrollmentManagement() {
   const fetchGroups = async () => {
     try {
       const token = getToken();
-      const response = await fetch('http://localhost:3001/api/groups', {
+      const response = await fetch('http://localhost:3001/api/groups?isActive=true', {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
+      console.log('Groups API response:', data);
+      console.log('First group structure:', data.data?.[0]);
       setGroups(data.data || []);
     } catch (err) {
       console.error('Error:', err);
@@ -127,9 +146,16 @@ export default function EnrollmentManagement() {
         headers: { Authorization: `Bearer ${token}` }
       });
       const data = await response.json();
-      setPrograms(data.data || []);
+      console.log('Programs API response:', data);
+      console.log('data.data:', data.data);
+      console.log('data.data.data:', data.data?.data);
+      
+      // Try different structures
+      const programsList = data.data?.data || data.data || data || [];
+      console.log('Extracted programs list:', programsList);
+      setPrograms(programsList);
     } catch (err) {
-      console.error('Error:', err);
+      console.error('Error fetching programs:', err);
     }
   };
 
@@ -155,6 +181,7 @@ export default function EnrollmentManagement() {
       alert('Enrollment created successfully!');
       setShowModal(false);
       resetForm();
+      resetFilters();
       fetchEnrollments();
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -211,6 +238,14 @@ export default function EnrollmentManagement() {
   const openEditModal = (enrollment: Enrollment) => {
     setModalMode('edit');
     setSelectedEnrollment(enrollment);
+    
+    // Set the program ID based on the group's term program
+    const programId = enrollment.group.term.program?.id || '';
+    console.log('Setting program ID for edit:', programId);
+    console.log('Enrollment group term program:', enrollment.group.term.program);
+    console.log('Available programs:', programs);
+    setSelectedProgramId(programId);
+    
     setFormData({
       studentId: enrollment.student.id,
       groupId: enrollment.group.id,
@@ -221,6 +256,7 @@ export default function EnrollmentManagement() {
   };
 
   const resetForm = () => {
+    setSelectedProgramId('');
     setFormData({
       studentId: '',
       groupId: '',
@@ -228,6 +264,13 @@ export default function EnrollmentManagement() {
       enrollmentDate: new Date().toISOString().split('T')[0]
     });
     setSelectedEnrollment(null);
+  };
+
+  const resetFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('');
+    setGroupFilter('');
+    setProgramFilter('');
   };
 
   const getStatusColor = (status: string) => {
@@ -274,7 +317,17 @@ export default function EnrollmentManagement() {
 
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Filters */}
-        <div className="grid md:grid-cols-4 gap-4 mb-6">
+        <div className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-900">Filters</h2>
+            <button
+              onClick={resetFilters}
+              className="px-4 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
+            >
+              Reset Filters
+            </button>
+          </div>
+          <div className="grid md:grid-cols-4 gap-4">
           <input
             type="text"
             placeholder="Search by student name or group code..."
@@ -317,6 +370,7 @@ export default function EnrollmentManagement() {
               </option>
             ))}
           </select>
+          </div>
         </div>
 
         {/* Stats */}
@@ -430,9 +484,31 @@ export default function EnrollmentManagement() {
                   required
                 >
                   <option value="">Select Student</option>
-                  {students.map(student => (
+                  {students
+                   .filter(s => modalMode === 'edit' ? s.id === formData.studentId : !enrolledStudentIds.has(s.id))
+                    .map(student => (
                     <option key={student.id} value={student.id}>
                       {student.firstName} {student.secondName} {student.thirdName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Program *</label>
+                <select
+                  value={selectedProgramId}
+                  onChange={(e) => {
+                    setSelectedProgramId(e.target.value);
+                    setFormData({ ...formData, groupId: '' }); // Reset group when program changes
+                  }}
+                  className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  required
+                >
+                  <option value="">Select Program</option>
+                  {programs.map(program => (
+                    <option key={program.id} value={program.id}>
+                      {program.name}
                     </option>
                   ))}
                 </select>
@@ -445,9 +521,12 @@ export default function EnrollmentManagement() {
                   onChange={(e) => setFormData({ ...formData, groupId: e.target.value })}
                   className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                   required
+                  disabled={!selectedProgramId}
                 >
                   <option value="">Select Group</option>
-                  {groups.map(group => (
+                  {groups
+                    .filter(group => !selectedProgramId || group.term.program.id === selectedProgramId)
+                    .map(group => (
                     <option key={group.id} value={group.id}>
                       {group.groupCode} {group.name && `- ${group.name}`}
                     </option>

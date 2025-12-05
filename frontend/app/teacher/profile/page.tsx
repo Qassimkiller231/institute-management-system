@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken, getTeacherId, logout } from '@/lib/auth';
+import { getTeacherId, logout } from '@/lib/auth';
+import { teachersAPI } from '@/lib/api';
 
 interface TeacherProfile {
   id: string;
@@ -40,16 +41,10 @@ export default function TeacherProfile() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) return;
 
-      const response = await fetch(`http://localhost:3001/api/teachers/${teacherId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Failed to fetch profile');
-
-      const data = await response.json();
+      const data = await teachersAPI.getById(teacherId);
       setProfile(data.data);
       setFormData({
         firstName: data.data.firstName,
@@ -66,23 +61,10 @@ export default function TeacherProfile() {
   const handleSave = async () => {
     try {
       setSaving(true);
-      const token = getToken();
       const teacherId = getTeacherId();
+      if (!teacherId) return;
 
-      const response = await fetch(`http://localhost:3001/api/teachers/${teacherId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update profile');
-      }
-
+      await teachersAPI.update(teacherId, formData);
       alert('Profile updated successfully!');
       setEditing(false);
       fetchProfile();

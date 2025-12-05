@@ -37,6 +37,7 @@ export default function StudentMaterialsPage() {
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState('');
 
   useEffect(() => {
     if (!isAuthenticated() || getUserRole() !== 'STUDENT') {
@@ -121,9 +122,12 @@ export default function StudentMaterialsPage() {
     }
   };
 
-  const filteredMaterials = materials.filter(m => 
-    activeFilter === 'ALL' || m.materialType === activeFilter
-  );
+  const filteredMaterials = materials.filter(m => {
+    const matchesFilter = activeFilter === 'ALL' || m.materialType === activeFilter;
+    const matchesSearch = m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         m.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesFilter && matchesSearch;
+  });
 
   const counts = {
     total: materials.length,
@@ -189,6 +193,22 @@ export default function StudentMaterialsPage() {
               {filter === 'ALL' ? '📚 All' : `${getMaterialIcon(filter)} ${filter}s`}
             </button>
           ))}
+        </div>
+
+        {/* Search Bar */}
+        <div className="bg-white rounded-lg shadow mb-6 p-4">
+          <div className="relative">
+            <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+              🔍
+            </span>
+            <input
+              type="text"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search materials by title..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            />
+          </div>
         </div>
 
         {/* Materials List */}

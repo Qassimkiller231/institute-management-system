@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken } from '@/lib/auth';
+import { getToken, getStudentId } from '@/lib/auth';
+import { studentsAPI } from '@/lib/api';
 
 interface Criterion {
   criteriaId: string;
@@ -33,29 +34,16 @@ export default function StudentProgressPage() {
   useEffect(() => {
     const fetchProgress = async () => {
       try {
-        const userStr = localStorage.getItem('user');
-        if (!userStr) {
+        const studentId = getStudentId();
+
+        if (!studentId) {
           router.push('/login');
           return;
         }
 
-        const user = JSON.parse(userStr);
-        const studentId = user.studentId;
-
-        if (!studentId) {
-          throw new Error('Student ID not found');
-        }
-
         // Fetch student with enrollments
-        const studentRes = await fetch(`http://localhost:3001/api/students/${studentId}`, {
-          headers: {
-            'Authorization': `Bearer ${getToken()}`
-          }
-        });
-
-        if (!studentRes.ok) throw new Error('Failed to fetch student data');
-        const studentResponse = await studentRes.json();
-        const student = studentResponse.data || studentResponse;
+        const result = await studentsAPI.getById(studentId);
+        const student = result.data || result;
 
         // Get active enrollment
         const activeEnrollment = student.enrollments?.find((e: any) => e.status === 'ACTIVE');

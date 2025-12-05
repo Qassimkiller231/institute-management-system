@@ -15,6 +15,7 @@ export const createStudent = async (data: {
   thirdName?: string;
   dateOfBirth: string;
   gender: string;
+  currentLevel?: string;
   schoolType?: string;
   schoolYear?: string;
   preferredTiming?: string;
@@ -38,14 +39,14 @@ export const createStudent = async (data: {
     throw new Error('Student with this CPR already exists');
   }
 
-  // Check if email is already used by non-PARENT/STUDENT
+  // Check if email is already used
   if (data.email) {
     const existingEmail = await prisma.user.findUnique({
       where: { email: data.email }
     });
 
-    if (existingEmail && existingEmail.role !== 'PARENT' && existingEmail.role !== 'STUDENT') {
-      throw new Error('Email already in use by another user');
+    if (existingEmail) {
+      throw new Error('Email already in use');
     }
   }
 
@@ -71,6 +72,7 @@ export const createStudent = async (data: {
         thirdName: data.thirdName,
         dateOfBirth: new Date(data.dateOfBirth),
         gender: data.gender,
+        currentLevel: data.currentLevel,
         email: data.email,
         schoolType: data.schoolType,
         schoolYear: data.schoolYear,
@@ -237,6 +239,7 @@ export const getStudentById = async (studentId: string) => {
               term: {
                 select: {
                   name: true,
+                  isCurrent: true,
                   startDate: true,
                   endDate: true
                 }
@@ -290,6 +293,7 @@ export const updateStudent = async (id: string, updates: {
   cpr?: string;
   dateOfBirth?: string;
   gender?: string;
+  currentLevel?: string;
   schoolType?: string;
   schoolYear?: string;
   preferredTiming?: string;
@@ -374,6 +378,7 @@ export const updateStudent = async (id: string, updates: {
     if (updates.cpr !== undefined) data.cpr = updates.cpr;
     if (updates.dateOfBirth !== undefined) data.dateOfBirth = new Date(updates.dateOfBirth);
     if (updates.gender !== undefined) data.gender = updates.gender;
+    if (updates.currentLevel !== undefined) data.currentLevel = updates.currentLevel;
     if (updates.schoolType !== undefined) data.schoolType = updates.schoolType;
     if (updates.schoolYear !== undefined) data.schoolYear = updates.schoolYear;
     if (updates.preferredTiming !== undefined) data.preferredTiming = updates.preferredTiming;
@@ -479,6 +484,21 @@ export const linkParent = async (studentId: string, data: {
             select: {
               email: true,
               phone: true
+            }
+          }
+        }
+      },
+      student: { // Added student include to access enrollments
+        include: {
+          enrollments: {
+            include: {
+              group: {
+                include: {
+                  level: true,
+                  teacher: true,
+                  term: true
+                }
+              }
             }
           }
         }

@@ -48,3 +48,14 @@ export const updateTerm = async (req: AuthRequest, res: Response) => {
     res.status(status).json({ success: false, message: error.message });
   }
 };
+
+export const deleteTerm = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await termService.deleteTerm(id);
+    res.status(200).json({ success: true, data: result });
+  } catch (error: any) {
+    const status = error.message === 'Term not found' ? 404 : 500;
+    res.status(status).json({ success: false, message: error.message });
+  }
+};
