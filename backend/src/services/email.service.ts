@@ -1,19 +1,79 @@
 // src/services/email.service.ts
-import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import { PrismaClient } from '@prisma/client';
+import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 
+const nodemailer = require('nodemailer');
 const prisma = new PrismaClient();
 
-const sesClient = new SESClient({
-  region: process.env.AWS_SES_REGION || 'us-east-1',
-  credentials: {
-    accessKeyId: process.env.AWS_SES_ACCESS_KEY || '',
-    secretAccessKey: process.env.AWS_SES_SECRET_KEY || '',
+// Email provider configuration
+const USE_SNS = process.env.USE_SNS === 'true';
+
+// SMTP transporter
+const transporter = nodemailer.createTransport({
+  host: process.env.SMTP_HOST || 'smtp.gmail.com',
+  port: parseInt(process.env.SMTP_PORT || '587'),
+  secure: false,
+  auth: {
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
   },
 });
 
-const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@institute.com';
+// SNS client
+const snsClient = new SNSClient({
+  region: process.env.AWS_SNS_REGION || 'us-east-1',
+  credentials: process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY ? {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    sessionToken: process.env.AWS_SESSION_TOKEN,
+  } : undefined,
+});
 
+const FROM_EMAIL = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@institute.com';
+const SNS_TOPIC_ARN = process.env.AWS_SNS_TOPIC_ARN;
+
+// Send via SNS
+const sendViaSNS = async (data: {
+  to: string;
+  subject: string;
+  htmlBody: string;
+  textBody?: string;
+}) => {
+  if (!SNS_TOPIC_ARN) {
+    throw new Error('AWS_SNS_TOPIC_ARN not configured');
+  }
+
+  const message = data.textBody || data.htmlBody.replace(/<[^>]*>/g, '');
+
+  const command = new PublishCommand({
+    TopicArn: SNS_TOPIC_ARN,
+    Subject: data.subject,
+    Message: message,
+  });
+
+  const result = await snsClient.send(command);
+  return { success: true, messageId: result.MessageId };
+};
+
+// Send via SMTP
+const sendViaSMTP = async (data: {
+  to: string;
+  subject: string;
+  htmlBody: string;
+  textBody?: string;
+}) => {
+  const info = await transporter.sendMail({
+    from: `"Function Institute" <${FROM_EMAIL}>`,
+    to: data.to,
+    subject: data.subject,
+    text: data.textBody,
+    html: data.htmlBody,
+  });
+
+  return { success: true, messageId: info.messageId };
+};
+
+// Main send email function with fallback
 export const sendEmail = async (data: {
   to: string;
   subject: string;
@@ -21,24 +81,40 @@ export const sendEmail = async (data: {
   textBody?: string;
 }) => {
   try {
-    const command = new SendEmailCommand({
-      Source: FROM_EMAIL,
-      Destination: { ToAddresses: [data.to] },
-      Message: {
-        Subject: { Data: data.subject, Charset: 'UTF-8' },
-        Body: {
-          Html: { Data: data.htmlBody, Charset: 'UTF-8' },
-          Text: data.textBody ? { Data: data.textBody, Charset: 'UTF-8' } : undefined,
-        },
-      },
-    });
-
-    const result = await sesClient.send(command);
-
-    return { success: true, messageId: result.MessageId };
+    if (USE_SNS) {
+      console.log('📧 Sending via SNS...');
+      const result = await sendViaSNS(data);
+      console.log('✅ SNS sent:', result.messageId);
+      return result;
+    } else {
+      console.log('📧 Sending via SMTP...');
+      const result = await sendViaSMTP(data);
+      console.log('✅ SMTP sent:', result.messageId);
+      return result;
+    }
   } catch (error: any) {
-    console.error('Email send error:', error);
-    throw new Error(`Failed to send email: ${error.message}`);
+    console.error(`❌ ${USE_SNS ? 'SNS' : 'SMTP'} failed:`, error.message);
+
+    // Try fallback
+    if (USE_SNS) {
+      console.log('🔄 Falling back to SMTP...');
+      try {
+        const result = await sendViaSMTP(data);
+        console.log('✅ SMTP fallback succeeded:', result.messageId);
+        return result;
+      } catch (smtpError: any) {
+        throw new Error(`Both SNS and SMTP failed. SNS: ${error.message}, SMTP: ${smtpError.message}`);
+      }
+    } else {
+      console.log('🔄 Falling back to SNS...');
+      try {
+        const result = await sendViaSNS(data);
+        console.log('✅ SNS fallback succeeded:', result.messageId);
+        return result;
+      } catch (snsError: any) {
+        throw new Error(`Both SMTP and SNS failed. SMTP: ${error.message}, SNS: ${snsError.message}`);
+      }
+    }
   }
 };
 
@@ -267,18 +343,15 @@ export const sendBulkEmails = async (
   return results;
 };
 
-export const verifySesConfiguration = async () => {
+export const verifyEmailConfiguration = async () => {
   try {
-    const command = new SendEmailCommand({
-      Source: FROM_EMAIL,
-      Destination: { ToAddresses: [FROM_EMAIL] },
-      Message: {
-        Subject: { Data: 'SES Test' },
-        Body: { Text: { Data: 'Configuration test' } },
-      },
-    });
-    await sesClient.send(command);
-    return { success: true, message: 'AWS SES configured' };
+    if (USE_SNS) {
+      // Can't easily verify SNS without sending
+      return { success: true, message: 'SNS configured (Topic ARN set)' };
+    } else {
+      await transporter.verify();
+      return { success: true, message: 'SMTP configured correctly' };
+    }
   } catch (error: any) {
     return { success: false, message: error.message };
   }

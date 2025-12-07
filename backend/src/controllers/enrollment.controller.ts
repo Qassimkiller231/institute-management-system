@@ -278,3 +278,41 @@ export const getGroupEnrollmentStats = async (req: AuthRequest, res: Response) =
     });
   }
 };
+
+/**
+ * DELETE /api/enrollments/:id
+ * Delete enrollment
+ */
+export const deleteEnrollment = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    const result = await enrollmentService.deleteEnrollment(id);
+
+    res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } catch (error: any) {
+    console.error('Delete enrollment error:', error);
+    
+    if (error.message === 'Enrollment not found') {
+      return res.status(404).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    if (error.message.includes('Cannot delete enrollment')) {
+      return res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to delete enrollment'
+    });
+  }
+};

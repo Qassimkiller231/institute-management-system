@@ -56,7 +56,7 @@ export default function LoginPage() {
               <label className="flex items-center cursor-pointer">
                 <input
                   type="radio"
-                  value="EMAIL"
+                  value="email"
                   checked={method === 'email'}
                   onChange={(e) => setMethod(e.target.value as 'email')}
                   className="mr-2 w-4 h-4"
@@ -66,7 +66,7 @@ export default function LoginPage() {
               <label className="flex items-center cursor-pointer">
                 <input
                   type="radio"
-                  value="SMS"
+                  value="sms"
                   checked={method === 'sms'}
                   onChange={(e) => setMethod(e.target.value as 'sms')}
                   className="mr-2 w-4 h-4"

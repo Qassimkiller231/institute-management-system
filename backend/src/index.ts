@@ -94,7 +94,7 @@ app.use('/api/attendance-warnings', attendanceWarningRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/reports', reportRoutes);
 
-scheduler.startScheduler();
+// scheduler.startScheduler(); // Disabled for testing - uncomment to enable automated reminders
 
 
 

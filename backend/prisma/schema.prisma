@@ -46,13 +46,6 @@ model User {
   @@index([role])
 }
 
-model testssdsds {
-  id String @id @default(uuid())
-  studentId String
-  student Student 
-}
-
-
 model OtpCode {
   id        String   @id @default(uuid())
   userId    String

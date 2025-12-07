@@ -1,5 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
-
+// In claude.service.ts, at the top
+console.log('🔑 API Key on startup:', process.env.ANTHROPIC_API_KEY ? 'EXISTS' : 'MISSING');
+console.log('🔑 API Key starts with:', process.env.ANTHROPIC_API_KEY?.substring(0, 20));
 const client = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || 'sk-ant-placeholder',
 });
@@ -34,12 +36,12 @@ export const askClaude = async (
     throw new Error('Unexpected response format from Claude');
   } catch (error: any) {
     console.error('Claude API error:', error);
-    
+
     // If API key not configured, throw specific error
     if (error.status === 401) {
       throw new Error('CLAUDE_API_NOT_CONFIGURED');
     }
-    
+
     throw new Error(`Claude API error: ${error.message}`);
   }
 };
@@ -60,10 +62,10 @@ You help students, teachers, and parents with questions about:
 
 Keep responses concise, friendly, and professional. If you don't know something, suggest the user contact the admin.
 
-Current date: ${new Date().toLocaleDateString('en-US', { 
-  weekday: 'long', 
-  year: 'numeric', 
-  month: 'long', 
-  day: 'numeric' 
-})}`;
+Current date: ${new Date().toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  })}`;
 }

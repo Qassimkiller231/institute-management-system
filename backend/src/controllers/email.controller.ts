@@ -212,7 +212,7 @@ export const sendBulk = async (req: AuthRequest, res: Response) => {
 
 export const verifySes = async (req: AuthRequest, res: Response) => {
   try {
-    const result = await emailService.verifySesConfiguration();
+    const result = await emailService.verifyEmailConfiguration();
 
     res.status(result.success ? 200 : 500).json(result);
   } catch (error: any) {

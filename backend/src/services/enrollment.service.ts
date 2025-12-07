@@ -643,3 +643,41 @@ export const getGroupEnrollmentStats = async (groupId: string) => {
         : 0,
   };
 };
+
+/**
+ * Delete enrollment (hard delete)
+ */
+export const deleteEnrollment = async (id: string) => {
+  const existing = await prisma.enrollment.findUnique({ 
+    where: { id },
+    include: {
+      paymentPlan: true,
+      attendance: true
+    }
+  });
+
+  if (!existing) {
+    throw new Error("Enrollment not found");
+  }
+
+  // Check if there are any paid installments
+  if (existing.paymentPlan) {
+    const paidInstallments = await prisma.installment.findFirst({
+      where: {
+        paymentPlanId: existing.paymentPlan.id,
+        paymentDate: { not: null }
+      }
+    });
+
+    if (paidInstallments) {
+      throw new Error("Cannot delete enrollment with paid installments. Consider withdrawing instead.");
+    }
+  }
+
+  // Delete enrollment (cascade will handle related records)
+  await prisma.enrollment.delete({
+    where: { id }
+  });
+
+  return { message: "Enrollment deleted successfully" };
+};

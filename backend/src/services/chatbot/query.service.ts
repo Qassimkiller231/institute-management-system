@@ -23,9 +23,63 @@ export interface ChatResponse {
  */
 export const processQuery = async (query: ChatQuery): Promise<ChatResponse> => {
   try {
+    // For ADMIN users, use Claude AI directly with DATABASE CONTEXT
+    if (query.userRole === 'ADMIN') {
+      try {
+        console.log('🔵 ADMIN query detected, fetching database context...');
+
+        // Get real-time database statistics
+        const dbContext = await analyticsService.getDatabaseContext();
+        console.log('📊 Database context fetched');
+
+        // Build enhanced system prompt with DB context
+        const systemPrompt = `${getContextualSystemPrompt(query.userRole, query.userId)}
+
+${dbContext}
+
+IMPORTANT: You have access to the above REAL DATA from the institute's database. Use it to answer questions accurately. If asked about counts, statistics, or current status, refer to this data.`;
+
+        console.log('🤖 Sending query to Claude with database context...');
+
+        const aiResponse = await claudeService.askClaude(
+          query.message,
+          systemPrompt,
+          query.conversationHistory
+        );
+
+        console.log('✅ Claude AI response received');
+
+        return {
+          response: aiResponse,
+          queryType: detectQueryType(query.message),
+          usedAI: true
+        };
+      } catch (error: any) {
+        console.error('❌ Claude API error for ADMIN:', error);
+        console.error('Error message:', error.message);
+        console.error('Error status:', error.status);
+
+        if (error.message === 'CLAUDE_API_NOT_CONFIGURED') {
+          return {
+            response: "⚠️ Claude AI is not configured.\n\nTo fix:\n1. Add ANTHROPIC_API_KEY to .env\n2. Restart server\n3. Check API key is valid",
+            queryType: 'ERROR',
+            usedAI: false
+          };
+        }
+
+        // DON'T RE-THROW! Return helpful error instead
+        return {
+          response: `⚠️ Claude API Error: ${error.message}\n\nCheck:\n1. API key in .env is correct\n2. Server was restarted\n3. Check backend console for details`,
+          queryType: 'ERROR',
+          usedAI: false
+        };
+      }
+    }
+
+    // For non-admin users, try FAQ first then data queries
     // Detect query type/intent
     const queryType = detectQueryType(query.message);
-    
+
     // Try to get specific data if needed
     if (queryType === 'ATTENDANCE' || queryType === 'PAYMENT' || queryType === 'SCHEDULE') {
       const dataResponse = await analyticsService.getSpecificData(
@@ -34,7 +88,7 @@ export const processQuery = async (query: ChatQuery): Promise<ChatResponse> => {
         queryType,
         query.message
       );
-      
+
       if (dataResponse) {
         return {
           response: dataResponse,
@@ -43,8 +97,8 @@ export const processQuery = async (query: ChatQuery): Promise<ChatResponse> => {
         };
       }
     }
-    
-    // Try FAQ first (faster, free)
+
+    // Try FAQ for non-admin (faster, free)
     const faqResponse = faqService.getFAQResponse(query.message, query.userRole);
     if (faqResponse) {
       return {
@@ -53,7 +107,7 @@ export const processQuery = async (query: ChatQuery): Promise<ChatResponse> => {
         usedAI: false
       };
     }
-    
+
     // Fall back to Claude API if configured
     try {
       const aiResponse = await claudeService.askClaude(
@@ -61,7 +115,7 @@ export const processQuery = async (query: ChatQuery): Promise<ChatResponse> => {
         getContextualSystemPrompt(query.userRole, query.userId),
         query.conversationHistory
       );
-      
+
       return {
         response: aiResponse,
         queryType,
@@ -77,7 +131,7 @@ export const processQuery = async (query: ChatQuery): Promise<ChatResponse> => {
       }
       throw error;
     }
-    
+
   } catch (error: any) {
     console.error('Query processing error:', error);
     return {
@@ -93,7 +147,7 @@ export const processQuery = async (query: ChatQuery): Promise<ChatResponse> => {
  */
 function detectQueryType(message: string): string {
   const lowerMessage = message.toLowerCase();
-  
+
   if (lowerMessage.includes('attendance') || lowerMessage.includes('absent')) {
     return 'ATTENDANCE';
   }
@@ -112,7 +166,7 @@ function detectQueryType(message: string): string {
   if (lowerMessage.includes('program') || lowerMessage.includes('level')) {
     return 'PROGRAM';
   }
-  
+
   return 'GENERAL';
 }
 
@@ -121,7 +175,7 @@ function detectQueryType(message: string): string {
  */
 function getContextualSystemPrompt(userRole: string, userId: string): string {
   let roleContext = '';
-  
+
   switch (userRole) {
     case 'STUDENT':
       roleContext = 'You are speaking with a student. Focus on their attendance, grades, schedule, and payments.';
@@ -136,7 +190,7 @@ function getContextualSystemPrompt(userRole: string, userId: string): string {
       roleContext = "You are speaking with a parent. Help them track their child's attendance, progress, and payments.";
       break;
   }
-  
+
   return `You are a helpful assistant for The Function Institute.
 
 ${roleContext}

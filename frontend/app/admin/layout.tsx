@@ -3,13 +3,17 @@
 import { usePathname, useRouter } from 'next/navigation';
 import { logout } from '@/lib/auth';
 import { useState } from 'react';
+import ChatBot from '@/components/chatbot/ChatBot';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  const menuItems = [
+  const menuItems: Array<
+    | { divider: true; label: string }
+    | { icon: string; label: string; path: string; badge?: string }
+  > = [
     { icon: '📊', label: 'Dashboard', path: '/admin' },
     { 
       icon: '🎓', 
@@ -51,6 +55,11 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       return pathname === '/admin';
     }
     return pathname.startsWith(path);
+  };
+
+  const getCurrentPageTitle = () => {
+    const currentItem = menuItems.find(item => !('divider' in item) && isActive(item.path));
+    return currentItem && !('divider' in currentItem) ? currentItem.label : 'Admin Dashboard';
   };
 
   return (
@@ -137,7 +146,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           <div className="px-6 py-4 flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-gray-900">
-                {menuItems.find(item => 'path' in item && isActive(item.path))?.label || 'Admin Dashboard'}
+                {getCurrentPageTitle()}
               </h1>
             </div>
             <div className="flex items-center gap-4">
@@ -151,6 +160,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
           {children}
         </div>
       </main>
+
+      {/* AI Chatbot */}
+      <ChatBot />
     </div>
   );
 }
