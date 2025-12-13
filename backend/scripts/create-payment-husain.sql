@@ -1,97 +1,97 @@
--- SQL Script to Create Payment Plan for Husain (CPR: 767676767)
+-- -- SQL Script to Create Payment Plan for Husain (CPR: 767676767)
 
--- Step 1: Find Husain's student record
-SELECT 
-  s.id as student_id,
-  s."firstName",
-  s."secondName", 
-  s.cpr,
-  s."userId"
-FROM "Student" s
-WHERE s.cpr = '767676767';
+-- -- Step 1: Find Husain's student record
+-- SELECT 
+--   s.id as student_id,
+--   s."firstName",
+--   s."secondName", 
+--   s.cpr,
+--   s."userId"
+-- FROM "Student" s
+-- WHERE s.cpr = '767676767';
 
--- Step 2: Find Husain's active enrollment
-SELECT 
-  e.id as enrollment_id,
-  e."studentId",
-  e.status,
-  g.name as group_name,
-  l.name as level_name,
-  t.name as term_name
-FROM "Enrollment" e
-JOIN "Group" g ON e."groupId" = g.id
-JOIN "Level" l ON g."levelId" = l.id
-JOIN "Term" t ON g."termId" = t.id
-WHERE e."studentId" IN (
-  SELECT id FROM "Student" WHERE cpr = '767676767'
-)
-AND e.status = 'ACTIVE';
+-- -- Step 2: Find Husain's active enrollment
+-- SELECT 
+--   e.id as enrollment_id,
+--   e."studentId",
+--   e.status,
+--   g.name as group_name,
+--   l.name as level_name,
+--   t.name as term_name
+-- FROM "Enrollment" e
+-- JOIN "Group" g ON e."groupId" = g.id
+-- JOIN "Level" l ON g."levelId" = l.id
+-- JOIN "Term" t ON g."termId" = t.id
+-- WHERE e."studentId" IN (
+--   SELECT id FROM "Student" WHERE cpr = '767676767'
+-- )
+-- AND e.status = 'ACTIVE';
 
--- Step 3: Create Payment Plan (replace enrollment_id with actual value from Step 2)
--- Note: This is a template - you need to replace {{enrollment_id}} with the actual ID
+-- -- Step 3: Create Payment Plan (replace enrollment_id with actual value from Step 2)
+-- -- Note: This is a template - you need to replace {{enrollment_id}} with the actual ID
 
-INSERT INTO "StudentPaymentPlan" (
-  id,
-  "enrollmentId",
-  "totalAmount",
-  currency,
-  "totalInstallments",
-  "paidInstallments",
-  "createdAt",
-  "updatedAt"
-) VALUES (
-  gen_random_uuid(),  -- Auto-generate UUID
-  '{{enrollment_id}}',  -- REPLACE THIS
-  450.00,
-  'BHD',
-  1,
-  0,
-  NOW(),
-  NOW()
-);
+-- INSERT INTO "StudentPaymentPlan" (
+--   id,
+--   "enrollmentId",
+--   "totalAmount",
+--   currency,
+--   "totalInstallments",
+--   "paidInstallments",
+--   "createdAt",
+--   "updatedAt"
+-- ) VALUES (
+--   gen_random_uuid(),  -- Auto-generate UUID
+--   '{{enrollment_id}}',  -- REPLACE THIS
+--   450.00,
+--   'BHD',
+--   1,
+--   0,
+--   NOW(),
+--   NOW()
+-- );
 
--- Step 4: Get the payment plan ID that was just created
-SELECT id, "enrollmentId", "totalAmount" 
-FROM "StudentPaymentPlan" 
-WHERE "enrollmentId" = '{{enrollment_id}}'
-ORDER BY "createdAt" DESC 
-LIMIT 1;
+-- -- Step 4: Get the payment plan ID that was just created
+-- SELECT id, "enrollmentId", "totalAmount" 
+-- FROM "StudentPaymentPlan" 
+-- WHERE "enrollmentId" = '{{enrollment_id}}'
+-- ORDER BY "createdAt" DESC 
+-- LIMIT 1;
 
--- Step 5: Create Installment (replace payment_plan_id with actual value from Step 4)
-INSERT INTO "Installment" (
-  id,
-  "paymentPlanId",
-  "installmentNumber",
-  amount,
-  "dueDate",
-  "paymentStatus",
-  "createdAt",
-  "updatedAt"
-) VALUES (
-  gen_random_uuid(),
-  '{{payment_plan_id}}',  -- REPLACE THIS
-  1,
-  450.00,
-  '2025-01-15',
-  'UNPAID',
-  NOW(),
-  NOW()
-);
+-- -- Step 5: Create Installment (replace payment_plan_id with actual value from Step 4)
+-- INSERT INTO "Installment" (
+--   id,
+--   "paymentPlanId",
+--   "installmentNumber",
+--   amount,
+--   "dueDate",
+--   "paymentStatus",
+--   "createdAt",
+--   "updatedAt"
+-- ) VALUES (
+--   gen_random_uuid(),
+--   '{{payment_plan_id}}',  -- REPLACE THIS
+--   1,
+--   450.00,
+--   '2025-01-15',
+--   'UNPAID',
+--   NOW(),
+--   NOW()
+-- );
 
--- Step 6: Verify the payment plan and installments
-SELECT 
-  spp.id as plan_id,
-  spp."totalAmount",
-  spp.currency,
-  spp."totalInstallments",
-  i.id as installment_id,
-  i."installmentNumber",
-  i.amount,
-  i."dueDate",
-  i."paymentStatus"
-FROM "StudentPaymentPlan" spp
-LEFT JOIN "Installment" i ON spp.id = i."paymentPlanId"
-WHERE spp."enrollmentId" = '{{enrollment_id}}';
+-- -- Step 6: Verify the payment plan and installments
+-- SELECT 
+--   spp.id as plan_id,
+--   spp."totalAmount",
+--   spp.currency,
+--   spp."totalInstallments",
+--   i.id as installment_id,
+--   i."installmentNumber",
+--   i.amount,
+--   i."dueDate",
+--   i."paymentStatus"
+-- FROM "StudentPaymentPlan" spp
+-- LEFT JOIN "Installment" i ON spp.id = i."paymentPlanId"
+-- WHERE spp."enrollmentId" = '{{enrollment_id}}';
 
--- Alternative: Use this if you want to create via API
--- Copy the enrollment_id from Step 2 and use it in the HTTP request file
+-- -- Alternative: Use this if you want to create via API
+-- -- Copy the enrollment_id from Step 2 and use it in the HTTP request file
