@@ -440,8 +440,8 @@ export default function ChildDetailPage() {
                       {attendanceRecords.slice(0, 10).map((record) => (
                         <div key={record.id} className="border rounded-lg p-3 flex items-center justify-between">
                           <div className="flex-1">
-                            <p className="font-medium text-gray-900">{record.session.group.name}</p>
-                            <p className="text-sm text-gray-600">{record.session.classType} - {new Date(record.date).toLocaleDateString()}</p>
+                            <p className="font-medium text-gray-900">{record.session?.group?.name || 'N/A'}</p>
+                            <p className="text-sm text-gray-600">{record.session?.classType || 'Class'} - {new Date(record.date).toLocaleDateString()}</p>
                           </div>
                           <span className={`px-3 py-1 rounded-full text-xs font-medium ${getAttendanceStatusColor(record.status)}`}>
                             {record.status}

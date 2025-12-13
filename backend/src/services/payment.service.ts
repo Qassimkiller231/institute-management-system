@@ -179,10 +179,8 @@ export const recordPayment = async (
   }
 
   // ✅ CHECK: Prevent recording payment if already paid
-  if (
-    installment.paymentMethod &&
-    installment.paymentMethod !== 'PENDING'
-  ) {
+  // A payment is considered paid if it has a paymentDate (not null)
+  if (installment.paymentDate) {
     throw new Error(
       'Installment already paid. Use update endpoint to modify payment details.'
     );
@@ -211,8 +209,9 @@ export const recordPayment = async (
   });
 
   // Check if all installments paid → mark plan as COMPLETED
+  // An installment is paid if it has a paymentDate
   const allPaid = updated.paymentPlan.installments.every(
-    (i) => i.paymentMethod && i.paymentMethod !== 'PENDING'
+    (i) => i.paymentDate !== null
   );
 
   if (allPaid) {
@@ -247,7 +246,8 @@ export const updatePayment = async (
   }
 
   // ✅ CHECK: Must already be paid to update
-  if (!installment.paymentMethod || installment.paymentMethod === 'PENDING') {
+  // A payment is paid if it has a paymentDate
+  if (!installment.paymentDate) {
     throw new Error('Cannot update unpaid installment. Record payment first.');
   }
 
@@ -279,20 +279,20 @@ export const getBalance = async (enrollmentId: string) => {
   }
 
   const totalPaid = plan.installments
-    .filter((i) => i.paymentMethod && i.paymentMethod !== 'PENDING')
+    .filter((i) => i.paymentDate !== null)
     .reduce((sum, i) => sum + Number(i.amount), 0);
 
   const balance = Number(plan.finalAmount) - totalPaid;
 
   const paidInstallments = plan.installments.filter(
-    (i) => i.paymentMethod && i.paymentMethod !== 'PENDING'
+    (i) => i.paymentDate !== null
   ).length;
 
   const remainingInstallments = plan.totalInstallments - paidInstallments;
 
   // Find next unpaid installment
   const nextUnpaid = plan.installments
-    .filter((i) => !i.paymentMethod || i.paymentMethod === 'PENDING')
+    .filter((i) => i.paymentDate === null)
     .sort((a, b) => a.installmentNumber - b.installmentNumber)[0];
 
   return {

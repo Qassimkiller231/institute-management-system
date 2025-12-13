@@ -73,7 +73,7 @@ export default function ParentMaterialsPage() {
   });
 
   const getTypeIcon = (type: string) => {
-    switch (type.toUpperCase()) {
+    switch (type?.toUpperCase()) {
       case 'SLIDES':
         return '📊';
       case 'VIDEO':
@@ -92,7 +92,7 @@ export default function ParentMaterialsPage() {
   };
 
   const getTypeColor = (type: string) => {
-    switch (type.toUpperCase()) {
+    switch (type?.toUpperCase()) {
       case 'SLIDES':
         return 'bg-blue-100 text-blue-800';
       case 'VIDEO':

@@ -163,11 +163,11 @@ export const getAllPayments = async (req: AuthRequest, res: Response) => {
           id: inst.id,
           amount: inst.amount,
           currency: plan.currency || 'BHD',
-          status: inst.paymentStatus,
+          status: inst.paymentDate ? 'PAID' : 'UNPAID', // Derive from paymentDate
           description: `Installment ${inst.installmentNumber} of ${plan.totalInstallments}`,
           createdAt: inst.dueDate,
           dueDate: inst.dueDate,
-          paidDate: inst.paidDate,
+          paidDate: inst.paymentDate,
           student: {
             id: plan.enrollment.student.id,
             firstName: plan.enrollment.student.firstName,

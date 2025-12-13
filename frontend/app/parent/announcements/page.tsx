@@ -60,7 +60,7 @@ export default function ParentAnnouncementsPage() {
   });
 
   const getPriorityColor = (priority: string) => {
-    switch (priority.toUpperCase()) {
+    switch (priority?.toUpperCase()) {
       case 'HIGH':
         return 'bg-red-100 text-red-800 border-red-200';
       case 'MEDIUM':
@@ -73,7 +73,7 @@ export default function ParentAnnouncementsPage() {
   };
 
   const getTypeIcon = (type: string) => {
-    switch (type.toUpperCase()) {
+    switch (type?.toUpperCase()) {
       case 'GENERAL':
         return '📢';
       case 'ACADEMIC':
@@ -187,13 +187,13 @@ export default function ParentAnnouncementsPage() {
             <div>
               <p className="text-blue-100 text-sm">High Priority</p>
               <p className="text-3xl font-bold">
-                {announcements.filter(a => a.priority.toUpperCase() === 'HIGH').length}
+                {announcements.filter(a => a.priority?.toUpperCase() === 'HIGH').length}
               </p>
             </div>
             <div>
               <p className="text-blue-100 text-sm">Academic</p>
               <p className="text-3xl font-bold">
-                {announcements.filter(a => a.type.toUpperCase() === 'ACADEMIC').length}
+                {announcements.filter(a => a.type?.toUpperCase() === 'ACADEMIC').length}
               </p>
             </div>
             <div>
