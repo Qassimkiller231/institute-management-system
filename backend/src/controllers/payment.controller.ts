@@ -281,6 +281,7 @@ export const recordPayment = async (req: AuthRequest, res: Response) => {
       'BANK_TRANSFER',
       'CASH',
       'CARD_MACHINE',
+      'ONLINE_PAYMENT', // Added for Stripe payments
     ];
     if (!validMethods.includes(data.paymentMethod)) {
       return res.status(400).json({
