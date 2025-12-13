@@ -28,15 +28,30 @@ export const createPaymentIntent = async (data: {
 };
 
 export const confirmPayment = async (paymentIntentId: string) => {
-  const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
-    expand: ['latest_charge'],
-  });
+  try {
+    console.log('🔍 Stripe.confirmPayment: Retrieving payment intent:', paymentIntentId);
 
-  if (paymentIntent.status === 'succeeded') {
-    return { success: true, paymentIntent };
+    const paymentIntent = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ['latest_charge'],
+    });
+
+    console.log('✅ Payment intent retrieved. Status:', paymentIntent.status);
+
+    if (paymentIntent.status === 'succeeded') {
+      console.log('✅ Payment succeeded!');
+      return { success: true, paymentIntent };
+    }
+
+    console.error('❌ Payment not succeeded. Status:', paymentIntent.status);
+    throw new Error(`Payment not completed. Status: ${paymentIntent.status}`);
+  } catch (error: any) {
+    console.error('❌ Stripe confirmPayment error:');
+    console.error('   Type:', error.type);
+    console.error('   Code:', error.code);
+    console.error('   Message:', error.message);
+    console.error('   Full error:', JSON.stringify(error, null, 2));
+    throw error;
   }
-
-  throw new Error('Payment not completed');
 };
 
 export const createRefund = async (

@@ -568,20 +568,31 @@ export const createStripeIntent = async (req: AuthRequest, res: Response) => {
 
 export const confirmStripePayment = async (req: AuthRequest, res: Response) => {
   try {
+    console.log('📝 confirmStripePayment called with body:', JSON.stringify(req.body, null, 2));
+
     const { paymentIntentId, installmentId } = req.body;
 
     if (!paymentIntentId || !installmentId) {
+      console.error('❌ Missing required fields:', { paymentIntentId, installmentId });
       return res.status(400).json({
         success: false,
         message: 'paymentIntentId and installmentId are required',
       });
     }
 
+    console.log('🔍 Step 1: Confirming payment with Stripe...');
+    console.log('   paymentIntentId:', paymentIntentId);
+
     const result = await stripeService.confirmPayment(paymentIntentId);
+    console.log('✅ Step 1 complete: Stripe confirmation successful');
 
     // Extract receipt URL from Stripe (if available)
     const paymentIntent = result.paymentIntent as any;
     const receiptUrl = paymentIntent.latest_charge?.receipt_url || null;
+
+    console.log('🔍 Step 2: Recording payment in database...');
+    console.log('   installmentId:', installmentId);
+    console.log('   receiptUrl:', receiptUrl);
 
     await paymentService.recordPayment(installmentId, {
       paymentMethod: 'ONLINE_PAYMENT',
@@ -591,16 +602,28 @@ export const confirmStripePayment = async (req: AuthRequest, res: Response) => {
       receiptMakerId: req.user!.userId,
     });
 
+    console.log('✅ Step 2 complete: Payment recorded successfully');
+
     res.status(200).json({
       success: true,
       message: 'Payment confirmed successfully',
       data: result,
     });
   } catch (error: any) {
-    console.error('Stripe confirm error:', error);
+    console.error('❌ Stripe confirm error details:');
+    console.error('   Error name:', error.name);
+    console.error('   Error message:', error.message);
+    console.error('   Error stack:', error.stack);
+    console.error('   Full error object:', JSON.stringify(error, null, 2));
+
     res.status(400).json({
       success: false,
       message: error.message || 'Failed to confirm payment',
+      error: process.env.NODE_ENV === 'development' ? {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      } : undefined
     });
   }
 };
