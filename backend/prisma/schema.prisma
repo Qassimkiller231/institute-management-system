@@ -164,6 +164,7 @@ model Student {
   howHeardAbout   String?
   referralPerson  String?
   notes           String?
+  profilePicture  String?  // Profile picture file path
 
   // Status
   isActive  Boolean  @default(true)

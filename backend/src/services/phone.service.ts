@@ -1,5 +1,6 @@
 // src/services/phone.service.ts
 import { PrismaClient } from '@prisma/client';
+import { normalizePhoneNumber, validatePhoneNumber } from '../utils/phone.utils';
 
 const prisma = new PrismaClient();
 
@@ -26,9 +27,20 @@ export const addPhone = async (data: {
     }
   }
 
+  // Normalize and validate phone number
+  let normalizedPhone: string;
+  try {
+    normalizedPhone = normalizePhoneNumber(data.phoneNumber);
+    if (!validatePhoneNumber(data.phoneNumber)) {
+      throw new Error('Invalid phone number format');
+    }
+  } catch (error: any) {
+    throw new Error(error.message || 'Invalid phone number');
+  }
+
   // Check if phone already exists
   const existingPhone = await prisma.phone.findUnique({
-    where: { phoneNumber: data.phoneNumber }
+    where: { phoneNumber: normalizedPhone }
   });
 
   if (existingPhone) {
@@ -49,7 +61,7 @@ export const addPhone = async (data: {
 
   // Create phone
   const phoneData: any = {
-    phoneNumber: data.phoneNumber,
+    phoneNumber: normalizedPhone,
     countryCode: data.countryCode || '+973',
     isPrimary: data.isPrimary || false,
     isActive: true
@@ -211,13 +223,27 @@ export const updatePhone = async (id: string, updates: {
 
   // Check phone number uniqueness if changing
   if (updates.phoneNumber && updates.phoneNumber !== existing.phoneNumber) {
+    // Normalize the new phone number
+    let normalizedPhone: string;
+    try {
+      normalizedPhone = normalizePhoneNumber(updates.phoneNumber);
+      if (!validatePhoneNumber(updates.phoneNumber)) {
+        throw new Error('Invalid phone number format');
+      }
+    } catch (error: any) {
+      throw new Error(error.message || 'Invalid phone number');
+    }
+
     const existingPhone = await prisma.phone.findUnique({
-      where: { phoneNumber: updates.phoneNumber }
+      where: { phoneNumber: normalizedPhone }
     });
 
     if (existingPhone) {
       throw new Error('Phone number already exists');
     }
+
+    // Update the phoneNumber in updates to use normalized version
+    updates.phoneNumber = normalizedPhone;
   }
 
   // If setting as primary, unset other primary phones for same owner

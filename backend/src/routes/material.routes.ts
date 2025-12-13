@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import materialController from '../controllers/material.controller';
 import { authenticate } from '../middleware/auth.middleware';
-import { requireAdmin, requireTeacherOrAdmin } from '../middleware/role.middleware';
+import { requireAdmin, requireTeacherOrAdmin, requireAnyRole } from '../middleware/role.middleware';
 
 const router = Router();
 
@@ -15,17 +15,17 @@ router.post(
   materialController.createMaterial
 );
 
-// Get all materials with filters and pagination (Teacher or Admin only)
+// Get all materials with filters and pagination (All authenticated users)
 router.get(
   '/',
-  requireTeacherOrAdmin,
+  requireAnyRole,
   materialController.getAllMaterials
 );
 
-// Get material by ID (Teacher or Admin only)
+// Get material by ID (All authenticated users)
 router.get(
   '/:id',
-  requireTeacherOrAdmin,
+  requireAnyRole,
   materialController.getMaterialById
 );
 

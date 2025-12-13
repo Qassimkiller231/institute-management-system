@@ -37,6 +37,7 @@ import paymentReminderRoutes from './routes/paymentReminder.routes';
 import attendanceWarningRoutes from './routes/attendanceWarning.routes';
 import emailRoutes from './routes/email.routes';
 import reportRoutes from './routes/report.routes';
+import uploadsRoutes from './routes/uploads.routes';
 
 // Load environment variables
 dotenv.config();
@@ -93,6 +94,7 @@ app.use('/api/payment-reminders', paymentReminderRoutes);
 app.use('/api/attendance-warnings', attendanceWarningRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/uploads', uploadsRoutes);  // Serve uploaded files
 
 // scheduler.startScheduler(); // Disabled for testing - uncomment to enable automated reminders
 

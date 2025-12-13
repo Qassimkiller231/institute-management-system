@@ -34,3 +34,13 @@ export const requireAdmin = requireRole(['ADMIN']);
  * Shortcut middleware for teacher or admin routes
  */
 export const requireTeacherOrAdmin = requireRole(['TEACHER', 'ADMIN']);
+
+/**
+ * Shortcut middleware for authenticated users (all roles)
+ */
+export const requireAnyRole = requireRole(['ADMIN', 'TEACHER', 'STUDENT', 'PARENT']);
+
+/**
+ * Shortcut middleware for parent access
+ */
+export const requireParentOrAdmin = requireRole(['PARENT', 'ADMIN']);

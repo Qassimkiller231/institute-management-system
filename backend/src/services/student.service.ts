@@ -1,5 +1,6 @@
 // src/services/student.service.ts
 import { PrismaClient } from '@prisma/client';
+import { normalizePhoneNumber, validatePhoneNumber } from '../utils/phone.utils';
 
 const prisma = new PrismaClient();
 
@@ -50,13 +51,26 @@ export const createStudent = async (data: {
     }
   }
 
+  // Normalize phone number if provided
+  let normalizedPhone: string | undefined;
+  if (data.phone) {
+    try {
+      normalizedPhone = normalizePhoneNumber(data.phone);
+      if (!validatePhoneNumber(data.phone)) {
+        throw new Error('Invalid phone number format');
+      }
+    } catch (error: any) {
+      throw new Error(error.message || 'Invalid phone number');
+    }
+  }
+
   // Create User and Student in a transaction
   const result = await prisma.$transaction(async (tx) => {
     // Create User
     const user = await tx.user.create({
       data: {
         email: data.email || `student-${data.cpr}@placeholder.local`,
-        phone: data.phone,
+        phone: normalizedPhone,
         role: 'STUDENT',
         isActive: true
       }
@@ -126,13 +140,13 @@ export const getAllStudents = async (filters: {
   const skip = (page - 1) * limit;
 
   const where: any = {};
-  
+
   if (filters.isActive !== undefined) where.isActive = filters.isActive;
   if (filters.gender) where.gender = filters.gender;
   if (filters.schoolType) where.schoolType = filters.schoolType;
   if (filters.schoolYear) where.schoolYear = filters.schoolYear;
   if (filters.preferredCenter) where.preferredCenter = filters.preferredCenter;
-  
+
   if (filters.search) {
     where.OR = [
       { firstName: { contains: filters.search, mode: 'insensitive' } },
@@ -270,6 +284,19 @@ export const getStudentById = async (studentId: string) => {
             }
           }
         }
+      },
+      speakingSlots: {
+        orderBy: {
+          slotDate: 'desc'
+        },
+        include: {
+          teacher: {
+            select: {
+              firstName: true,
+              lastName: true
+            }
+          }
+        }
       }
     }
   });
@@ -309,11 +336,11 @@ export const updateStudent = async (id: string, updates: {
   notes?: string;
   isActive?: boolean;
 }) => {
-  const existing = await prisma.student.findUnique({ 
+  const existing = await prisma.student.findUnique({
     where: { id },
     include: { user: true }
   });
-  
+
   if (!existing) {
     throw new Error('Student not found');
   }
@@ -340,7 +367,21 @@ export const updateStudent = async (id: string, updates: {
 
     // Update user phone if provided
     const userUpdates: any = {};
-    if (updates.phone !== undefined) userUpdates.phone = updates.phone;
+    if (updates.phone !== undefined) {
+      // Normalize phone number
+      if (updates.phone) {
+        try {
+          userUpdates.phone = normalizePhoneNumber(updates.phone);
+          if (!validatePhoneNumber(updates.phone)) {
+            throw new Error('Invalid phone number format');
+          }
+        } catch (error: any) {
+          throw new Error(error.message || 'Invalid phone number');
+        }
+      } else {
+        userUpdates.phone = updates.phone; // Allow null/undefined
+      }
+    }
 
     // Check email uniqueness if changing email
     if (updates.email && updates.email !== existing.email) {
@@ -419,11 +460,11 @@ export const updateStudent = async (id: string, updates: {
  * Deactivate student (soft delete)
  */
 export const deleteStudent = async (id: string) => {
-  const existing = await prisma.student.findUnique({ 
+  const existing = await prisma.student.findUnique({
     where: { id },
     include: { user: true }
   });
-  
+
   if (!existing) {
     throw new Error('Student not found');
   }
@@ -628,10 +669,10 @@ export const getStudentsByEnrollmentFilters = async (filters: {
 
   // Transform enrollments to students with enrollment info
   const studentsMap = new Map();
-  
+
   enrollments.forEach(enrollment => {
     const studentId = enrollment.student.id;
-    
+
     if (!studentsMap.has(studentId)) {
       studentsMap.set(studentId, {
         ...enrollment.student,
@@ -654,4 +695,61 @@ export const getStudentsByEnrollmentFilters = async (filters: {
       totalPages: Math.ceil(students.length / limit)
     }
   };
+};
+/**
+ * Update student profile picture
+ */
+export const updateProfilePicture = async (id: string, filePath: string) => {
+  const student = await prisma.student.findUnique({ where: { id } });
+
+  if (!student) {
+    throw new Error('Student not found');
+  }
+
+  // Delete old profile picture file if exists
+  if (student.profilePicture) {
+    const fs = require('fs');
+    const path = require('path');
+    const oldFilePath = path.join(__dirname, '../..', student.profilePicture);
+    if (fs.existsSync(oldFilePath)) {
+      fs.unlinkSync(oldFilePath);
+    }
+  }
+
+  // Update student with new profile picture path
+  const updatedStudent = await prisma.student.update({
+    where: { id },
+    data: { profilePicture: filePath }
+  });
+
+  return updatedStudent;
+};
+
+/**
+ * Delete student profile picture
+ */
+export const deleteProfilePicture = async (id: string) => {
+  const student = await prisma.student.findUnique({ where: { id } });
+
+  if (!student) {
+    throw new Error('Student not found');
+  }
+
+  // Delete profile picture file if exists
+  if (student.profilePicture) {
+    const fs = require('fs');
+    const path = require('path');
+    const filePath = path.join(__dirname, '../..', student.profilePicture);
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+  }
+
+  // Clear profile picture field
+  const updatedStudent = await prisma.student.update({
+    where: { id },
+    data: { profilePicture: null }
+  });
+
+  return updatedStudent;
 };

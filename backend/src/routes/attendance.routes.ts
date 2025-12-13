@@ -1,13 +1,10 @@
 import { Router } from 'express';
 import attendanceController from '../controllers/attendance.controller';
 import { authenticate } from '../middleware/auth.middleware';
-import { requireTeacherOrAdmin } from '../middleware/role.middleware';
+import { requireTeacherOrAdmin, requireAnyRole } from '../middleware/role.middleware';
 
 const router = Router();
-router.get(
-  '/student/:studentId',
-  attendanceController.getStudentAttendance
-);
+
 // All routes require authentication
 router.use(authenticate);
 
@@ -25,13 +22,17 @@ router.post(
   attendanceController.recordBulkAttendance
 );
 
-// Get attendance for a specific student (Teacher or Admin only)
+// Get attendance for a specific student (All authenticated users)
+router.get(
+  '/student/:studentId',
+  requireAnyRole,
+  attendanceController.getStudentAttendance
+);
 
-
-// Get attendance statistics for a student (Teacher or Admin only)
+// Get attendance statistics for a student (All authenticated users)
 router.get(
   '/student/:studentId/stats',
-  requireTeacherOrAdmin,
+  requireAnyRole,
   attendanceController.getAttendanceStats
 );
 

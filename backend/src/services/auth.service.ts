@@ -6,6 +6,7 @@ import {
   isOTPExpired,
   sendOTP,
 } from "../utils/otp";
+import { normalizePhoneNumber, validatePhoneNumber } from "../utils/phone.utils";
 import * as smsService from "./sms.service";
 
 /**
@@ -17,12 +18,25 @@ export const requestOTP = async (
 ) => {
   // Find user by email or phone
   const isEmail = identifier.includes("@");
-  
-  // ✅ FIX: Make email case-insensitive
+
+  // Normalize phone number if SMS login
+  let searchIdentifier = identifier;
+  if (!isEmail) {
+    try {
+      searchIdentifier = normalizePhoneNumber(identifier);
+      if (!validatePhoneNumber(identifier)) {
+        throw new Error("Invalid phone number format");
+      }
+    } catch (error: any) {
+      throw new Error(error.message || "Invalid phone number");
+    }
+  }
+
+  // ✅ FIX: Make email case-insensitive and normalize phone
   const user = await prisma.user.findFirst({
-    where: isEmail 
-      ? { email: { equals: identifier, mode: 'insensitive' } } 
-      : { phone: identifier },
+    where: isEmail
+      ? { email: { equals: searchIdentifier, mode: 'insensitive' } }
+      : { phone: searchIdentifier },
   });
 
   if (!user) {
@@ -67,7 +81,7 @@ export const requestOTP = async (
   // Send OTP (simulated for now)
   const recipient = method === "email" ? user.email : user.phone || "";
   await sendOTP(recipient, code, method);
-  
+
   if (method === "sms") {
     // Send via SMS
     await smsService.sendOTP({
@@ -96,12 +110,22 @@ export const requestOTP = async (
 export const verifyOTP = async (identifier: string, code: string) => {
   // Find user
   const isEmail = identifier.includes("@");
-  
-  // ✅ FIX: Make email case-insensitive
+
+  // Normalize phone number if SMS login
+  let searchIdentifier = identifier;
+  if (!isEmail) {
+    try {
+      searchIdentifier = normalizePhoneNumber(identifier);
+    } catch (error: any) {
+      throw new Error(error.message || "Invalid phone number");
+    }
+  }
+
+  // ✅ FIX: Make email case-insensitive and normalize phone
   const user = await prisma.user.findFirst({
-    where: isEmail 
-      ? { email: { equals: identifier, mode: 'insensitive' } } 
-      : { phone: identifier },
+    where: isEmail
+      ? { email: { equals: searchIdentifier, mode: 'insensitive' } }
+      : { phone: searchIdentifier },
   });
 
   if (!user) {
@@ -253,8 +277,64 @@ export const getCurrentUser = async (userId: string) => {
     throw new Error("User not found");
   }
 
+  // Get role-specific data
+  let roleData: any = {};
+
+  if (user.role === "STUDENT") {
+    const student = await prisma.student.findUnique({
+      where: { userId: user.id },
+      include: {
+        parentStudentLinks: {
+          include: {
+            parent: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+              }
+            }
+          }
+        }
+      }
+    });
+    roleData.student = student;
+  } else if (user.role === "TEACHER") {
+    const teacher = await prisma.teacher.findUnique({
+      where: { userId: user.id },
+    });
+    roleData.teacher = teacher;
+  } else if (user.role === "PARENT") {
+    const parent = await prisma.parent.findUnique({
+      where: { userId: user.id },
+      include: {
+        parentStudentLinks: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                firstName: true,
+                secondName: true,
+                thirdName: true,
+                cpr: true,
+                email: true,
+                currentLevel: true,
+                dateOfBirth: true,
+                gender: true,
+                isActive: true,
+              }
+            }
+          }
+        }
+      }
+    });
+    roleData.parent = parent;
+  }
+
   return {
     success: true,
-    data: user,
+    data: {
+      ...user,
+      ...roleData
+    },
   };
 };

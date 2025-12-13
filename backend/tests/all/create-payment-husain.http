@@ -1,0 +1,88 @@
+### Step 1: Find Husain's Student ID and Enrollment
+
+# Get student info
+GET http://localhost:3001/api/students?cpr=767676767
+Authorization: Bearer {{adminToken}}
+
+###
+
+### Step 2: Get Husain's Enrollments
+GET http://localhost:3001/api/students/{{husainStudentId}}
+Authorization: Bearer {{adminToken}}
+
+###
+
+### Step 3: Create Payment Plan for Husain
+# Replace {{enrollmentId}} with actual enrollment ID from Step 2
+POST http://localhost:3001/api/payments/plans
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "enrollmentId": "{{enrollmentId}}",
+  "totalAmount": 600.00,
+  "currency": "BHD",
+  "totalInstallments": 4,
+  "installments": [
+    {
+      "installmentNumber": 1,
+      "amount": 150.00,
+      "dueDate": "2025-01-15",
+      "paymentStatus": "UNPAID"
+    },
+    {
+      "installmentNumber": 2,
+      "amount": 150.00,
+      "dueDate": "2025-02-15",
+      "paymentStatus": "UNPAID"
+    },
+    {
+      "installmentNumber": 3,
+      "amount": 150.00,
+      "dueDate": "2025-03-15",
+      "paymentStatus": "UNPAID"
+    },
+    {
+      "installmentNumber": 4,
+      "amount": 150.00,
+      "dueDate": "2025-04-15",
+      "paymentStatus": "UNPAID"
+    }
+  ]
+}
+
+###
+
+### Alternative: Create Payment Plan with Mixed Status
+POST http://localhost:3001/api/payments/plans
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "enrollmentId": "{{enrollmentId}}",
+  "totalAmount": 450.00,
+  "currency": "BHD",
+  "totalInstallments": 4,
+  "installments": [
+    {
+      "installmentNumber": 1,
+      "amount": 450.00,
+      "dueDate": "2025-01-05",
+      "paymentStatus": "UNPAID",
+      "paymentMethod": null,
+      "notes": "First installment - due soon"
+    }
+  ]
+}
+
+###
+
+### Step 4: Verify Payment Plan Created
+GET http://localhost:3001/api/payments/plans/enrollment/{{enrollmentId}}
+Authorization: Bearer {{adminToken}}
+
+###
+
+### Step 5: View as Parent
+GET http://localhost:3001/api/payments
+Authorization: Bearer {{parentToken}}

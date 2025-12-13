@@ -1,5 +1,6 @@
 // src/services/teacher.service.ts
 import { PrismaClient } from '@prisma/client';
+import { normalizePhoneNumber, validatePhoneNumber } from '../utils/phone.utils';
 
 const prisma = new PrismaClient();
 
@@ -26,8 +27,19 @@ export const createTeacher = async (data: {
 
   // Check if phone exists (if provided)
   if (data.phone) {
+    // Normalize phone number
+    let normalizedPhone: string;
+    try {
+      normalizedPhone = normalizePhoneNumber(data.phone);
+      if (!validatePhoneNumber(data.phone)) {
+        throw new Error('Invalid phone number format');
+      }
+    } catch (error: any) {
+      throw new Error(error.message || 'Invalid phone number');
+    }
+
     const existingPhone = await prisma.user.findUnique({
-      where: { phone: data.phone }
+      where: { phone: normalizedPhone }
     });
 
     if (existingPhone) {
@@ -37,11 +49,18 @@ export const createTeacher = async (data: {
 
   // Create User and Teacher in a transaction
   const result = await prisma.$transaction(async (tx) => {
+    // Normalize phone if provided
+    let normalizedPhone: string | undefined;
+    if (data.phone) {
+      normalizedPhone = normalizePhoneNumber(data.phone);
+      // Already validated above
+    }
+
     // Create User
     const user = await tx.user.create({
       data: {
         email: data.email,
-        phone: data.phone,
+        phone: normalizedPhone,
         role: 'TEACHER',
         isActive: true
       }
@@ -92,7 +111,7 @@ export const getAllTeachers = async (filters: {
   const skip = (page - 1) * limit;
 
   const where: any = {};
-  
+
   if (filters.isActive !== undefined) where.isActive = filters.isActive;
   if (filters.availableForSpeakingTests !== undefined) {
     where.availableForSpeakingTests = filters.availableForSpeakingTests;
@@ -100,7 +119,7 @@ export const getAllTeachers = async (filters: {
   if (filters.specialization) {
     where.specialization = { contains: filters.specialization, mode: 'insensitive' };
   }
-  
+
   // Search by name or email
   if (filters.search) {
     where.OR = [
@@ -253,11 +272,11 @@ export const updateTeacher = async (id: string, updates: {
   availableForSpeakingTests?: boolean;
   isActive?: boolean;
 }) => {
-  const existing = await prisma.teacher.findUnique({ 
+  const existing = await prisma.teacher.findUnique({
     where: { id },
     include: { user: true }
   });
-  
+
   if (!existing) {
     throw new Error('Teacher not found');
   }
@@ -275,13 +294,27 @@ export const updateTeacher = async (id: string, updates: {
 
   // Check phone uniqueness if changing phone
   if (updates.phone && updates.phone !== existing.user.phone) {
+    // Normalize phone number
+    let normalizedPhone: string;
+    try {
+      normalizedPhone = normalizePhoneNumber(updates.phone);
+      if (!validatePhoneNumber(updates.phone)) {
+        throw new Error('Invalid phone number format');
+      }
+    } catch (error: any) {
+      throw new Error(error.message || 'Invalid phone number');
+    }
+
     const existingPhone = await prisma.user.findUnique({
-      where: { phone: updates.phone }
+      where: { phone: normalizedPhone }
     });
 
     if (existingPhone && existingPhone.id !== existing.userId) {
       throw new Error('Phone number already in use');
     }
+
+    // Store normalized phone for later update
+    updates.phone = normalizedPhone;
   }
 
   // Update in transaction
@@ -345,11 +378,11 @@ export const updateTeacher = async (id: string, updates: {
  * Deactivate teacher (soft delete)
  */
 export const deleteTeacher = async (id: string) => {
-  const existing = await prisma.teacher.findUnique({ 
+  const existing = await prisma.teacher.findUnique({
     where: { id },
     include: { user: true }
   });
-  
+
   if (!existing) {
     throw new Error('Teacher not found');
   }
@@ -374,7 +407,7 @@ export const deleteTeacher = async (id: string) => {
  */
 export const toggleAvailability = async (id: string, available: boolean) => {
   const existing = await prisma.teacher.findUnique({ where: { id } });
-  
+
   if (!existing) {
     throw new Error('Teacher not found');
   }

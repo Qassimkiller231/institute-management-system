@@ -167,7 +167,9 @@ export const getDatabaseContext = async (): Promise<string> => {
       totalGroups,
       activeGroups,
       totalTerms,
-      totalPrograms
+      totalPrograms,
+      programs,
+      levels
     ] = await Promise.all([
       prisma.student.count(),
       prisma.student.count({ where: { isActive: true } }),
@@ -175,7 +177,9 @@ export const getDatabaseContext = async (): Promise<string> => {
       prisma.group.count(),
       prisma.group.count({ where: { isActive: true } }),
       prisma.term.count(),
-      prisma.program.count()
+      prisma.program.count(),
+      prisma.program.findMany({ select: { name: true, code: true } }),
+      prisma.level.findMany({ select: { name: true, displayName: true } })
     ]);
 
     // Get payment summary
@@ -227,6 +231,12 @@ export const getDatabaseContext = async (): Promise<string> => {
       }
     });
 
+    // Format programs list
+    const programsList = programs.map(p => `${p.name} (${p.code})`).join(', ');
+
+    // Format levels list
+    const levelsList = levels.map(l => `${l.name} (${l.displayName})`).join(', ');
+
     return `
 📊 **CURRENT INSTITUTE DATABASE CONTEXT:**
 
@@ -242,7 +252,8 @@ export const getDatabaseContext = async (): Promise<string> => {
 - Today's Classes: ${todaysSessions}
 
 **Academic:**
-- Programs: ${totalPrograms}
+- Programs (${totalPrograms}): ${programsList}
+- Levels (${levels.length}): ${levelsList}
 - Terms: ${totalTerms}
 
 **Finances:**

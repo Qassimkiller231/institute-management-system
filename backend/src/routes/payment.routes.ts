@@ -2,12 +2,17 @@
 import express from 'express';
 import * as paymentController from '../controllers/payment.controller';
 import { authenticate } from '../middleware/auth.middleware';
-import { requireAdmin } from '../middleware/role.middleware';
+import { requireAdmin, requireAnyRole } from '../middleware/role.middleware';
 
 const router = express.Router();
 
 // All routes require authentication
 router.use(authenticate);
+
+// ==================== PAYMENTS ====================
+
+// Get all payments (All authenticated users)
+router.get('/', requireAnyRole, paymentController.getAllPayments);
 
 // ==================== PAYMENT PLANS ====================
 

@@ -20,53 +20,28 @@ async function main() {
   const questions = [
     {
       questionText: 'What _____ your name?',
-      options: [
-        { id: 'a', text: 'is', isCorrect: true },
-        { id: 'b', text: 'are', isCorrect: false },
-        { id: 'c', text: 'am', isCorrect: false },
-        { id: 'd', text: 'be', isCorrect: false },
-      ],
-      correctAnswer: 'a',
+      options: ['is', 'are', 'am', 'be'],
+      correctAnswer: 'is',
     },
     {
       questionText: 'She _____ to the store yesterday.',
-      options: [
-        { id: 'a', text: 'went', isCorrect: true },
-        { id: 'b', text: 'go', isCorrect: false },
-        { id: 'c', text: 'goes', isCorrect: false },
-        { id: 'd', text: 'going', isCorrect: false },
-      ],
-      correctAnswer: 'a',
+      options: ['went', 'go', 'goes', 'going'],
+      correctAnswer: 'went',
     },
     {
       questionText: 'If I _____ you, I would study harder.',
-      options: [
-        { id: 'a', text: 'were', isCorrect: true },
-        { id: 'b', text: 'am', isCorrect: false },
-        { id: 'c', text: 'was', isCorrect: false },
-        { id: 'd', text: 'be', isCorrect: false },
-      ],
-      correctAnswer: 'a',
+      options: ['were', 'am', 'was', 'be'],
+      correctAnswer: 'were',
     },
     {
       questionText: 'The book _____ by millions of people.',
-      options: [
-        { id: 'a', text: 'has been read', isCorrect: true },
-        { id: 'b', text: 'read', isCorrect: false },
-        { id: 'c', text: 'is reading', isCorrect: false },
-        { id: 'd', text: 'reads', isCorrect: false },
-      ],
-      correctAnswer: 'a',
+      options: ['has been read', 'read', 'is reading', 'reads'],
+      correctAnswer: 'has been read',
     },
     {
       questionText: 'Despite _____ tired, she continued working.',
-      options: [
-        { id: 'a', text: 'being', isCorrect: true },
-        { id: 'b', text: 'to be', isCorrect: false },
-        { id: 'c', text: 'is', isCorrect: false },
-        { id: 'd', text: 'was', isCorrect: false },
-      ],
-      correctAnswer: 'a',
+      options: ['being', 'to be', 'is', 'was'],
+      correctAnswer: 'being',
     },
   ];
 

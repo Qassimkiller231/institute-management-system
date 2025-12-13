@@ -73,6 +73,7 @@ export default function EnrollmentManagement() {
   });
   const [selectedProgramId, setSelectedProgramId] = useState('');
   const [enrolledStudentIds, setEnrolledStudentIds] = useState<Set<string>>(new Set());
+  const [studentSearchTerm, setStudentSearchTerm] = useState('');
 
   useEffect(() => {
     fetchEnrollments();
@@ -81,7 +82,7 @@ export default function EnrollmentManagement() {
     fetchPrograms();
   }, []);
 
-  // Track enrolled student IDs
+  // Track students with ANY active enrollment
   useEffect(() => {
     const enrolled = new Set(
       enrollments
@@ -241,9 +242,6 @@ export default function EnrollmentManagement() {
     
     // Set the program ID based on the group's term program
     const programId = enrollment.group.term.program?.id || '';
-    console.log('Setting program ID for edit:', programId);
-    console.log('Enrollment group term program:', enrollment.group.term.program);
-    console.log('Available programs:', programs);
     setSelectedProgramId(programId);
     
     setFormData({
@@ -257,6 +255,7 @@ export default function EnrollmentManagement() {
 
   const resetForm = () => {
     setSelectedProgramId('');
+    setStudentSearchTerm('');
     setFormData({
       studentId: '',
       groupId: '',
@@ -292,6 +291,21 @@ export default function EnrollmentManagement() {
     const matchesProgram = !programFilter || enrollment.group.term?.program?.name === programFilter;
     
     return matchesSearch && matchesStatus && matchesGroup && matchesProgram;
+  });
+
+  // Filter students for modal
+  const filteredStudentsForModal = students.filter(student => {
+    if (modalMode === 'edit') return student.id === formData.studentId;
+    
+    // Only show students with NO active enrollments
+    if (enrolledStudentIds.has(student.id)) return false;
+    
+    // Filter by search
+    if (!studentSearchTerm.trim()) return true;
+    const searchLower = studentSearchTerm.toLowerCase();
+    const fullName = `${student.firstName} ${student.secondName || ''} ${student.thirdName || ''}`.toLowerCase();
+    const cpr = (student as any).cpr?.toLowerCase() || '';
+    return fullName.includes(searchLower) || cpr.includes(searchLower);
   });
 
   return (
@@ -474,33 +488,14 @@ export default function EnrollmentManagement() {
             </h2>
 
             <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Student *</label>
-                <select
-                  value={formData.studentId}
-                  onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
-                  className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
-                  disabled={modalMode === 'edit'}
-                  required
-                >
-                  <option value="">Select Student</option>
-                  {students
-                   .filter(s => modalMode === 'edit' ? s.id === formData.studentId : !enrolledStudentIds.has(s.id))
-                    .map(student => (
-                    <option key={student.id} value={student.id}>
-                      {student.firstName} {student.secondName} {student.thirdName}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
+              {/* PROGRAM FIRST */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Program *</label>
                 <select
                   value={selectedProgramId}
                   onChange={(e) => {
                     setSelectedProgramId(e.target.value);
-                    setFormData({ ...formData, groupId: '' }); // Reset group when program changes
+                    setFormData({ ...formData, groupId: '', studentId: '' });
                   }}
                   className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
                   required
@@ -514,6 +509,47 @@ export default function EnrollmentManagement() {
                 </select>
               </div>
 
+              {/* STUDENT SEARCH */}
+              {modalMode === 'create' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Search Students</label>
+                  <input
+                    type="text"
+                    placeholder="Search by name or CPR..."
+                    value={studentSearchTerm}
+                    onChange={(e) => setStudentSearchTerm(e.target.value)}
+                    className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  />
+                </div>
+              )}
+
+              {/* STUDENT SELECT */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Student * {modalMode === 'create' && `(${filteredStudentsForModal.length} available)`}
+                </label>
+                <select
+                  value={formData.studentId}
+                  onChange={(e) => setFormData({ ...formData, studentId: e.target.value })}
+                  className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                  disabled={modalMode === 'edit'}
+                  required
+                >
+                  <option value="">Select Student</option>
+                  {filteredStudentsForModal.map(student => (
+                    <option key={student.id} value={student.id}>
+                      {student.firstName} {student.secondName} {student.thirdName} {(student as any).cpr && `(CPR: ${(student as any).cpr})`}
+                    </option>
+                  ))}
+                </select>
+                {modalMode === 'create' && filteredStudentsForModal.length === 0 && (
+                  <p className="text-sm text-red-600 mt-1">
+                    {studentSearchTerm ? 'No students match your search' : 'No students available (all have active enrollments)'}
+                  </p>
+                )}
+              </div>
+
+              {/* GROUP */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Group *</label>
                 <select

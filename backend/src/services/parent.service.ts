@@ -1,5 +1,6 @@
 // src/services/parent.service.ts
 import { PrismaClient } from '@prisma/client';
+import { normalizePhoneNumber, validatePhoneNumber } from '../utils/phone.utils';
 
 const prisma = new PrismaClient();
 
@@ -27,11 +28,11 @@ export const createParent = async (data: {
         const existingParent = await prisma.parent.findUnique({
           where: { userId: existingUser.id }
         });
-        
+
         if (existingParent) {
           throw new Error('Parent already exists with this email');
         }
-        
+
         userId = existingUser.id;
       } else {
         throw new Error('Email already in use by another user');
@@ -41,12 +42,25 @@ export const createParent = async (data: {
 
   // Create User and Parent in a transaction
   const result = await prisma.$transaction(async (tx) => {
+    // Normalize phone number if provided
+    let normalizedPhone: string | undefined;
+    if (data.phone) {
+      try {
+        normalizedPhone = normalizePhoneNumber(data.phone);
+        if (!validatePhoneNumber(data.phone)) {
+          throw new Error('Invalid phone number format');
+        }
+      } catch (error: any) {
+        throw new Error(error.message || 'Invalid phone number');
+      }
+    }
+
     // Create User only if userId doesn't exist
     if (!userId) {
       const user = await tx.user.create({
         data: {
           email: data.email || `parent-${Date.now()}@placeholder.local`,
-          phone: data.phone,
+          phone: normalizedPhone,
           role: 'PARENT',
           isActive: true
         }
@@ -94,12 +108,12 @@ export const getAllParents = async (filters: {
   const skip = (page - 1) * limit;
 
   const where: any = {};
-  
+
   // Filter by user isActive
   if (filters.isActive !== undefined) {
     where.user = { isActive: filters.isActive };
   }
-  
+
   // Search by name
   if (filters.search) {
     where.OR = [
@@ -213,11 +227,11 @@ export const updateParent = async (id: string, updates: {
   phone?: string;
   isActive?: boolean;
 }) => {
-  const existing = await prisma.parent.findUnique({ 
+  const existing = await prisma.parent.findUnique({
     where: { id },
     include: { user: true }
   });
-  
+
   if (!existing) {
     throw new Error('Parent not found');
   }
@@ -252,8 +266,19 @@ export const updateParent = async (id: string, updates: {
 
     // Check phone uniqueness if changing phone
     if (updates.phone && updates.phone !== existing.user.phone) {
+      // Normalize phone number
+      let normalizedPhone: string;
+      try {
+        normalizedPhone = normalizePhoneNumber(updates.phone);
+        if (!validatePhoneNumber(updates.phone)) {
+          throw new Error('Invalid phone number format');
+        }
+      } catch (error: any) {
+        throw new Error(error.message || 'Invalid phone number');
+      }
+
       const existingPhone = await tx.user.findUnique({
-        where: { phone: updates.phone }
+        where: { phone: normalizedPhone }
       });
 
       if (existingPhone && existingPhone.id !== existing.userId) {
@@ -262,7 +287,7 @@ export const updateParent = async (id: string, updates: {
 
       await tx.user.update({
         where: { id: existing.userId },
-        data: { phone: updates.phone }
+        data: { phone: normalizedPhone }
       });
     }
 
@@ -296,11 +321,11 @@ export const updateParent = async (id: string, updates: {
  * Deactivate parent (soft delete)
  */
 export const deleteParent = async (id: string) => {
-  const existing = await prisma.parent.findUnique({ 
+  const existing = await prisma.parent.findUnique({
     where: { id },
     include: { user: true }
   });
-  
+
   if (!existing) {
     throw new Error('Parent not found');
   }

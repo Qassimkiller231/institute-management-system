@@ -4,6 +4,7 @@ import * as studentController from '../controllers/student.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireAdmin, requireTeacherOrAdmin } from '../middleware/role.middleware';
 import * as enrollmentController from '../controllers/enrollment.controller';
+import { upload } from '../config/multer.config';
 
 const router = express.Router();
 
@@ -18,6 +19,10 @@ router.get('/:id', studentController.getStudentById);
 // Admin only for create/update/delete
 router.put('/:id', requireAdmin, studentController.updateStudent);
 router.delete('/:id', requireAdmin, studentController.deleteStudent);
+
+// Profile picture upload/delete
+router.post('/:id/profile-picture', upload.single('profilePicture'), studentController.uploadProfilePicture);
+router.delete('/:id/profile-picture', studentController.deleteProfilePicture);
 
 // Admin or Teacher can view students
 router.get('/search', requireTeacherOrAdmin, studentController.searchStudents);

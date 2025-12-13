@@ -59,8 +59,13 @@ export default function VerifyOTPPage() {
           router.push(redirectTo);
           return;
         }
+        // Redirect students to dashboard
+        if (result.data.user.role === 'STUDENT') {
+          router.push('/student');
+          return;
+        }
         
-        // Redirect by role
+        // Redirect by role for non-students
         redirectByRole(router, result.data.user.role);
       } else {
         setError(result.message || 'Invalid OTP');

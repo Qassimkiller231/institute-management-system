@@ -14,6 +14,7 @@ interface Student {
   gender: string;
   email?: string;
   currentLevel?: string;
+  profilePicture?: string;
   isActive: boolean;
   user: {
     email: string;
@@ -58,6 +59,7 @@ export default function StudentManagement() {
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [profilePictureFile, setProfilePictureFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     email: '',
     phone: '',
@@ -192,6 +194,26 @@ export default function StudentManagement() {
         throw new Error(error.message || 'Failed to create student');
       }
 
+      const result = await response.json();
+      
+      // Upload profile picture if provided
+      if (profilePictureFile && result.data?.id) {
+        try {
+          const formData = new FormData();
+          formData.append('profilePicture', profilePictureFile);
+          
+          await fetch(`http://localhost:3001/api/students/${result.data.id}/profile-picture`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
+            body: formData
+          });
+        } catch (err) {
+          console.error('Error uploading profile picture:', err);
+        }
+      }
+
       alert('Student created successfully!');
       setShowModal(false);
       resetForm();
@@ -239,6 +261,24 @@ export default function StudentManagement() {
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Failed to update student');
+      }
+
+      // Upload profile picture if provided
+      if (profilePictureFile) {
+        try {
+          const uploadFormData = new FormData();
+          uploadFormData.append('profilePicture', profilePictureFile);
+          
+          await fetch(`http://localhost:3001/api/students/${selectedStudent.id}/profile-picture`, {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`
+            },
+            body: uploadFormData
+          });
+        } catch (err) {
+          console.error('Error uploading profile picture:', err);
+        }
       }
 
       alert('Student updated successfully!');
@@ -332,6 +372,7 @@ export default function StudentManagement() {
       currentLevelId: ''
     });
     setSelectedStudent(null);
+    setProfilePictureFile(null);
   };
 
   const resetFilters = () => {
@@ -451,6 +492,7 @@ export default function StudentManagement() {
             <table className="min-w-full divide-y divide-gray-200">
               <thead className="bg-gray-50">
                 <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Picture</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">CPR</th>
                   <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
@@ -466,6 +508,21 @@ export default function StudentManagement() {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredStudents.map((student) => (
                   <tr key={student.id} className="hover:bg-gray-50">
+                    <td className="px-6 py-4 whitespace-nowrap">
+                      <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-200 flex items-center justify-center">
+                        {student.profilePicture ? (
+                          <img 
+                            src={`http://localhost:3001${student.profilePicture}`} 
+                            alt={student.firstName}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <svg className="w-6 h-6 text-gray-400" fill="currentColor" viewBox="0 0 20 20">
+                            <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                          </svg>
+                        )}
+                      </div>
+                    </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="font-medium text-gray-900">
                         {student.firstName} {student.secondName} {student.thirdName}
@@ -665,6 +722,31 @@ export default function StudentManagement() {
                   ))}
                 </select>
                 <p className="text-xs text-gray-600 mt-1">Set after placement test or manually assign</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Profile Picture (Optional)</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      // Check file size (max 5MB)
+                      if (file.size > 5 * 1024 * 1024) {
+                        alert('File size must be less than 5MB');
+                        e.target.value = '';
+                        return;
+                      }
+                      setProfilePictureFile(file);
+                    }
+                  }}
+                  className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
+                />
+                <p className="text-xs text-gray-600 mt-1">Max file size: 5MB. Accepted: JPG, PNG, WEBP</p>
+                {profilePictureFile && (
+                  <p className="text-xs text-green-600 mt-1">✓ {profilePictureFile.name}</p>
+                )}
               </div>
             </div>
 

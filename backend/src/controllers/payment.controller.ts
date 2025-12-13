@@ -3,6 +3,7 @@ import { Response } from 'express';
 import { AuthRequest } from '../types/auth.types';
 import * as paymentService from '../services/payment.service';
 import * as stripeService from '../services/stripe.service';
+import prisma from '../utils/db';
 
 /**
  * POST /api/payments/plans
@@ -101,6 +102,159 @@ export const getAllPaymentPlans = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to fetch payment plans',
+    });
+  }
+};
+
+
+/**
+ * GET /api/payments
+ * Get all payments (simplified for parents/students)
+ */
+export const getAllPayments = async (req: AuthRequest, res: Response) => {
+  try {
+    const userId = req.user!.userId;
+    const userRole = req.user!.role;
+
+    // Get student IDs based on user role
+    let studentIds: string[] = [];
+
+    if (userRole === 'PARENT') {
+      // Get parent's linked student IDs
+      const parent = await prisma.parent.findUnique({
+        where: { userId },
+        include: {
+          parentStudentLinks: {
+            select: { studentId: true }
+          }
+        }
+      });
+
+      if (!parent) {
+        return res.status(404).json({
+          success: false,
+          message: 'Parent not found'
+        });
+      }
+
+      studentIds = parent.parentStudentLinks.map(link => link.studentId);
+    } else if (userRole === 'STUDENT') {
+      // Get student's own ID
+      const student = await prisma.student.findUnique({
+        where: { userId },
+        select: { id: true }
+      });
+
+      if (student) {
+        studentIds = [student.id];
+      }
+    } else {
+      // Admin/Teacher can see all - use default behavior
+      const filters = {
+        status: req.query.status as string,
+        page: req.query.page ? parseInt(req.query.page as string) : 1,
+        limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
+      };
+
+      const result = await paymentService.getAllPaymentPlans(filters);
+
+      const payments = result.data.flatMap((plan: any) =>
+        plan.installments.map((inst: any) => ({
+          id: inst.id,
+          amount: inst.amount,
+          currency: plan.currency || 'BHD',
+          status: inst.paymentStatus,
+          description: `Installment ${inst.installmentNumber} of ${plan.totalInstallments}`,
+          createdAt: inst.dueDate,
+          dueDate: inst.dueDate,
+          paidDate: inst.paidDate,
+          student: {
+            id: plan.enrollment.student.id,
+            firstName: plan.enrollment.student.firstName,
+            secondName: plan.enrollment.student.secondName,
+            thirdName: plan.enrollment.student.thirdName,
+          }
+        }))
+      );
+
+      return res.status(200).json({
+        success: true,
+        data: payments,
+        pagination: result.pagination
+      });
+    }
+
+    // If no students linked, return empty
+    if (studentIds.length === 0) {
+      return res.status(200).json({
+        success: true,
+        data: [],
+        pagination: { page: 1, limit: 50, total: 0, totalPages: 0 }
+      });
+    }
+
+    // Fetch payment plans for the specific students
+    const paymentPlans = await prisma.studentPaymentPlan.findMany({
+      where: {
+        enrollment: {
+          studentId: { in: studentIds }
+        }
+      },
+      include: {
+        installments: {
+          orderBy: { dueDate: 'asc' }
+        },
+        enrollment: {
+          include: {
+            student: {
+              select: {
+                id: true,
+                firstName: true,
+                secondName: true,
+                thirdName: true,
+              }
+            }
+          }
+        }
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    // Transform to simplified payment format
+    const payments = paymentPlans.flatMap((plan: any) =>
+      plan.installments.map((inst: any) => ({
+        id: inst.id,
+        amount: inst.amount,
+        currency: 'BHD',  // Fixed currency
+        status: inst.paymentDate ? 'PAID' : 'UNPAID',  // Derive from paymentDate
+        description: `Installment ${inst.installmentNumber} of ${plan.totalInstallments}`,
+        createdAt: inst.dueDate,
+        dueDate: inst.dueDate,
+        paidDate: inst.paymentDate,
+        student: {
+          id: plan.enrollment.student.id,
+          firstName: plan.enrollment.student.firstName,
+          secondName: plan.enrollment.student.secondName,
+          thirdName: plan.enrollment.student.thirdName,
+        }
+      }))
+    );
+
+    res.status(200).json({
+      success: true,
+      data: payments,
+      pagination: {
+        page: 1,
+        limit: payments.length,
+        total: payments.length,
+        totalPages: 1
+      }
+    });
+  } catch (error: any) {
+    console.error('Get payments error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch payments',
     });
   }
 };
@@ -396,7 +550,7 @@ export const createStripeIntent = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Stripe intent error:', error);
-    
+
     if (error.message === 'Installment not found') {
       return res.status(404).json({
         success: false,

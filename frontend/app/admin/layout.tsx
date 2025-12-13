@@ -21,6 +21,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       path: '/admin/students',
       badge: 'Management'
     },
+    { icon: '👪', label: 'Parents', path: '/admin/parents' },
     { icon: '👨‍🏫', label: 'Teachers', path: '/admin/teachers' },
     { icon: '👥', label: 'Groups', path: '/admin/groups' },
     { icon: '📝', label: 'Enrollments', path: '/admin/enrollments' },

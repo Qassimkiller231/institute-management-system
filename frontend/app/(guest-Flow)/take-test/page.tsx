@@ -466,15 +466,30 @@ if (!question) {
   );
 }
 
-  // Handle options - they can be array of strings OR array of objects
-  const options = question.options
-    ? Array.isArray(question.options)
-      ? question.options
-      : []
-    : [];
+  // Handle options - they are stored as JSON string in database
+  let options: string[] = [];
+  
+  if (question.options) {
+    try {
+      // If it's a string, parse it
+      if (typeof question.options === 'string') {
+        options = JSON.parse(question.options);
+      } 
+      // If it's already an array, use it directly
+      else if (Array.isArray(question.options)) {
+        options = question.options;
+      }
+    } catch (error) {
+      console.error('Error parsing options:', error, question.options);
+      options = [];
+    }
+  }
 
-  // Check if options are objects or strings
-  const isObjectOptions = options.length > 0 && typeof options[0] === 'object';
+  console.log('Question:', question.questionText);
+  console.log('Question Type:', question.questionType);
+  console.log('Raw options:', question.options);
+  console.log('Parsed options:', options);
+
 
   return (
     <div className="min-h-screen bg-gray-100 py-8 px-4">
@@ -519,44 +534,62 @@ if (!question) {
             {question.questionText}
           </h2>
 
-          <div className="space-y-3">
-            {options.map((option: any, index: number) => {
-              const optionLabel = String.fromCharCode(65 + index);
-              
-              // Handle both object {id, text, isCorrect} and string formats
-              const optionText = typeof option === 'object' ? option.text : option;
-              const optionValue = typeof option === 'object' ? option.text : option;
-              
-              const isSelected = answers[question.id] === optionValue;
+          {/* Render based on question type */}
+          {question.questionType === 'FILL_BLANK' ? (
+            // Text input for fill-in-the-blank questions
+            <div>
+              <textarea
+                value={answers[question.id] || ''}
+                onChange={(e) => handleAnswerSelect(question.id, e.target.value)}
+                placeholder="Type your answer here..."
+                className="w-full p-4 border-2 border-gray-300 rounded-lg focus:border-blue-600 focus:outline-none resize-none"
+                rows={4}
+              />
+              <p className="text-sm text-gray-500 mt-2">
+                Write your answer in the text box above
+              </p>
+            </div>
+          ) : (
+            // Multiple choice options
+            <div className="space-y-3">
+              {options.map((option: any, index: number) => {
+                const optionLabel = String.fromCharCode(65 + index);
+                
+                // Handle both object {id, text, isCorrect} and string formats
+                const optionText = typeof option === 'object' ? option.text : option;
+                const optionValue = typeof option === 'object' ? option.text : option;
+                
+                const isSelected = answers[question.id] === optionValue;
 
-              return (
-                <button
-                  key={index}
-                  onClick={() => handleAnswerSelect(question.id, optionValue)}
-                  className={`w-full text-left p-4 rounded-lg border-2 transition ${
-                    isSelected
-                      ? "border-blue-600 bg-blue-50"
-                      : "border-gray-300 hover:border-blue-400 bg-white"
-                  }`}
-                >
-                  <div className="flex items-start">
-                    <span
-                      className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3 ${
-                        isSelected
-                          ? "bg-blue-600 text-white"
-                          : "bg-gray-200 text-gray-700"
-                      }`}
-                    >
-                      {optionLabel}
-                    </span>
-                    <span className="text-gray-900 font-medium pt-1">
-                      {optionText}
-                    </span>
-                  </div>
-                </button>
-              );
-            })}
-          </div>
+                return (
+                  <button
+                    key={index}
+                    onClick={() => handleAnswerSelect(question.id, optionValue)}
+                    className={`w-full text-left p-4 rounded-lg border-2 transition ${
+                      isSelected
+                        ? "border-blue-600 bg-blue-50"
+                        : "border-gray-300 hover:border-blue-400 bg-white"
+                    }`}
+                  >
+                    <div className="flex items-start">
+                      <span
+                        className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3 ${
+                          isSelected
+                            ? "bg-blue-600 text-white"
+                            : "bg-gray-200 text-gray-700"
+                        }`}
+                      >
+                        {optionLabel}
+                      </span>
+                      <span className="text-gray-900 font-medium pt-1">
+                        {optionText}
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
 
         {/* Navigation */}

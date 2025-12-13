@@ -256,3 +256,76 @@ export const searchStudents = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+/**
+ * POST /api/students/:id/profile-picture
+ * Upload profile picture for student
+ */
+export const uploadProfilePicture = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    
+    // Check if file was uploaded
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: 'No file uploaded'
+      });
+    }
+
+    // Security: Students can only upload their own picture, admins can upload for anyone
+    if (req.user?.role === 'STUDENT' && req.user?.studentId !== id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only upload your own profile picture'
+      });
+    }
+
+    // Update student with profile picture path
+    const filePath = `/uploads/students/${req.file.filename}`;
+    const result = await studentService.updateProfilePicture(id, filePath);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile picture uploaded successfully',
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Upload profile picture error:', error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to upload profile picture'
+    });
+  }
+};
+
+/**
+ * DELETE /api/students/:id/profile-picture
+ * Delete profile picture for student
+ */
+export const deleteProfilePicture = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    // Security: Students can only delete their own picture, admins can delete for anyone
+    if (req.user?.role === 'STUDENT' && req.user?.studentId !== id) {
+      return res.status(403).json({
+        success: false,
+        message: 'You can only delete your own profile picture'
+      });
+    }
+
+    const result = await studentService.deleteProfilePicture(id);
+
+    return res.status(200).json({
+      success: true,
+      message: 'Profile picture deleted successfully',
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Delete profile picture error:', error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to delete profile picture'
+    });
+  }
+};

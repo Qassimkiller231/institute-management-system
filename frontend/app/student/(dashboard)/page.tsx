@@ -149,11 +149,14 @@ export default function StudentDashboard() {
   };
 
   // Check student test and enrollment status
-  const hasCompletedWrittenTest = student?.testSessions?.some((ts: any) => ts.status === 'COMPLETED');
-  const hasSpeakingSlot = student?.speakingSlots?.some((slot: any) => 
-    slot.status === 'BOOKED' || slot.status === 'COMPLETED'
+  const hasCompletedWrittenTest = student?.testSessions?.some((ts: any) => 
+    ts.status === 'COMPLETED' || ts.status === 'SPEAKING_SCHEDULED' || ts.status === 'MCQ_COMPLETED'
   );
-  const speakingSlotCompleted = student?.speakingSlots?.some((slot: any) => slot.status === 'COMPLETED');
+  
+  // Check if speaking is scheduled (they booked a slot)
+  const hasSpeakingSlot = student?.testSessions?.some((ts: any) => ts.status === 'SPEAKING_SCHEDULED');
+  
+  const speakingSlotCompleted = student?.testSessions?.some((ts: any) => ts.status === 'SPEAKING_COMPLETED');
   const hasCurrentLevel = !!student?.currentLevel;
   
   const hasCurrentTermEnrollment = student?.enrollments?.some(
@@ -179,7 +182,7 @@ export default function StudentDashboard() {
 
   // STATE 1: Has enrollment - Show dashboard regardless of test
   if (hasCurrentTermEnrollment) {
-    // Skip to main dashboard below
+    // Continue to show dashboard below (skip to line 480)
   }
   // STATE 2: Has past enrollments but no current - Show re-enrollment
   else if (hasPastEnrollments) {
@@ -293,12 +296,12 @@ export default function StudentDashboard() {
               </p>
             </div>
 
-            <a
-              href="/student/speaking-appointment"
+            <button
+              onClick={() => router.push('/book-speaking')}
               className="inline-block bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold text-lg hover:bg-blue-700 transition"
             >
-             Book Speaking Test →
-            </a>
+              Book Speaking Test →
+            </button>
           </div>
         </div>
       </div>
@@ -350,7 +353,13 @@ export default function StudentDashboard() {
                   </div>
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Time</p>
-                    <p className="text-lg font-semibold text-gray-900">{bookedSlot.slotTime}</p>
+                    <p className="text-lg font-semibold text-gray-900">
+                      {new Date(bookedSlot.slotTime).toLocaleTimeString('en-US', { 
+                        hour: 'numeric', 
+                        minute: '2-digit',
+                        hour12: true 
+                      })}
+                    </p>
                   </div>
                   {bookedSlot.teacher && (
                     <div className="md:col-span-2">
@@ -364,13 +373,84 @@ export default function StudentDashboard() {
               </div>
             )}
 
-            <div className="text-center space-y-4">
-              <a
-                href="/student/speaking-appointment"
-                className="inline-block bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition"
+            <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
+              <button
+                onClick={async () => {
+                  if (!bookedSlot || !confirm('Are you sure you want to cancel your speaking test appointment?')) return;
+                  
+                  // Get sessionId from testSessions
+                  const session = student?.testSessions?.find((ts: any) => ts.status === 'SPEAKING_SCHEDULED');
+                  if (!session) {
+                    alert('Could not find test session');
+                    return;
+                  }
+                  
+                  try {
+                    const res = await fetch(`http://localhost:3001/api/speaking-slots/${bookedSlot.id}/cancel`, {
+                      method: 'POST',
+                      headers: { 
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ sessionId: session.id })
+                    });
+
+                    if (res.ok) {
+                      alert('Appointment cancelled successfully');
+                      loadStudentData(); // Reload to update view
+                    } else {
+                      const error = await res.json();
+                      alert(`Failed to cancel: ${error.message || 'Unknown error'}`);
+                    }
+                  } catch (error) {
+                    console.error('Error cancelling:', error);
+                    alert('Error cancelling appointment');
+                  }
+                }}
+                className="px-6 py-3 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
               >
-                Reschedule or Cancel
-              </a>
+                Cancel Appointment
+              </button>
+              
+              <button
+                onClick={async () => {
+                  if (!bookedSlot || !confirm('Cancel current appointment and book a new slot?')) return;
+                  
+                  // Get sessionId from testSessions
+                  const session = student?.testSessions?.find((ts: any) => ts.status === 'SPEAKING_SCHEDULED');
+                  if (!session) {
+                    alert('Could not find test session');
+                    return;
+                  }
+                  
+                  try {
+                    const res = await fetch(`http://localhost:3001/api/speaking-slots/${bookedSlot.id}/cancel`, {
+                      method: 'POST',
+                      headers: { 
+                        'Authorization': `Bearer ${getToken()}`,
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({ sessionId: session.id })
+                    });
+
+                    if (res.ok) {
+                      loadStudentData(); // Reload - will show booking interface
+                    } else {
+                      const error = await res.json();
+                      alert(`Failed to cancel: ${error.message || 'Unknown error'}`);
+                    }
+                  } catch (error) {
+                    console.error('Error:', error);
+                    alert('Error rescheduling');
+                  }
+                }}
+                className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
+              >
+                Reschedule
+              </button>
+            </div>
+
+            <div className="text-center">
               <p className="text-sm text-gray-600">
                 Please attend your speaking test on the scheduled date and time to receive your final assessment.
               </p>
