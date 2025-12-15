@@ -45,9 +45,8 @@ export const getAllPrograms = async (filters: {
   const skip = (page - 1) * limit;
 
   const where: any = {};
-  if (filters.isActive !== undefined) {
-    where.isActive = filters.isActive;
-  }
+  // Default to showing only active programs unless explicitly set to false
+  where.isActive = filters.isActive !== undefined ? filters.isActive : true;
 
   const [programs, total] = await Promise.all([
     prisma.program.findMany({

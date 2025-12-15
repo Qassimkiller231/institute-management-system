@@ -603,7 +603,7 @@ model Installment {
   installmentNumber       Int
   amount                  Decimal   @db.Decimal(10, 2)
   paymentDate             DateTime?  @db.Date
-  paymentMethod           String    // BENEFIT_PAY, BANK_TRANSFER, CASH, CARD_MACHINE, ONLINE_PAYMENT
+  paymentMethod           String?   // BENEFIT_PAY, BANK_TRANSFER, CASH, CARD_MACHINE, ONLINE_PAYMENT (nullable until paid)
   dueDate                 DateTime?  @db.Date  // Add this if missing
   paymentReminders        PaymentReminder[]
   receiptNumber           String?

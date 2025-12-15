@@ -5,8 +5,8 @@ import { useRouter, useParams } from 'next/navigation';
 import { getToken } from '@/lib/auth';
 
 interface AttendanceStats {
-  totalClasses: number;
-  attended: number;
+  totalSessions: number; // Changed from totalClasses
+  present: number; // Changed from attended
   late: number;
   absent: number;
   excused: number;
@@ -15,11 +15,11 @@ interface AttendanceStats {
 
 interface AttendanceRecord {
   id: string;
-  date: string;
+  markedAt: string;
   status: string;
-  session: {
-    classType: string;
-    description?: string;
+  classSession: {
+    sessionDate: string;
+    topic?: string;
     group: {
       name: string;
     };
@@ -413,11 +413,11 @@ export default function ChildDetailPage() {
                     <div className="grid md:grid-cols-5 gap-4 mb-6">
                       <div className="bg-blue-50 rounded-lg p-4">
                         <p className="text-blue-600 text-sm font-medium">Total Classes</p>
-                        <p className="text-2xl font-bold text-blue-900">{attendanceStats.totalClasses}</p>
+                        <p className="text-2xl font-bold text-blue-900">{attendanceStats.totalSessions}</p>
                       </div>
                       <div className="bg-green-50 rounded-lg p-4">
                         <p className="text-green-600 text-sm font-medium">Present</p>
-                        <p className="text-2xl font-bold text-green-900">{attendanceStats.attended}</p>
+                        <p className="text-2xl font-bold text-green-900">{attendanceStats.present}</p>
                       </div>
                       <div className="bg-yellow-50 rounded-lg p-4">
                         <p className="text-yellow-600 text-sm font-medium">Late</p>
@@ -437,17 +437,35 @@ export default function ChildDetailPage() {
                   {/* Attendance Records */}
                   {attendanceRecords.length > 0 ? (
                     <div className="space-y-2">
-                      {attendanceRecords.slice(0, 10).map((record) => (
-                        <div key={record.id} className="border rounded-lg p-3 flex items-center justify-between">
-                          <div className="flex-1">
-                            <p className="font-medium text-gray-900">{record.session?.group?.name || 'N/A'}</p>
-                            <p className="text-sm text-gray-600">{record.session?.classType || 'Class'} - {new Date(record.date).toLocaleDateString()}</p>
+                      {attendanceRecords
+                        .filter(record => record.classSession && record.classSession.sessionDate) // Only show records with valid session data
+                        .slice(0, 10)
+                        .map((record) => {
+                        // Safely parse and format the date
+                        const formatDate = (dateString: string) => {
+                          if (!dateString) return 'N/A';
+                          try {
+                            const date = new Date(dateString);
+                            return isNaN(date.getTime()) ? 'N/A' : date.toLocaleDateString();
+                          } catch {
+                            return 'N/A';
+                          }
+                        };
+
+                        return (
+                          <div key={record.id} className="border rounded-lg p-3 flex items-center justify-between">
+                            <div className="flex-1">
+                              <p className="font-medium text-gray-900">{record.classSession?.group?.name || 'N/A'}</p>
+                              <p className="text-sm text-gray-600">
+                                {record.classSession?.topic || 'Class'} - {formatDate(record.classSession?.sessionDate)}
+                              </p>
+                            </div>
+                            <span className={`px-3 py-1 rounded-full text-xs font-medium ${getAttendanceStatusColor(record.status)}`}>
+                              {record.status}
+                            </span>
                           </div>
-                          <span className={`px-3 py-1 rounded-full text-xs font-medium ${getAttendanceStatusColor(record.status)}`}>
-                            {record.status}
-                          </span>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   ) : (
                     <p className="text-gray-600 text-center py-8">No attendance records found</p>

@@ -246,6 +246,7 @@ export const getStudentById = async (studentId: string) => {
             include: {
               level: {
                 select: {
+                  id: true,
                   name: true,
                   displayName: true
                 }

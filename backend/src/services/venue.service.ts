@@ -6,7 +6,7 @@ export const createVenue = async (data: {
   name: string;
   code: string;
   address?: string;
-  isActive?:boolean;
+  isActive?: boolean;
 }) => {
   const existing = await prisma.venue.findUnique({
     where: { code: data.code }
@@ -21,7 +21,7 @@ export const createVenue = async (data: {
       name: data.name,
       code: data.code,
       address: data.address,
-      isActive: data.isActive? data.isActive : false
+      isActive: data.isActive ? data.isActive : false
     }
   });
 };
@@ -30,9 +30,8 @@ export const getAllVenues = async (filters: {
   isActive?: boolean;
 }) => {
   const where: any = {};
-  if (filters.isActive !== undefined) {
-    where.isActive = filters.isActive;
-  }
+  // Default to showing only active venues unless explicitly set to false
+  where.isActive = filters.isActive !== undefined ? filters.isActive : true;
 
   return await prisma.venue.findMany({
     where,

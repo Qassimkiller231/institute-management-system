@@ -133,7 +133,9 @@ export const getProgressCriteriaById = async (
 export const listProgressCriteria = async (
   filter: ProgressCriteriaFilter = {}
 ): Promise<ProgressCriteria[]> => {
-  const { levelId, groupId, isActive } = filter;
+  const { levelId, isActive } = filter;
+
+  console.log('🔍 [listProgressCriteria] Input filter:', { levelId, isActive });
 
   const where: any = {};
 
@@ -141,23 +143,27 @@ export const listProgressCriteria = async (
     where.isActive = isActive;
   }
 
-  // If levelId / groupId provided, we want those
-  if (levelId || groupId) {
-    const orConditions: any[] = [];
-    if (groupId) orConditions.push({ groupId });
-    if (levelId) orConditions.push({ levelId });
-    if (orConditions.length > 0) {
-      where.OR = orConditions;
-    }
+  // Query by levelId only (criteria are per-level, not per-group)
+  if (levelId) {
+    where.levelId = levelId;
   }
 
-  return prisma.progressCriteria.findMany({
+  console.log('🔍 [listProgressCriteria] Final where clause:', JSON.stringify(where, null, 2));
+
+  const results = await prisma.progressCriteria.findMany({
     where,
     orderBy: [
       { orderNumber: 'asc' },
       { createdAt: 'asc' }
     ]
   });
+
+  console.log('🔍 [listProgressCriteria] Results count:', results.length);
+  if (results.length > 0) {
+    console.log('🔍 [listProgressCriteria] First result:', results[0]);
+  }
+
+  return results;
 };
 
 /**

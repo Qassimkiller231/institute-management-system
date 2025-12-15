@@ -106,6 +106,137 @@ export const getAllPaymentPlans = async (req: AuthRequest, res: Response) => {
   }
 };
 
+/**
+ * PUT /api/payments/plans/:id
+ * Update payment plan
+ */
+export const updatePaymentPlan = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const plan = await paymentService.updatePaymentPlan(id, updates);
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment plan updated successfully',
+      data: plan,
+    });
+  } catch (error: any) {
+    console.error('Update payment plan error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to update payment plan',
+    });
+  }
+};
+
+/**
+ * DELETE /api/payments/plans/:id
+ * Delete payment plan
+ */
+export const deletePaymentPlan = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    await paymentService.deletePaymentPlan(id);
+
+    res.status(200).json({
+      success: true,
+      message: 'Payment plan deleted successfully',
+    });
+  } catch (error: any) {
+    console.error('Delete payment plan error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to delete payment plan',
+    });
+  }
+};
+
+/**
+ * POST /api/payments/plans/:planId/installments
+ * Add new installment to plan
+ */
+export const addInstallment = async (req: AuthRequest, res: Response) => {
+  try {
+    const { planId } = req.params;
+    const { amount, dueDate } = req.body;
+
+    if (!amount || !dueDate) {
+      return res.status(400).json({
+        success: false,
+        message: 'Amount and due date are required'
+      });
+    }
+
+    const installment = await paymentService.addInstallment(planId, {
+      amount,
+      dueDate
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Installment added successfully',
+      data: installment
+    });
+  } catch (error: any) {
+    console.error('Add installment error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to add installment'
+    });
+  }
+};
+
+/**
+ * PUT /api/payments/installments/:installmentId/details
+ * Update installment details
+ */
+export const updateInstallmentDetails = async (req: AuthRequest, res: Response) => {
+  try {
+    const { installmentId } = req.params;
+    const updates = req.body;
+
+    const installment = await paymentService.updateInstallment(installmentId, updates);
+
+    res.status(200).json({
+      success: true,
+      message: 'Installment updated successfully',
+      data: installment
+    });
+  } catch (error: any) {
+    console.error('Update installment error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to update installment'
+    });
+  }
+};
+
+/**
+ * DELETE /api/payments/installments/:installmentId
+ * Delete installment
+ */
+export const deleteInstallment = async (req: AuthRequest, res: Response) => {
+  try {
+    const { installmentId } = req.params;
+
+    await paymentService.deleteInstallment(installmentId);
+
+    res.status(200).json({
+      success: true,
+      message: 'Installment deleted successfully'
+    });
+  } catch (error: any) {
+    console.error('Delete installment error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to delete installment'
+    });
+  }
+};
+
 
 /**
  * GET /api/payments

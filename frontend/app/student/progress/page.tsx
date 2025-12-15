@@ -61,8 +61,22 @@ export default function StudentProgressPage() {
           return;
         }
 
-        // Get levelId from enrollment
-        const levelId = activeEnrollment.group.levelId;
+        // Validate group exists
+        if (!activeEnrollment.group) {
+          throw new Error('Enrollment group data not found. Please contact administration.');
+        }
+
+        // Validate level exists
+        if (!activeEnrollment.group.level) {
+          throw new Error('Level not assigned to group. Please contact administration.');
+        }
+
+        // Get levelId from enrollment (access via nested level object)
+        const levelId = activeEnrollment.group.level.id;
+        
+        if (!levelId) {
+          throw new Error('Level ID missing. Please contact administration.');
+        }
 
         // Fetch progress data
         const progressRes = await fetch(
@@ -74,12 +88,16 @@ export default function StudentProgressPage() {
           }
         );
 
-        if (!progressRes.ok) throw new Error('Failed to fetch progress data');
+        if (!progressRes.ok) {
+          const errorData = await progressRes.json().catch(() => ({message: 'Failed to fetch progress data'}));
+          throw new Error(errorData.message || 'Failed to fetch progress data');
+        }
+        
         const progressResponse = await progressRes.json();
         const progress = progressResponse.data || progressResponse;
 
         // Get level name
-        const currentLevel = activeEnrollment.group.level?.name || 'Unknown';
+        const currentLevel = activeEnrollment.group.level.name || 'Unknown';
 
         setProgressData({
           ...progress,

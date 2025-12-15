@@ -8,10 +8,9 @@ interface Material {
   id: string;
   title: string;
   description?: string;
-  type: string;
+  materialType: string; // Changed from type - actual DB field
   fileUrl?: string;
-  isActive: boolean;
-  createdAt: string;
+  uploadedAt: string;
   group?: {
     id: string;
     name: string;
@@ -66,9 +65,9 @@ export default function ParentMaterialsPage() {
   };
 
   const filteredMaterials = materials.filter(m => {
-    const matchesSearch = (m.title || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (m.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'all' || m.type === typeFilter;
+    const matchesSearch = m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         m.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesType = typeFilter === 'all' || m.materialType === typeFilter;
     return matchesSearch && matchesType;
   });
 
@@ -117,7 +116,7 @@ export default function ParentMaterialsPage() {
     );
   }
 
-  const materialTypes = ['all', ...new Set(materials.map(m => m.type))];
+  const materialTypes = ['all', ...new Set(materials.map(m => m.materialType).filter(t => t))];
 
   return (
     <div className="space-y-6">
@@ -140,9 +139,9 @@ export default function ParentMaterialsPage() {
             onChange={(e) => setTypeFilter(e.target.value)}
             className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           >
-            {materialTypes.map(type => (
+            {materialTypes.filter(type => type).map(type => ( // Filter out undefined/null
               <option key={type} value={type}>
-                {type === 'all' ? 'All Types' : type}
+                {type === 'all' ? 'All Types' : type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()}
               </option>
             ))}
           </select>
@@ -167,9 +166,9 @@ export default function ParentMaterialsPage() {
               <div className="p-6">
                 {/* Icon and Type */}
                 <div className="flex items-start justify-between mb-3">
-                  <div className="text-4xl">{getTypeIcon(material.type)}</div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(material.type)}`}>
-                    {material.type}
+                  <div className="text-4xl">{getTypeIcon(material.materialType)}</div>
+                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(material.materialType)}`}>
+                    {material.materialType}
                   </span>
                 </div>
 
@@ -195,7 +194,7 @@ export default function ParentMaterialsPage() {
 
                 {/* Date */}
                 <p className="text-xs text-gray-500 mb-4">
-                  Added {new Date(material.createdAt).toLocaleDateString()}
+                  Added {material.uploadedAt ? new Date(material.uploadedAt).toLocaleDateString() : 'N/A'}
                 </p>
 
                 {/* Action Button */}
@@ -206,7 +205,7 @@ export default function ParentMaterialsPage() {
                     rel="noopener noreferrer"
                     className="block w-full px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition text-sm font-medium"
                   >
-                    {material.type === 'LINK' ? 'Open Link' : 'Download'}
+                    {material.materialType === 'LINK' ? 'Open Link' : 'Download'}
                   </a>
                 ) : (
                   <button
@@ -234,19 +233,19 @@ export default function ParentMaterialsPage() {
             <div>
               <p className="text-green-100 text-sm">Documents</p>
               <p className="text-3xl font-bold">
-                {materials.filter(m => m.type === 'DOCUMENT').length}
+                {materials.filter(m => m.materialType?.toUpperCase() === 'PDF' || m.materialType?.toUpperCase() === 'DOCUMENT').length}
               </p>
             </div>
             <div>
               <p className="text-green-100 text-sm">Videos</p>
               <p className="text-3xl font-bold">
-                {materials.filter(m => m.type === 'VIDEO').length}
+                {materials.filter(m => m.materialType?.toUpperCase() === 'VIDEO').length}
               </p>
             </div>
             <div>
-              <p className="text-green-100 text-sm">Slides</p>
+              <p className="text-green-100 text-sm">Links</p>
               <p className="text-3xl font-bold">
-                {materials.filter(m => m.type === 'SLIDES').length}
+                {materials.filter(m => m.materialType?.toUpperCase() === 'LINK').length}
               </p>
             </div>
           </div>

@@ -78,12 +78,12 @@ export default function ParentPaymentsPage() {
     if (!status) return 'bg-gray-100 text-gray-800';
     
     switch (status.toUpperCase()) {
-      case 'COMPLETED':
       case 'PAID':
         return 'bg-green-100 text-green-800';
       case 'PENDING':
-      case 'UNPAID':
         return 'bg-yellow-100 text-yellow-800';
+      case 'OVERDUE':
+        return 'bg-red-100 text-red-800';
       case 'FAILED':
         return 'bg-red-100 text-red-800';
       default:
@@ -92,11 +92,11 @@ export default function ParentPaymentsPage() {
   };
 
   const totalPaid = payments
-    .filter(p => p.status && (p.status.toUpperCase() === 'COMPLETED' || p.status.toUpperCase() === 'PAID'))
+    .filter(p => p.status?.toUpperCase() === 'PAID')
     .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
   const totalPending = payments
-    .filter(p => p.status && (p.status.toUpperCase() === 'PENDING' || p.status.toUpperCase() === 'UNPAID'))
+    .filter(p => p.status && ['PENDING', 'OVERDUE'].includes(p.status.toUpperCase()))
     .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
 
   const handleMakePayment = (payment: Payment) => {
@@ -241,7 +241,7 @@ export default function ParentPaymentsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {payment.status && (payment.status.toUpperCase() === 'PENDING' || payment.status.toUpperCase() === 'UNPAID') ? (
+                    {payment.status && ['PENDING', 'OVERDUE'].includes(payment.status.toUpperCase()) ? (
                       <button
                         onClick={() => handleMakePayment(payment)}
                         className="text-blue-600 hover:text-blue-800 font-medium"
@@ -249,21 +249,7 @@ export default function ParentPaymentsPage() {
                         Pay Now
                       </button>
                     ) : (
-                      <button
-                        onClick={() => {
-                          // Check if payment has a receipt
-                          const hasReceipt = false; // TODO: Add receiptUrl to Payment interface when backend provides it
-                          if (hasReceipt) {
-                            // Open receipt in new tab
-                            window.open('/receipt-url', '_blank');
-                          } else {
-                            alert('Receipt not available yet. It will be generated after payment confirmation.');
-                          }
-                        }}
-                        className="text-gray-600 hover:text-gray-800 font-medium"
-                      >
-                        View Receipt
-                      </button>
+                      <span className="text-green-600 font-medium">✓ Paid</span>
                     )}
                   </td>
                 </tr>

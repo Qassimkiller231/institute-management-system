@@ -52,7 +52,8 @@ export const getAllTerms = async (filters: {
   const where: any = {};
   if (filters.programId) where.programId = filters.programId;
   if (filters.isCurrent !== undefined) where.isCurrent = filters.isCurrent;
-  if (filters.isActive !== undefined) where.isActive = filters.isActive;
+  // Default to showing only active terms unless explicitly set to false
+  where.isActive = filters.isActive !== undefined ? filters.isActive : true;
 
   const [terms, total] = await Promise.all([
     prisma.term.findMany({
@@ -138,7 +139,7 @@ export const updateTerm = async (id: string, updates: {
   // If setting this term to current, unset others
   if (updates.isCurrent) {
     await prisma.term.updateMany({
-      where: { 
+      where: {
         programId: existing.programId,
         id: { not: id }
       },

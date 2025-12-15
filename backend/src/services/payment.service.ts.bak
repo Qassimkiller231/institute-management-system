@@ -1,3 +1,4 @@
+```typescript
 // src/services/payment.service.ts
 import { PrismaClient } from '@prisma/client';
 import { calculateInstallmentStatus } from '../utils/paymentHelpers';
@@ -60,9 +61,8 @@ export const createPaymentPlan = async (data: {
           paymentPlanId: plan.id,
           installmentNumber: inst.installmentNumber,
           amount: inst.amount,
-          dueDate: new Date(inst.paymentDate), // This is actually the due date
-          paymentMethod: null, // NULL until paid
-          paymentDate: null, // NULL until paid
+          paymentDate: new Date(inst.paymentDate),
+          paymentMethod: 'PENDING', // Will be updated when paid
         },
       });
     }
@@ -481,163 +481,4 @@ export const getInstallmentWithStudent = async (installmentId: string) => {
   }
 
   return installment;
-};
-
-/**
- * Update Payment Plan
- */
-export const updatePaymentPlan = async (
-  planId: string,
-  updates: {
-    totalAmount?: number;
-    discountAmount?: number;
-    discountReason?: string;
-  }
-) => {
-  const plan = await prisma.studentPaymentPlan.findUnique({
-    where: { id: planId },
-    include: { installments: true }
-  });
-
-  if (!plan) {
-    throw new Error('Payment plan not found');
-  }
-
-  // Recalculate final amount if total or discount changed
-  const totalAmount = updates.totalAmount ?? plan.totalAmount;
-  const discountAmount = updates.discountAmount ?? plan.discountAmount;
-  const finalAmount = Number(totalAmount) - Number(discountAmount);
-
-  return await prisma.studentPaymentPlan.update({
-    where: { id: planId },
-    data: {
-      ...(updates.totalAmount !== undefined && { totalAmount: updates.totalAmount }),
-      ...(updates.discountAmount !== undefined && { discountAmount: updates.discountAmount }),
-      ...(updates.discountReason !== undefined && { discountReason: updates.discountReason }),
-      finalAmount
-    },
-    include: {
-      installments: { orderBy: { installmentNumber: 'asc' } },
-      enrollment: {
-        include: {
-          student: true,
-          group: { include: { term: true, level: true } }
-        }
-      }
-    }
-  });
-};
-
-/**
- * Delete Payment Plan (soft or hard delete)
- */
-export const deletePaymentPlan = async (planId: string) => {
-  const plan = await prisma.studentPaymentPlan.findUnique({
-    where: { id: planId },
-    include: { installments: true }
-  });
-
-  if (!plan) {
-    throw new Error('Payment plan not found');
-  }
-
-  // Check if any installments have been paid
-  const hasPaidInstallments = plan.installments.some(inst => inst.paymentDate !== null);
-
-  if (hasPaidInstallments) {
-    throw new Error('Cannot delete payment plan with paid installments. Please contact admin for assistance.');
-  }
-
-  // Hard delete (cascade will remove installments automatically)
-  return await prisma.studentPaymentPlan.delete({
-    where: { id: planId }
-  });
-};
-
-/**
- * Add a new installment to an existing payment plan
- */
-export const addInstallment = async (
-  planId: string,
-  data: {
-    amount: number;
-    dueDate: string;
-  }
-) => {
-  const plan = await prisma.studentPaymentPlan.findUnique({
-    where: { id: planId },
-    include: { installments: true }
-  });
-
-  if (!plan) {
-    throw new Error('Payment plan not found');
-  }
-
-  // Get next installment number
-  const maxInstallmentNumber = Math.max(...plan.installments.map(i => i.installmentNumber), 0);
-
-  return await prisma.installment.create({
-    data: {
-      paymentPlanId: planId,
-      installmentNumber: maxInstallmentNumber + 1,
-      amount: data.amount,
-      dueDate: new Date(data.dueDate),
-      paymentMethod: null,
-      paymentDate: null
-    }
-  });
-};
-
-/**
- * Update an installment
- */
-export const updateInstallment = async (
-  installmentId: string,
-  updates: {
-    amount?: number;
-    dueDate?: string;
-  }
-) => {
-  const installment = await prisma.installment.findUnique({
-    where: { id: installmentId }
-  });
-
-  if (!installment) {
-    throw new Error('Installment not found');
-  }
-
-  // Don't allow editing paid installments
-  if (installment.paymentDate) {
-    throw new Error('Cannot edit a paid installment');
-  }
-
-  return await prisma.installment.update({
-    where: { id: installmentId },
-    data: {
-      ...(updates.amount !== undefined && { amount: updates.amount }),
-      ...(updates.dueDate && { dueDate: new Date(updates.dueDate) })
-    }
-  });
-};
-
-/**
- * Delete an installment
- */
-export const deleteInstallment = async (installmentId: string) => {
-  const installment = await prisma.installment.findUnique({
-    where: { id: installmentId }
-  });
-
-  if (!installment) {
-    throw new Error('Installment not found');
-  }
-
-  // Don't allow deleting paid installments
-  if (installment.paymentDate) {
-    throw new Error('Cannot delete a paid installment');
-  }
-
-  return await prisma.installment.delete({
-    where: { id: installmentId }
-  });
 };

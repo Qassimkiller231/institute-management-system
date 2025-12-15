@@ -39,12 +39,12 @@ export const createAnnouncement = async (data: {
       term: true,
     }
   });
-  
+
   // If publish now, send notifications
   if (data.publishNow) {
     await sendAnnouncementNotifications(announcement);
   }
-  
+
   return announcement;
 };
 
@@ -64,16 +64,24 @@ export const getAnnouncements = async (filters: {
   const page = filters.page || 1;
   const limit = filters.limit || 20;
   const skip = (page - 1) * limit;
-  
+
   const where: any = {};
-  
+
   if (filters.groupId) where.groupId = filters.groupId;
   if (filters.termId) where.termId = filters.termId;
   if (filters.isPublished !== undefined) where.isPublished = filters.isPublished;
   if (filters.targetAudience) where.targetAudience = filters.targetAudience;
-  
+
+  console.log('🔍 [ANNOUNCEMENTS] Filter debug:', {
+    userRole: filters.userRole,
+    userId: filters.userId,
+    isStudent: filters.userRole === 'STUDENT'
+  });
+
   // If user is student, only show announcements for their groups
   if (filters.userRole === 'STUDENT' && filters.userId) {
+    console.log('🔍 [ANNOUNCEMENTS] User is STUDENT, fetching enrollments...');
+
     const student = await prisma.student.findUnique({
       where: { userId: filters.userId },
       include: {
@@ -82,16 +90,31 @@ export const getAnnouncements = async (filters: {
         }
       }
     });
-    
+
+    console.log('🔍 [ANNOUNCEMENTS] Student found:', !!student);
+    console.log('🔍 [ANNOUNCEMENTS] Active enrollments:', student?.enrollments.length || 0);
+
     if (student) {
       const groupIds = student.enrollments.map(e => e.groupId);
+      console.log('🔍 [ANNOUNCEMENTS] Group IDs:', groupIds);
+
+      // Show announcements for student's groups OR all institute-wide announcements
       where.OR = [
         { groupId: { in: groupIds } },
-        { targetAudience: 'ALL' }
+        { targetAudience: 'ALL' }, // Institute-wide announcements
+        { targetAudience: 'STUDENT' } // General student announcements (SINGULAR to match DB enum)
       ];
+
+      console.log('🔍 [ANNOUNCEMENTS] Where clause with OR:', JSON.stringify(where, null, 2));
+    } else {
+      console.log('⚠️  [ANNOUNCEMENTS] Student not found, showing only ALL announcements');
+      // If student not found, only show ALL announcements
+      where.targetAudience = 'ALL';
     }
+  } else {
+    console.log('🔍 [ANNOUNCEMENTS] Not a student or no userId, applying standard filters');
   }
-  
+
   const [announcements, total] = await Promise.all([
     prisma.announcement.findMany({
       where,
@@ -114,7 +137,7 @@ export const getAnnouncements = async (filters: {
     }),
     prisma.announcement.count({ where })
   ]);
-  
+
   return {
     data: announcements,
     pagination: {
@@ -149,11 +172,11 @@ export const getAnnouncementById = async (id: string) => {
       term: true,
     }
   });
-  
+
   if (!announcement) {
     throw new Error('Announcement not found');
   }
-  
+
   return announcement;
 };
 
@@ -170,23 +193,23 @@ export const updateAnnouncement = async (id: string, updates: {
   const existing = await prisma.announcement.findUnique({
     where: { id }
   });
-  
+
   if (!existing) {
     throw new Error('Announcement not found');
   }
-  
+
   const data: any = {};
   if (updates.title) data.title = updates.title;
   if (updates.content) data.content = updates.content;
   if (updates.targetAudience) data.targetAudience = updates.targetAudience;
   if (updates.scheduledFor) data.scheduledFor = updates.scheduledFor;
-  
+
   // If publishing now and wasn't published before
   if (updates.isPublished && !existing.isPublished) {
     data.isPublished = true;
     data.publishedAt = new Date();
   }
-  
+
   const announcement = await prisma.announcement.update({
     where: { id },
     data,
@@ -200,12 +223,12 @@ export const updateAnnouncement = async (id: string, updates: {
       term: true
     }
   });
-  
+
   // Send notifications if newly published
   if (updates.isPublished && !existing.isPublished) {
     await sendAnnouncementNotifications(announcement);
   }
-  
+
   return announcement;
 };
 
@@ -216,11 +239,11 @@ export const deleteAnnouncement = async (id: string) => {
   const existing = await prisma.announcement.findUnique({
     where: { id }
   });
-  
+
   if (!existing) {
     throw new Error('Announcement not found');
   }
-  
+
   await prisma.announcement.delete({
     where: { id }
   });
@@ -231,7 +254,7 @@ export const deleteAnnouncement = async (id: string) => {
  */
 export const publishScheduledAnnouncements = async () => {
   const now = new Date();
-  
+
   // Find announcements scheduled for now or earlier
   const scheduledAnnouncements = await prisma.announcement.findMany({
     where: {
@@ -248,7 +271,7 @@ export const publishScheduledAnnouncements = async () => {
       term: true
     }
   });
-  
+
   for (const announcement of scheduledAnnouncements) {
     // Publish it
     await prisma.announcement.update({
@@ -258,11 +281,11 @@ export const publishScheduledAnnouncements = async () => {
         publishedAt: new Date()
       }
     });
-    
+
     // Send notifications
     await sendAnnouncementNotifications(announcement);
   }
-  
+
   return scheduledAnnouncements.length;
 };
 
@@ -270,12 +293,12 @@ export const publishScheduledAnnouncements = async () => {
  * Send announcement notifications to recipients
  */
 async function sendAnnouncementNotifications(announcement: any) {
-  let recipients: Array<{ 
-    userId: string; 
-    email: string | null; 
-    phone: string | null 
+  let recipients: Array<{
+    userId: string;
+    email: string | null;
+    phone: string | null
   }> = [];
-  
+
   // Determine recipients based on target audience
   if (announcement.targetAudience === 'GROUP_SPECIFIC' && announcement.groupId) {
     // Get all students in the group
@@ -290,7 +313,7 @@ async function sendAnnouncementNotifications(announcement: any) {
         }
       }
     });
-    
+
     recipients = enrollments.map(e => ({
       userId: e.student.userId,
       email: e.student.user.email,
@@ -302,7 +325,7 @@ async function sendAnnouncementNotifications(announcement: any) {
       where: { isActive: true },
       include: { user: true }
     });
-    
+
     recipients = students.map(s => ({
       userId: s.userId,
       email: s.user.email,
@@ -314,7 +337,7 @@ async function sendAnnouncementNotifications(announcement: any) {
       where: { isActive: true },
       include: { user: true }
     });
-    
+
     recipients = teachers.map(t => ({
       userId: t.userId,
       email: t.user.email,
@@ -325,7 +348,7 @@ async function sendAnnouncementNotifications(announcement: any) {
     const parents = await prisma.parent.findMany({
       include: { user: true }
     });
-    
+
     recipients = parents.map(p => ({
       userId: p.userId,
       email: p.user.email,
@@ -336,14 +359,14 @@ async function sendAnnouncementNotifications(announcement: any) {
     const users = await prisma.user.findMany({
       where: { isActive: true }
     });
-    
+
     recipients = users.map(u => ({
       userId: u.id,
       email: u.email,
       phone: u.phone
     }));
   }
-  
+
   // Send notifications
   const emailMessage = `
 ${announcement.title}
@@ -356,9 +379,9 @@ ${announcement.group?.level ? `Level: ${announcement.group.level.name}` : ''}
 Best regards,
 The Function Institute
   `.trim();
-  
+
   const smsMessage = `${announcement.title}: ${announcement.content.substring(0, 100)}... -Function Institute`;
-  
+
   for (const recipient of recipients) {
     // Create system notification
     try {
@@ -376,7 +399,7 @@ The Function Institute
     } catch (error) {
       console.error('Failed to create notification:', error);
     }
-    
+
     // Send email
     if (recipient.email) {
       try {
@@ -390,7 +413,7 @@ The Function Institute
         console.error('Failed to send email:', error);
       }
     }
-    
+
     // Send SMS (only for group-specific announcements to avoid spam)
     if (recipient.phone && announcement.targetAudience === 'GROUP_SPECIFIC') {
       try {

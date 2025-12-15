@@ -22,6 +22,12 @@ router.post('/plans', requireAdmin, paymentController.createPaymentPlan);
 // Get all payment plans (Admin only)
 router.get('/plans', requireAdmin, paymentController.getAllPaymentPlans);
 
+// Update payment plan (Admin only)
+router.put('/plans/:id', requireAdmin, paymentController.updatePaymentPlan);
+
+// Delete payment plan (Admin only)
+router.delete('/plans/:id', requireAdmin, paymentController.deletePaymentPlan);
+
 // Get payment plan by enrollment (Admin or student owner)
 router.get(
   '/plans/enrollment/:enrollmentId',
@@ -35,6 +41,27 @@ router.get(
 );
 
 // ==================== INSTALLMENTS ====================
+
+// Add new installment to plan (Admin only)
+router.post(
+  '/plans/:planId/installments',
+  requireAdmin,
+  paymentController.addInstallment
+);
+
+// Update installment (Admin only)
+router.put(
+  '/installments/:installmentId/details',
+  requireAdmin,
+  paymentController.updateInstallmentDetails
+);
+
+// Delete installment (Admin only)
+router.delete(
+  '/installments/:installmentId',
+  requireAdmin,
+  paymentController.deleteInstallment
+);
 
 // Record payment (Admin only)
 router.post(

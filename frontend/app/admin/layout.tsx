@@ -40,6 +40,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     { icon: '📊', label: 'Progress Reports', path: '/admin/reports/progress' },
     { icon: '💰', label: 'Financial Reports', path: '/admin/reports/financial' },
     { icon: '💳', label: 'Payments', path: '/admin/payments' },
+    { icon: '📋', label: 'Payment Plans', path: '/admin/payment-plans' },
     
     { divider: true, label: 'Testing & Progress' },
     { icon: '🎤', label: 'Speaking Tests', path: '/admin/speaking-tests' },
@@ -141,7 +142,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       </aside>
 
       {/* Main Content */}
-      <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
+      <main className={`flex-1 transition-all duration-300 bg-gray-50 min-h-screen ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
         {/* Top Bar */}
         <header className="bg-white shadow-sm border-b sticky top-0 z-5">
           <div className="px-6 py-4 flex items-center justify-between">

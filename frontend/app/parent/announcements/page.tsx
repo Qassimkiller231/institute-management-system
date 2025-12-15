@@ -8,12 +8,11 @@ interface Announcement {
   id: string;
   title: string;
   content: string;
-  type: string;
-  targetType: string;
-  priority: string;
-  isActive: boolean;
+  targetAudience: string; // Changed from type - actual DB field
+  isPublished: boolean;
+  publishedAt?: string;
   createdAt: string;
-  author: {
+  publisher?: {
     email: string;
   };
 }
@@ -22,7 +21,7 @@ export default function ParentAnnouncementsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [filter, setFilter] = useState<'all' | 'general' | 'academic' | 'administrative'>('all');
+  const [filter, setFilter] = useState<'all' | 'STUDENTS' | 'TEACHERS' | 'PARENTS' | 'ALL'>('all');
 
   useEffect(() => {
     fetchAnnouncements();
@@ -45,6 +44,10 @@ export default function ParentAnnouncementsPage() {
       if (!res.ok) throw new Error('Failed to fetch announcements');
       
       const data = await res.json();
+      console.log('=== ANNOUNCEMENT DEBUG ===');
+      console.log('Total announcements:', data.data?.length);
+      console.log('First announcement:', JSON.stringify(data.data?.[0], null, 2));
+      console.log('All targetAudience values:', data.data?.map((a: any) => a.targetAudience));
       setAnnouncements(data.data || []);
     } catch (err: any) {
       console.error('Error loading announcements:', err);
@@ -56,34 +59,31 @@ export default function ParentAnnouncementsPage() {
 
   const filteredAnnouncements = announcements.filter(a => {
     if (filter === 'all') return true;
-    return a.type.toLowerCase() === filter;
+    if (!a.targetAudience) return false;
+    
+    // Handle both singular and plural forms
+    const audience = a.targetAudience.toUpperCase();
+    const filterUpper = filter.toUpperCase();
+    
+    // Match exact or handle STUDENT/STUDENTS, TEACHER/TEACHERS variations
+    return audience === filterUpper || 
+           (filterUpper === 'STUDENTS' && audience === 'STUDENT') ||
+           (filterUpper === 'TEACHERS' && audience === 'TEACHER');
   });
 
-  const getPriorityColor = (priority: string) => {
-    switch (priority?.toUpperCase()) {
-      case 'HIGH':
-        return 'bg-red-100 text-red-800 border-red-200';
-      case 'MEDIUM':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'LOW':
-        return 'bg-green-100 text-green-800 border-green-200';
+  const getTypeIcon = (targetAudience: string) => {
+    if (!targetAudience) return '📢';
+    switch (targetAudience.toUpperCase()) {
+      case 'STUDENTS':
+        return '🎓';
+      case 'TEACHERS':
+        return '👨‍🏫';
+      case 'PARENTS':
+        return '👪';
+      case 'ALL':
+        return '🌐';
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getTypeIcon = (type: string) => {
-    switch (type?.toUpperCase()) {
-      case 'GENERAL':
         return '📢';
-      case 'ACADEMIC':
-        return '📚';
-      case 'ADMINISTRATIVE':
-        return '📋';
-      case 'EVENT':
-        return '📅';
-      default:
-        return '📄';
     }
   };
 
@@ -105,17 +105,23 @@ export default function ParentAnnouncementsPage() {
         
         {/* Filters */}
         <div className="flex gap-2">
-          {['all', 'general', 'academic', 'administrative'].map(f => (
+          {[
+            { value: 'all', label: 'All' },
+            { value: 'ALL', label: 'Institute' },
+            { value: 'STUDENTS', label: 'Students' },
+            { value: 'TEACHERS', label: 'Teachers' },
+            { value: 'PARENTS', label: 'Parents' }
+          ].map(f => (
             <button
-              key={f}
-              onClick={() => setFilter(f as any)}
+              key={f.value}
+              onClick={() => setFilter(f.value as any)}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
-                filter === f
+                filter === f.value
                   ? 'bg-blue-600 text-white'
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              {f.charAt(0).toUpperCase() + f.slice(1)}
+              {f.label}
             </button>
           ))}
         </div>
@@ -140,20 +146,17 @@ export default function ParentAnnouncementsPage() {
                 {/* Header */}
                 <div className="flex items-start justify-between mb-3">
                   <div className="flex items-start gap-3 flex-1">
-                    <span className="text-3xl">{getTypeIcon(announcement.type)}</span>
+                    <span className="text-3xl">{getTypeIcon(announcement.targetAudience)}</span>
                     <div className="flex-1">
                       <h3 className="text-lg font-bold text-gray-900 mb-1">
                         {announcement.title}
                       </h3>
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityColor(announcement.priority)}`}>
-                          {announcement.priority} Priority
-                        </span>
-                        <span className="px-2 py-1 bg-gray-100 text-gray-700 rounded-full text-xs">
-                          {announcement.type}
+                        <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded-full text-xs font-medium">
+                          {announcement.targetAudience}
                         </span>
                         <span className="text-sm text-gray-500">
-                          {new Date(announcement.createdAt).toLocaleDateString()}
+                          {announcement.publishedAt ? new Date(announcement.publishedAt).toLocaleDateString() : new Date(announcement.createdAt).toLocaleDateString()}
                         </span>
                       </div>
                     </div>
@@ -167,7 +170,7 @@ export default function ParentAnnouncementsPage() {
 
                 {/* Footer */}
                 <div className="ml-12 text-sm text-gray-500">
-                  Posted by {announcement.author?.email || 'Administration'}
+                  Posted by {announcement.publisher?.email || 'Administration'}
                 </div>
               </div>
             </div>
@@ -185,22 +188,22 @@ export default function ParentAnnouncementsPage() {
               <p className="text-3xl font-bold">{announcements.length}</p>
             </div>
             <div>
-              <p className="text-blue-100 text-sm">High Priority</p>
+              <p className="text-blue-100 text-sm">To Students</p>
               <p className="text-3xl font-bold">
-                {announcements.filter(a => a.priority?.toUpperCase() === 'HIGH').length}
+                {announcements.filter(a => a.targetAudience?.toUpperCase() === 'STUDENTS').length}
               </p>
             </div>
             <div>
-              <p className="text-blue-100 text-sm">Academic</p>
+              <p className="text-blue-100 text-sm">To Parents</p>
               <p className="text-3xl font-bold">
-                {announcements.filter(a => a.type?.toUpperCase() === 'ACADEMIC').length}
+                {announcements.filter(a => a.targetAudience?.toUpperCase() === 'PARENTS').length}
               </p>
             </div>
             <div>
               <p className="text-blue-100 text-sm">This Month</p>
               <p className="text-3xl font-bold">
                 {announcements.filter(a => {
-                  const date = new Date(a.createdAt);
+                  const date = new Date(a.publishedAt || a.createdAt);
                   const now = new Date();
                   return date.getMonth() === now.getMonth() && date.getFullYear() === now.getFullYear();
                 }).length}

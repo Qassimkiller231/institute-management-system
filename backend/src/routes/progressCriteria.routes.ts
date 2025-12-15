@@ -3,7 +3,8 @@ import { Router } from 'express';
 import {
   setStudentCriteriaCompletionController,
   getStudentProgressController,
-  listProgressCriteriaController
+  listProgressCriteriaController,
+  bulkSetCriteriaCompletionController
 } from '../controllers/progressCriteria.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireAdmin, requireTeacherOrAdmin, requireAnyRole } from '../middleware/role.middleware';
@@ -14,7 +15,6 @@ const router = Router();
 router.get(
   '/',
   authenticate,
-  requireAnyRole,
   listProgressCriteriaController
 );
 
@@ -22,7 +22,6 @@ router.get(
 router.get(
   '/student/:studentId/progress',
   authenticate,
-  requireAnyRole,
   getStudentProgressController
 );
 
@@ -32,6 +31,14 @@ router.post(
   authenticate,
   requireTeacherOrAdmin,
   setStudentCriteriaCompletionController
+);
+
+// Bulk set criteria completions
+router.post(
+  '/bulk',
+  authenticate,
+  requireTeacherOrAdmin,
+  bulkSetCriteriaCompletionController
 );
 
 export default router;

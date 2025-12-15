@@ -9,9 +9,10 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticate);
 
-// Admin only for create/update
+// Admin only for create/update/delete
 router.post('/', requireAdmin, levelController.createLevel);
 router.put('/:id', requireAdmin, levelController.updateLevel);
+router.delete('/:id', requireAdmin, levelController.deleteLevel);
 
 // Anyone can view
 router.get('/', levelController.getAllLevels);
