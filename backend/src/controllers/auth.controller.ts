@@ -26,7 +26,7 @@ export const requestOtp = async (req: Request, res: Response) => {
     }
 
     const result = await authService.requestOTP(identifier, method);
-
+    // console.log(result);
     res.status(200).json(result);
   } catch (error: any) {
     console.error('Request OTP error:', error);

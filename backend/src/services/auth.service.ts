@@ -8,7 +8,7 @@ import {
 } from "../utils/otp";
 import { normalizePhoneNumber, validatePhoneNumber } from "../utils/phone.utils";
 import * as smsService from "./sms.service";
-
+import * as emailService from "./email.service";
 /**
  * Request OTP code for login
  */
@@ -90,11 +90,12 @@ export const requestOTP = async (
       userId: user.id,
     });
   } else {
-    // Send via email (existing code)
-    // await emailService.sendOTP({
-    //   email: identifier,
-    //   code: otpCode,
-    //   userId: user.id
+    // Send via email(existing code)
+    // await emailService.sendOtpEmail({
+    //   to: identifier,
+    //   name: "guest",
+    //   otpCode: code,
+    //   expiryMinutes: 1,
     // });
   }
 

@@ -30,10 +30,15 @@ export interface UpdateGroupDto {
   levelId?: string;
   teacherId?: string;
   venueId?: string;
+  hallId?: string;
   groupCode?: string;
   name?: string;
-  schedule?: any;
   capacity?: number;
+  schedule?: {
+    days: string[];
+    startTime: string;
+    endTime: string;
+  };
   isActive?: boolean;
 }
 

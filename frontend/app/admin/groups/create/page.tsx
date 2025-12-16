@@ -12,6 +12,7 @@ export default function CreateGroupPage() {
   const [levels, setLevels] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [venues, setVenues] = useState<any[]>([]);
+  const [halls, setHalls] = useState<any[]>([]);
 
   const [formData, setFormData] = useState<UpdateGroupDto>({
     termId: '',
@@ -21,6 +22,7 @@ export default function CreateGroupPage() {
     capacity: 20,
     teacherId: '',
     venueId: '',
+    hallId: '',
     schedule: {
       days: [],
       startTime: '',
@@ -65,6 +67,22 @@ export default function CreateGroupPage() {
       ...formData,
       schedule: { ...formData.schedule, days: newDays }
     });
+  };
+
+  const handleVenueChange = async (venueId: string) => {
+    setFormData({ ...formData, venueId, hallId: '' });
+    
+    if (venueId) {
+      try {
+        const venueData = await venuesAPI.getById(venueId);
+        setHalls(venueData.data.halls || []);
+      } catch (err) {
+        console.error('Error loading halls:', err);
+        setHalls([]);
+      }
+    } else {
+      setHalls([]);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -217,7 +235,7 @@ export default function CreateGroupPage() {
               <label className="block text-sm font-medium mb-2">Venue</label>
               <select
                 value={formData.venueId}
-                onChange={(e) => setFormData({ ...formData, venueId: e.target.value })}
+                onChange={(e) => handleVenueChange(e.target.value)}
                 className="w-full px-4 py-2 border rounded-lg text-gray-900"
               >
                 <option value="">No Venue Assigned</option>
@@ -225,6 +243,24 @@ export default function CreateGroupPage() {
                   <option key={venue.id} value={venue.id}>{venue.name}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium mb-2">Hall</label>
+              <select
+                value={formData.hallId}
+                onChange={(e) => setFormData({ ...formData, hallId: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg text-gray-900"
+                disabled={!formData.venueId}
+              >
+                <option value="">No Hall Assigned</option>
+                {halls.map(hall => (
+                  <option key={hall.id} value={hall.id}>{hall.name}</option>
+                ))}
+              </select>
+              {!formData.venueId && (
+                <p className="text-sm text-gray-500 mt-1">Select a venue first</p>
+              )}
             </div>
           </div>
         </div>

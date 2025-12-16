@@ -15,12 +15,14 @@ export default function EditGroupPage() {
   const [levels, setLevels] = useState<any[]>([]);
   const [teachers, setTeachers] = useState<any[]>([]);
   const [venues, setVenues] = useState<any[]>([]);
+  const [halls, setHalls] = useState<any[]>([]);
 
   const [formData, setFormData] = useState<UpdateGroupDto>({
     termId: '',
     levelId: '',
     teacherId: '',
     venueId: '',
+    hallId: '',
     groupCode: '',
     name: '',
     schedule: {
@@ -54,6 +56,7 @@ export default function EditGroupPage() {
         levelId: group.levelId,
         teacherId: group.teacherId || '',
         venueId: group.venueId || '',
+        hallId: group.hallId || '',
         groupCode: group.groupCode,
         name: group.name || '',
         schedule: group.schedule || { days: [], startTime: '09:00', endTime: '11:00' },
@@ -65,6 +68,16 @@ export default function EditGroupPage() {
       setLevels(levelsData.data || []);
       setTeachers(teachersData.data || []);
       setVenues(venuesData.data || []);
+      
+      // Load halls if venue exists
+      if (group.venueId) {
+        try {
+          const venueData = await venuesAPI.getById(group.venueId);
+          setHalls(venueData.data.halls || []);
+        } catch (err) {
+          console.error('Error loading halls:', err);
+        }
+      }
     } catch (err: any) {
       alert('Error loading group: ' + err.message);
       router.push('/admin/groups');
@@ -88,6 +101,22 @@ export default function EditGroupPage() {
         endTime: formData.schedule?.endTime || '11:00'
       }
     });
+  };
+
+  const handleVenueChange = async (venueId : string) => {
+    setFormData({ ...formData, venueId, hallId: '' });
+    
+    if (venueId) {
+      try {
+        const venueData = await venuesAPI.getById(venueId);
+        setHalls(venueData.data.halls || []);
+      } catch (err) {
+        console.error('Error loading halls:', err);
+        setHalls([]);
+      }
+    } else {
+      setHalls([]);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -236,7 +265,7 @@ export default function EditGroupPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">Venue</label>
               <select
                 value={formData.venueId}
-                onChange={(e) => setFormData({ ...formData, venueId: e.target.value })}
+                onChange={(e) => handleVenueChange(e.target.value)}
                 className="w-full px-4 py-2 border rounded-lg text-gray-900"
               >
                 <option value="">No Venue Assigned</option>
@@ -244,6 +273,24 @@ export default function EditGroupPage() {
                   <option key={venue.id} value={venue.id}>{venue.name}</option>
                 ))}
               </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Hall</label>
+              <select
+                value={formData.hallId}
+                onChange={(e) => setFormData({ ...formData, hallId: e.target.value })}
+                className="w-full px-4 py-2 border rounded-lg text-gray-900"
+                disabled={!formData.venueId}
+              >
+                <option value="">No Hall Assigned</option>
+                {halls.map(hall => (
+                  <option key={hall.id} value={hall.id}>{hall.name}</option>
+                ))}
+              </select>
+              {!formData.venueId && (
+                <p className="text-sm text-gray-500 mt-1">Select a venue first</p>
+              )}
             </div>
           </div>
         </div>

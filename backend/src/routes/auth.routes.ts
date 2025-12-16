@@ -5,7 +5,7 @@ import { authenticate } from '../middleware/auth.middleware';
 const router = Router();
 
 /**
- * POST /api/auth/request-otp
+ * POST /api/auth/request-otp 
  * Request OTP code for login
  * Public route
  */

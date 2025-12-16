@@ -10,6 +10,7 @@ export const createGroup = async (data: {
   levelId: string;
   teacherId?: string;
   venueId?: string;
+  hallId?: string;
   groupCode: string;
   name?: string;
   schedule?: any;
@@ -30,6 +31,7 @@ export const createGroup = async (data: {
       levelId: data.levelId,
       teacherId: data.teacherId,
       venueId: data.venueId,
+      hallId: data.hallId,
       groupCode: data.groupCode,
       name: data.name,
       schedule: data.schedule as Prisma.JsonObject,
@@ -46,7 +48,8 @@ export const createGroup = async (data: {
           }
         }
       },
-      venue: true
+      venue: true,
+      hall: true
     }
   });
 };
@@ -97,6 +100,9 @@ export const getAllGroups = async (filters: {
         venue: {
           select: { id: true, name: true, code: true }
         },
+        hall: {
+          select: { id: true, name: true, code: true }
+        },
         _count: {
           select: {
             enrollments: true,
@@ -138,6 +144,7 @@ export const getGroupById = async (id: string) => {
         }
       },
       venue: true,
+      hall: true,
       enrollments: {
         where: { status: 'ACTIVE' },
         include: {
@@ -174,6 +181,7 @@ export const updateGroup = async (id: string, updates: {
   capacity?: number;
   teacherId?: string;
   venueId?: string;
+  hallId?: string;
   isActive?: boolean;
 }) => {
   const existing = await prisma.group.findUnique({ where: { id } });
@@ -186,6 +194,7 @@ export const updateGroup = async (id: string, updates: {
   if (updates.capacity !== undefined) data.capacity = updates.capacity;
   if (updates.teacherId !== undefined) data.teacherId = updates.teacherId || null;
   if (updates.venueId !== undefined) data.venueId = updates.venueId || null;
+  if (updates.hallId !== undefined) data.hallId = updates.hallId || null;
   if (updates.isActive !== undefined) data.isActive = updates.isActive;
 
   return await prisma.group.update({
@@ -205,7 +214,8 @@ export const updateGroup = async (id: string, updates: {
           }
         }
       },
-      venue: true
+      venue: true,
+      hall: true
     }
   });
 };

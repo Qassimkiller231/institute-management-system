@@ -241,15 +241,15 @@ export default function ParentPaymentsPage() {
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    {payment.status && ['PENDING', 'OVERDUE'].includes(payment.status.toUpperCase()) ? (
+                    {payment.status && payment.status.toUpperCase() === 'PAID' ? (
+                      <span className="text-green-600 font-medium">✓ Paid</span>
+                    ) : (
                       <button
                         onClick={() => handleMakePayment(payment)}
                         className="text-blue-600 hover:text-blue-800 font-medium"
                       >
                         Pay Now
                       </button>
-                    ) : (
-                      <span className="text-green-600 font-medium">✓ Paid</span>
                     )}
                   </td>
                 </tr>

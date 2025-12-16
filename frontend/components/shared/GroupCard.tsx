@@ -17,6 +17,9 @@ export interface GroupCardData {
   venue: {
     name: string;
   } | null;
+  hall: {
+    name: string;
+  } | null;
   teacher?: {
     firstName: string;
     lastName: string;
@@ -96,6 +99,12 @@ export default function GroupCard({
             <div className="flex items-center gap-2">
               <span className="text-gray-600">📍</span>
               <span className="text-gray-900 font-medium">{group.venue.name}</span>
+            </div>
+          )}
+          {group.hall && (
+            <div className="flex items-center gap-2">
+              <span className="text-gray-600">🚪</span>
+              <span className="text-gray-900 font-medium">{group.hall.name}</span>
             </div>
           )}
         </div>

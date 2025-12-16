@@ -21,7 +21,7 @@ export const createVenue = async (data: {
       name: data.name,
       code: data.code,
       address: data.address,
-      isActive: data.isActive ? data.isActive : false
+      isActive: data.isActive !== undefined ? data.isActive : true
     }
   });
 };

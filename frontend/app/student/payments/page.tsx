@@ -396,16 +396,15 @@ export default function StudentPaymentsPage() {
                           )}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-center">
-                          {!isPaid(installment) && (
+                          {isPaid(installment) ? (
+                            <span className="text-green-600 text-sm font-semibold">✓ Paid</span>
+                          ) : (
                             <button
                               onClick={() => handlePayNow(installment)}
                               className="px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 font-semibold"
                             >
                               💳 Pay Now
                             </button>
-                          )}
-                          {isPaid(installment) && (
-                            <span className="text-green-600 text-sm font-semibold">✓ Paid</span>
                           )}
                         </td>
                       </tr>

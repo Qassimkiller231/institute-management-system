@@ -292,6 +292,7 @@ model Hall {
   createdAt DateTime @default(now())
 
   venue         Venue          @relation(fields: [venueId], references: [id], onDelete: Cascade)
+  groups        Group[]
   classSessions ClassSession[]
 
   @@unique([venueId, code])
@@ -305,6 +306,7 @@ model Group {
   levelId   String
   teacherId String?
   venueId   String?
+  hallId    String?
   groupCode String   @unique
   name      String?
   schedule  Json?    // JSONB - flexible schedule
@@ -317,6 +319,7 @@ model Group {
   level         Level          @relation(fields: [levelId], references: [id], onDelete: Restrict)
   teacher       Teacher?       @relation(fields: [teacherId], references: [id], onDelete: SetNull)
   venue         Venue?         @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  hall          Hall?          @relation(fields: [hallId], references: [id], onDelete: SetNull)
   enrollments   Enrollment[]
   classSessions ClassSession[]
   materials     Material[]
@@ -327,6 +330,7 @@ model Group {
   @@index([levelId])
   @@index([teacherId])
   @@index([groupCode])
+  @@index([hallId])
 }
 
 model ClassSession {

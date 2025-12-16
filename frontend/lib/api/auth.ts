@@ -7,6 +7,7 @@ export const authAPI = {
       headers: getHeaders(false),
       body: JSON.stringify({ identifier, method })
     });
+    console.log(res);
     return res.json();
   },
 
