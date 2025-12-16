@@ -121,8 +121,7 @@ export const getAnnouncements = async (filters: {
       skip,
       take: limit,
       orderBy: [
-        { isPublished: 'desc' },
-        { scheduledFor: 'desc' },
+        { publishedAt: 'desc' },
         { createdAt: 'desc' }
       ],
       include: {

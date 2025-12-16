@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import { getToken } from '@/lib/auth';
+import { studentsAPI, attendanceAPI, criteriaAPI } from '@/lib/api';
 
 interface AttendanceStats {
   totalSessions: number; // Changed from totalClasses
@@ -101,20 +102,7 @@ export default function ChildDetailPage() {
   const fetchStudentDetails = async () => {
     try {
       setLoading(true);
-      const token = getToken();
-      
-      if (!token) {
-        router.push('/login');
-        return;
-      }
-
-      const res = await fetch(`http://localhost:3001/api/students/${studentId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) throw new Error('Failed to fetch student details');
-      
-      const data = await res.json();
+      const data = await studentsAPI.getById(studentId);
       setStudent(data.data);
     } catch (err: any) {
       console.error('Error loading student:', err);
@@ -128,28 +116,19 @@ export default function ChildDetailPage() {
   const fetchAttendanceData = async () => {
     try {
       setLoadingAttendance(true);
-      const token = getToken();
       
-      if (!token) return;
+      // Fetch attendance stats and records in parallel
+      const [statsRes, recordsRes] = await Promise.all([
+        attendanceAPI.getStudentStats(studentId),
+        attendanceAPI.getByStudent(studentId)
+      ]);
 
-      // Fetch attendance stats
-      const statsRes = await fetch(`http://localhost:3001/api/attendance/student/${studentId}/stats`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (statsRes.ok) {
-        const statsData = await statsRes.json();
-        setAttendanceStats(statsData.data);
+      if (statsRes.data) {
+        setAttendanceStats(statsRes.data);
       }
 
-      // Fetch attendance records
-      const recordsRes = await fetch(`http://localhost:3001/api/attendance/student/${studentId}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (recordsRes.ok) {
-        const recordsData = await recordsRes.json();
-        setAttendanceRecords(recordsData.data || []);
+      if (recordsRes.data) {
+        setAttendanceRecords(recordsRes.data || []);
       }
     } catch (err: any) {
       console.error('Error loading attendance:', err);
@@ -161,10 +140,7 @@ export default function ChildDetailPage() {
   const fetchProgressData = async () => {
     try {
       setLoadingProgress(true);
-      const token = getToken();
       
-      if (!token) return;
-
       // Get groupId or levelId from student's active enrollment
       const activeEnrollment = student?.enrollments?.find(e => e.status === 'ACTIVE');
       
@@ -177,16 +153,14 @@ export default function ChildDetailPage() {
       const groupId = activeEnrollment.group.id;
       const levelId = activeEnrollment.group.level.id;
 
-      const res = await fetch(
-        `http://localhost:3001/api/progress-criteria/student/${studentId}/progress?groupId=${groupId}&levelId=${levelId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const res = await criteriaAPI.getStudentProgress(studentId, {
+        groupId,
+        levelId
+      } as any); // Type assertion needed until criteriaAPI type is fully updated or matches exactly
 
-      if (res.ok) {
-        const data = await res.json();
-        setProgressData(data.data || []);
+      if (res.data) {
+        setProgressData(res.data.criteria || res.data || []); // Adjust based on actual API response structure
       } else {
-        console.error('Failed to fetch progress:', res.status);
         setProgressData([]);
       }
     } catch (err: any) {

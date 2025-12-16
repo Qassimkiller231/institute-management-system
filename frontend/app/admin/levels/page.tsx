@@ -14,6 +14,7 @@ interface Level {
 export default function LevelsManagement() {
   const [levels, setLevels] = useState<Level[]>([]);
   const [loading, setLoading] = useState(true);
+
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedLevel, setSelectedLevel] = useState<Level | null>(null);
@@ -118,9 +119,11 @@ export default function LevelsManagement() {
           <h1 className="text-3xl font-bold mb-2">Levels Management</h1>
           <p className="text-gray-600">Manage proficiency levels (A1, A2, B1, B2, etc.)</p>
         </div>
-        <button onClick={openCreateModal} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-          + Create Level
-        </button>
+        <div className="flex gap-3">
+          <button onClick={openCreateModal} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+            + Create Level
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -138,7 +141,9 @@ export default function LevelsManagement() {
             {levels.map((level) => (
               <tr key={level.id} className="hover:bg-gray-50">
                 <td className="px-6 py-4 font-medium text-gray-900">{level.orderNumber}</td>
-                <td className="px-6 py-4 font-medium text-gray-900">{level.name}</td>
+                <td className="px-6 py-4 font-medium text-gray-900">
+                  {level.name}
+                </td>
                 <td className="px-6 py-4 text-gray-600">{level.description || '-'}</td>
                 <td className="px-6 py-4 text-gray-900">{level._count?.groups || 0}</td>
                 <td className="px-6 py-4">

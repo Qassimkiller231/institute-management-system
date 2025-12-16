@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken } from '@/lib/auth';
+import { authAPI } from '@/lib/api';
 
 interface LinkedStudent {
   id: string;
@@ -36,13 +37,7 @@ export default function ParentDashboard() {
       }
 
       // Get current user info (now includes parent data)
-      const userRes = await fetch('http://localhost:3001/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!userRes.ok) throw new Error('Failed to fetch user data');
-      
-      const userData = await userRes.json();
+      const userData = await authAPI.getCurrentUser();
       setParentInfo(userData.data);
 
       // Extract linked students from parent data

@@ -342,6 +342,8 @@ export default function TeacherSpeakingTests() {
                           </div>
                         )}
                       </div>
+                    ) : slot.status === 'BOOKED' ? (
+                      <p className="text-blue-600 font-semibold mb-4">📋 Booked - Student information pending</p>
                     ) : (
                       <p className="text-gray-500 italic mb-4">Available slot - not booked yet</p>
                     )}

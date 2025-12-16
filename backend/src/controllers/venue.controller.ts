@@ -13,10 +13,11 @@ export const createVenue = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// venue.controller.ts - Fix getAllVenues (needs parameter)
+// GET /api/venues - Get all venues
 export const getAllVenues = async (req: AuthRequest, res: Response) => {
   try {
-    const filters = {}; // Add whatever filter your service expects
+    const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
+    const filters = { isActive };
     const result = await venueService.getAllVenues(filters);
     res.status(200).json({ success: true, data: result });
   } catch (error: any) {

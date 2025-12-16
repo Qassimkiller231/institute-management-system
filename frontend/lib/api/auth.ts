@@ -18,5 +18,14 @@ export const authAPI = {
       body: JSON.stringify({ identifier, code })
     });
     return res.json();
+  },
+
+  getCurrentUser: async () => {
+    const res = await fetch(`${API_URL}/auth/me`, {
+      headers: getHeaders(true)
+    });
+    console.log('[API] getCurrentUser response:', res.status);
+    if (!res.ok) throw new Error('Failed to fetch user data');
+    return res.json();
   }
 };

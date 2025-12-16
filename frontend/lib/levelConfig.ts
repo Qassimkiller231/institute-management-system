@@ -17,12 +17,25 @@ export interface TestLevelConfig {
 export const DEFAULT_LEVEL_CONFIG: TestLevelConfig = {
   totalQuestions: 50,
   levelRanges: [
-    { range: [0, 18],   value: "A1" },
-    { range: [19, 25],  value: "A2" },
-    { range: [26, 32],  value: "B1" },
-    { range: [33, 39],  value: "B2" },
-    { range: [40, 46],  value: "C1" },
-    { range: [47, 50],  value: "C2" },
+    { range: [0, 18], value: "A1" },
+    { range: [19, 25], value: "A2" },
+    { range: [26, 32], value: "B1" },
+    { range: [33, 39], value: "B2" },
+    { range: [40, 46], value: "C1" },
+    { range: [47, 50], value: "C2" },
+  ]
+};
+
+// Configuration for 10-question tests
+export const TEN_QUESTION_LEVEL_CONFIG: TestLevelConfig = {
+  totalQuestions: 10,
+  levelRanges: [
+    { range: [0, 3], value: "A1" },   // 0-3   = 0-30%
+    { range: [4, 5], value: "A2" },   // 4-5   = 40-50%
+    { range: [6, 6], value: "B1" },   // 6     = 60%
+    { range: [7, 7], value: "B2" },   // 7     = 70%
+    { range: [8, 9], value: "C1" },   // 8-9   = 80-90%
+    { range: [10, 10], value: "C2" },   // 10    = 100%
   ]
 };
 
@@ -33,17 +46,25 @@ export type CEFRLevel = typeof CEFR_LEVELS[number];
 
 /**
  * Determine CEFR level based on MCQ score
- * @param score - The student's MCQ score
- * @param config - Level configuration (uses default if not provided)
+ * @param earnedPoints - Points earned by student
+ * @param totalPoints - Total points possible in test
  * @returns CEFR level (A1, A2, B1, B2, C1, C2)
  */
 export function getMCQLevel(
-  score: number,
-  config: TestLevelConfig = DEFAULT_LEVEL_CONFIG
+  earnedPoints: number,
+  totalPoints: number = 50
 ): CEFRLevel {
+  // Select appropriate config based on total points
+  let config: TestLevelConfig;
+  if (totalPoints === 10) {
+    config = TEN_QUESTION_LEVEL_CONFIG;
+  } else {
+    config = DEFAULT_LEVEL_CONFIG;
+  }
+
   // Ensure score is within valid range
-  const normalizedScore = Math.max(0, Math.min(score, config.totalQuestions));
-  
+  const normalizedScore = Math.max(0, Math.min(earnedPoints, totalPoints));
+
   // Find matching level range
   for (const levelRange of config.levelRanges) {
     const [min, max] = levelRange.range;
@@ -51,7 +72,7 @@ export function getMCQLevel(
       return levelRange.value as CEFRLevel;
     }
   }
-  
+
   // Fallback to A1 if no match found
   return "A1";
 }
@@ -68,7 +89,7 @@ export function getLevelDescription(level: CEFRLevel): string {
     C1: "Advanced - Can express ideas fluently and spontaneously",
     C2: "Proficient - Can express themselves spontaneously, very fluently and precisely"
   };
-  
+
   return descriptions[level];
 }
 
@@ -82,7 +103,7 @@ export function suggestFinalLevel(
 ): CEFRLevel {
   const mcqIndex = CEFR_LEVELS.indexOf(mcqLevel);
   const speakingIndex = CEFR_LEVELS.indexOf(speakingLevel);
-  
+
   // Return the lower level (more conservative assessment)
   return CEFR_LEVELS[Math.min(mcqIndex, speakingIndex)];
 }
@@ -95,6 +116,7 @@ export function suggestFinalLevel(
 
 export default {
   DEFAULT_LEVEL_CONFIG,
+  TEN_QUESTION_LEVEL_CONFIG,
   CEFR_LEVELS,
   getMCQLevel,
   getLevelDescription,

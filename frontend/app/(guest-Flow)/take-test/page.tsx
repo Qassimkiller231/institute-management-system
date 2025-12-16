@@ -42,6 +42,7 @@ export default function TakeTestPage() {
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [timeLeft, setTimeLeft] = useState(0);
   const [submitted, setSubmitted] = useState(false);
+  const [testResult, setTestResult] = useState<any>(null);
 
   useEffect(() => {
     loadAvailableTests();
@@ -121,82 +122,25 @@ export default function TakeTestPage() {
     // Start test session
     const sessionResult = await testAPI.startSession(studentId, selectedTestId);
     console.log('Session result:', sessionResult);
-    
     if (!sessionResult.success) {
-      // Check if error is about existing active test
-      if (sessionResult.message?.includes('active placement test') || 
-          sessionResult.message?.includes('already have')) {
-        
-        console.log('Active test detected, loading existing session...');
-        
-        // Try to get active test session
+      // If error indicates already taken, try to get the result
+      if (sessionResult.message?.includes('already taken') || sessionResult.message?.includes('already have')) {
         try {
-          const activeSessionResult = await testAPI.getActiveSession(studentId);
-          console.log('Active session result:', activeSessionResult);
+          const lastSessionResult = await testAPI.getLastSession(studentId, selectedTestId);
+          console.log('Last session result:', lastSessionResult);
           
-          if (activeSessionResult.success && activeSessionResult.session) {
-            // Load the active session
-            const activeSessionId = activeSessionResult.session.id;
-            setSessionId(activeSessionId);
-            
-            // Get questions for the active session
-            const questionsResult = await testAPI.getSessionQuestions(activeSessionId);
-            console.log('Questions result:', questionsResult);
-            
-            if (questionsResult.success && questionsResult.test) {
-              if (!questionsResult.test.questions || questionsResult.test.questions.length === 0) {
-                setError('This test has no questions. Please contact support.');
-                setLoading(false);
-                return;
-              }
-              
-              // Restore saved answers from localStorage
-              const savedAnswersStr = localStorage.getItem(`test_answers_${activeSessionId}`);
-              const savedCurrentQuestion = localStorage.getItem(`test_current_question_${activeSessionId}`);
-              
-              if (savedAnswersStr) {
-                try {
-                  const savedAnswers = JSON.parse(savedAnswersStr);
-                  console.log('Restoring saved answers:', savedAnswers);
-                  setAnswers(savedAnswers);
-                } catch (e) {
-                  console.error('Failed to parse saved answers:', e);
-                }
-              }
-              
-              if (savedCurrentQuestion) {
-                const questionIndex = parseInt(savedCurrentQuestion, 10);
-                if (!isNaN(questionIndex)) {
-                  setCurrentQuestion(questionIndex);
-                }
-              }
-              
-              // Calculate remaining time
-              const remainingMinutes = activeSessionResult.session.remainingMinutes || questionsResult.test.durationMinutes;
-              setTimeLeft(remainingMinutes * 60);
-              
-              setTest(questionsResult.test);
-              setStep('taking');
+          if (lastSessionResult.success && lastSessionResult.session) {
+            const status = lastSessionResult.session.status;
+            // If it's a completed session, show results
+            if (['COMPLETED', 'FINAL_RESULTS', 'MCQ_COMPLETED', 'SPEAKING_COMPLETED'].includes(status)) {
+              setTestResult(lastSessionResult.session);
               setLoading(false);
               return;
             }
           }
-        } catch (activeError) {
-          console.error('Error loading active session:', activeError);
+        } catch (e) {
+          console.error('Error fetching last session:', e);
         }
-        
-        // If we couldn't load active session, show the error
-        setError('You have an active test. Please contact support if you cannot access it.');
-        setLoading(false);
-        return;
-      }
-      
-      // Student not found error
-      if (sessionResult.message?.includes('Student not found')) {
-        localStorage.clear();
-        setError('Student not found. Please register again.');
-        setTimeout(() => router.push('/register'), 2000);
-        return;
       }
       
       setError(sessionResult.message || 'Failed to start test');
@@ -424,6 +368,52 @@ export default function TakeTestPage() {
             Loading Test...
           </h2>
           <p className="text-gray-600">Please wait</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (testResult) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+        <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8 text-center">
+          <div className="text-blue-600 text-6xl mb-4">ℹ️</div>
+          <h1 className="text-3xl font-bold text-gray-900 mb-4">
+            Test Already Completed
+          </h1>
+          <p className="text-gray-700 mb-4 text-lg">
+            You have already completed this test.
+          </p>
+          
+          <div className="bg-gray-50 p-4 rounded-lg mb-6">
+            <div className="grid grid-cols-2 gap-4 text-left">
+              <div>
+                <span className="text-gray-500 text-sm">Status</span>
+                <p className="font-semibold">{testResult.status}</p>
+              </div>
+              <div>
+                <span className="text-gray-500 text-sm">Score</span>
+                <p className="font-semibold">{testResult.score ? `${testResult.score}%` : 'Pending'}</p>
+              </div>
+              <div>
+                <span className="text-gray-500 text-sm">Date</span>
+                <p className="font-semibold">{new Date(testResult.startedAt).toLocaleDateString()}</p>
+              </div>
+            </div>
+          </div>
+
+          <button
+            onClick={() => router.push("/book-speaking")}
+            className="w-full bg-blue-600 text-white font-semibold py-4 rounded-lg hover:bg-blue-700 transition text-lg mb-3"
+          >
+            Book Speaking Test Appointment →
+          </button>
+          <button
+            onClick={() => { setTestResult(null); setSelectedTestId(''); setStep('select'); }}
+            className="w-full bg-gray-100 text-gray-700 font-semibold py-4 rounded-lg hover:bg-gray-200 transition text-lg"
+          >
+            Back to Selection
+          </button>
         </div>
       </div>
     );

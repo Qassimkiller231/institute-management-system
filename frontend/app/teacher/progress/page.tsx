@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken, getTeacherId } from '@/lib/auth';
-import { groupsAPI, enrollmentsAPI } from '@/lib/api';
+import { groupsAPI, enrollmentsAPI, criteriaAPI } from '@/lib/api';
 
 interface Group {
   id: string;
@@ -162,26 +162,11 @@ export default function UpdateProgress() {
         return;
       }
 
-      const levelId = student.levelId;
-      const url = `http://localhost:3001/api/progress-criteria?levelId=${levelId}`;
-      
-      console.log('   📡 Fetching criteria from:', url);
+      console.log('   📡 Fetching criteria for level:', student.levelId);
+      const data = await criteriaAPI.getAll({ levelId: student.levelId });
 
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      console.log('   📥 Response status:', response.status);
-      
-      const data = await response.json();
       console.log('   📦 Response data:', data);
       console.log('   📊 Criteria count:', data.data?.length || 0);
-      
-      if (data.data && data.data.length > 0) {
-        console.log('   ✅ Setting criteria:', data.data);
-      } else {
-        console.log('   ⚠️  No criteria found in response!');
-      }
       
       setCriteria(data.data || []);
     } catch (err) {
@@ -199,12 +184,10 @@ export default function UpdateProgress() {
         return;
       }
       
-      const response = await fetch(
-        `http://localhost:3001/api/progress-criteria/student/${selectedStudent}/progress?enrollmentId=${student.enrollmentId}&levelId=${student.levelId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      const data = await response.json();
+      const data = await criteriaAPI.getStudentProgress(selectedStudent, {
+        enrollmentId: student.enrollmentId,
+        levelId: student.levelId
+      });
       console.log('📊 [DEBUG] Progress API response:', data);
       
       // Backend returns: { data: { criteria: [...], totalCriteria, completedCount, etc } }
@@ -269,19 +252,7 @@ export default function UpdateProgress() {
         teacherId
       }));
 
-      const response = await fetch('http://localhost:3001/api/progress-criteria/bulk', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ progressUpdates })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to save progress');
-      }
+      await criteriaAPI.bulkUpdate(progressUpdates);
 
       alert('Progress saved successfully!');
     } catch (err: any) {

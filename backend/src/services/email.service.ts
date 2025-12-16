@@ -80,6 +80,12 @@ export const sendEmail = async (data: {
   htmlBody: string;
   textBody?: string;
 }) => {
+  // DEV OVERRIDE
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`⚠️ DEV MODE: Redirecting email from ${data.to} to qassimahmed231@gmail.com`);
+    data.to = 'qassimahmed231@gmail.com';
+  }
+
   try {
     if (USE_SNS) {
       console.log('📧 Sending via SNS...');
@@ -165,34 +171,95 @@ export const sendPaymentReceiptEmail = async (data: {
   installmentNumber: number;
   balance: number;
 }) => {
+  const formattedDate = data.paymentDate.toLocaleString('en-US', {
+    month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit', hour12: true
+  });
+
   const htmlBody = `
     <!DOCTYPE html>
     <html>
-    <body style="font-family: Arial; max-width: 600px; margin: 0 auto;">
-      <div style="background: #27ae60; color: white; padding: 20px; text-align: center;">
-        <h1>✓ Payment Received</h1>
-      </div>
-      <div style="padding: 30px; background: #f9f9f9;">
-        <p>Dear ${data.studentName},</p>
-        <p>Thank you for your payment.</p>
-        <table style="width: 100%; margin: 20px 0;">
-          <tr><td><strong>Receipt:</strong></td><td>${data.receiptNumber}</td></tr>
-          <tr><td><strong>Date:</strong></td><td>${data.paymentDate.toLocaleDateString()}</td></tr>
-          <tr><td><strong>Installment:</strong></td><td>#${data.installmentNumber}</td></tr>
-          <tr><td><strong>Method:</strong></td><td>${data.paymentMethod}</td></tr>
-          <tr><td><strong>Amount:</strong></td><td>${data.currency} ${data.amount.toFixed(2)}</td></tr>
-          <tr><td><strong>Balance:</strong></td><td>${data.currency} ${data.balance.toFixed(2)}</td></tr>
-        </table>
+    <head>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color: #333333; margin: 0; padding: 0; background-color: #f7f9fa; }
+        .container { width: 100%; max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 8px; overflow: hidden; margin-top: 40px; margin-bottom: 40px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+        .header { background-color: #3e445b; padding: 40px 20px; text-align: center; color: white; }
+        .header h1 { margin: 0; font-size: 24px; font-weight: 600; }
+        .receipt-info { text-align: center; color: #8792a2; font-size: 14px; margin-top: 10px; }
+        .content { padding: 40px; }
+        .amount-section { text-align: center; margin-bottom: 40px; }
+        .label { color: #8792a2; font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 600; margin-bottom: 8px; }
+        .amount { font-size: 36px; font-weight: 700; color: #333333; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 40px; }
+        .grid-item { text-align: left; }
+        .summary-card { background-color: #f7f9fa; border-radius: 8px; padding: 24px; }
+        .summary-row { display: flex; justify-content: space-between; margin-bottom: 12px; font-size: 14px; }
+        .summary-row.total { font-weight: 700; font-size: 16px; margin-top: 16px; padding-top: 16px; border-top: 1px solid #e3e8ee; margin-bottom: 0; }
+        .footer { padding: 30px; text-align: center; font-size: 13px; color: #8792a2; background-color: #f7f9fa; border-top: 1px solid #e3e8ee; }
+        .footer a { color: #5469d4; text-decoration: none; }
+      </style>
+    </head>
+    <body>
+      <div class="container">
+        <div class="header">
+           <h1>Receipt from Function Institute</h1>
+           <div class="receipt-info">Receipt #${data.receiptNumber}</div>
+        </div>
+        
+        <div class="content">
+            <div class="amount-section">
+                <div class="label">Amount Paid</div>
+                <div class="amount">${data.currency} ${data.amount.toFixed(2)}</div>
+            </div>
+
+            <div class="grid">
+                <div class="grid-item">
+                    <div class="label">Date Paid</div>
+                    <div>${formattedDate}</div>
+                </div>
+                <div class="grid-item">
+                    <div class="label">Payment Method</div>
+                    <div>${data.paymentMethod.replace('_', ' ')}</div>
+                </div>
+            </div>
+
+            <div class="label">Summary</div>
+            <div class="summary-card">
+                <div class="summary-row">
+                    <span>Student</span>
+                    <span>${data.studentName}</span>
+                </div>
+                <div class="summary-row">
+                    <span>Installment #${data.installmentNumber}</span>
+                    <span>${data.currency} ${data.amount.toFixed(2)}</span>
+                </div>
+                 <div class="summary-row">
+                    <span>Remaining Balance</span>
+                    <span>${data.currency} ${data.balance.toFixed(2)}</span>
+                </div>
+                <div class="summary-row total">
+                    <span>Amount Paid</span>
+                    <span>${data.currency} ${data.amount.toFixed(2)}</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>If you have any questions, contact us at <br>
+            <a href="mailto:support@functioninstitute.com">support@functioninstitute.com</a></p>
+        </div>
       </div>
     </body>
     </html>
   `;
 
-  const textBody = `Receipt: ${data.receiptNumber}\nAmount: ${data.currency} ${data.amount.toFixed(2)}\nBalance: ${data.currency} ${data.balance.toFixed(2)}`;
+  const textBody = `Receipt from Function Institute\nReceipt #${data.receiptNumber}\n\nAmount Paid: ${data.currency} ${data.amount.toFixed(2)}\nDate: ${formattedDate}\nMethod: ${data.paymentMethod}\n\nStudent: ${data.studentName}\nInstallment #${data.installmentNumber}\nBalance: ${data.currency} ${data.balance.toFixed(2)}`;
+
+  // DEV OVERRIDE (Already handled in main sendEmail if configured, but keeping logic consistent)
 
   return await sendEmail({
     to: data.to,
-    subject: `Payment Receipt #${data.receiptNumber}`,
+    subject: `Receipt #${data.receiptNumber}`,
     htmlBody,
     textBody,
   });

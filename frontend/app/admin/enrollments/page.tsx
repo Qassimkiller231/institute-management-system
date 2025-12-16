@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken } from '@/lib/auth';
+import { enrollmentsAPI, studentsAPI, groupsAPI, programsAPI } from '@/lib/api';
 
 interface Enrollment {
   id: string;
@@ -95,15 +95,8 @@ export default function EnrollmentManagement() {
   const fetchEnrollments = async () => {
     try {
       setLoading(true);
-      const token = getToken();
-      const response = await fetch('http://localhost:3001/api/enrollments', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      const data = await response.json();
-      console.log('Enrollments response:', data);
-      console.log('First enrollment:', data.data?.[0]);
-      setEnrollments(data.data || []);
+      const result = await enrollmentsAPI.getAll();
+      setEnrollments(result.data || []);
     } catch (err) {
       console.error('Error:', err);
       alert('Failed to fetch enrollments');

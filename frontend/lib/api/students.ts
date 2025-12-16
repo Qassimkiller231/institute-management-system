@@ -23,6 +23,7 @@ export interface CreateStudentDto {
   gender: 'MALE' | 'FEMALE';
   cpr: string;
   nationality?: string;
+  currentLevel?: string;
 }
 
 export interface UpdateStudentDto {
@@ -36,14 +37,32 @@ export interface UpdateStudentDto {
   cpr?: string;
   nationality?: string;
   isActive?: boolean;
+  currentLevel?: string;
 }
 
 export const studentsAPI = {
   // Get all students (admin) or by teacher (teacher)
-  getAll: async (teacherId?: string) => {
-    const url = teacherId 
-      ? `${API_URL}/students?teacherId=${teacherId}`
+  getAll: async (filters: {
+    teacherId?: string;
+    levelId?: string;
+    venueId?: string;
+    isActive?: boolean;
+    limit?: number; // Added limit for consistency with usage
+    needsSpeakingTest?: boolean; // Added for speaking tests usage
+  } = {}) => {
+    const params = new URLSearchParams();
+    if (filters.teacherId) params.append('teacherId', filters.teacherId);
+    if (filters.levelId) params.append('levelId', filters.levelId);
+    if (filters.venueId) params.append('venueId', filters.venueId);
+    if (filters.isActive !== undefined) params.append('isActive', String(filters.isActive));
+    if (filters.limit) params.append('limit', String(filters.limit));
+    if (filters.needsSpeakingTest) params.append('needsSpeakingTest', String(filters.needsSpeakingTest));
+
+    const queryString = params.toString();
+    const url = queryString
+      ? `${API_URL}/students?${queryString}`
       : `${API_URL}/students`;
+
     const res = await fetch(url, {
       headers: getHeaders(true)
     });
@@ -104,6 +123,18 @@ export const studentsAPI = {
       headers: getHeaders(true)
     });
     if (!res.ok) throw new Error('Failed to delete student');
+    return res.json();
+  },
+
+  // Upload profile picture
+  uploadProfilePicture: async (id: string, formData: FormData) => {
+    const res = await fetch(`${API_URL}/students/${id}/profile-picture`, {
+      method: 'POST',
+      headers: getHeaders(true),
+      body: formData
+    });
+    // Note: When sending FormData, do NOT set Content-Type header manually, let the browser set it with boundary
+    if (!res.ok) throw new Error('Failed to upload profile picture');
     return res.json();
   }
 };

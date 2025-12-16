@@ -5,7 +5,16 @@ export interface Term {
   name: string;
   startDate: string;
   endDate: string;
+  programId: string;
   isActive: boolean;
+  isCurrent: boolean;
+  program?: {
+    id: string;
+    name: string;
+  };
+  _count?: {
+    groups: number;
+  };
 }
 
 export interface CreateTermDto {
@@ -14,6 +23,7 @@ export interface CreateTermDto {
   startDate: string;
   endDate: string;
   isActive: boolean;
+  isCurrent?: boolean;
 }
 
 export interface UpdateTermDto {
@@ -22,6 +32,7 @@ export interface UpdateTermDto {
   startDate?: string;
   endDate?: string;
   isActive?: boolean;
+  isCurrent?: boolean;
 }
 
 export const termsAPI = {
@@ -81,6 +92,27 @@ export const termsAPI = {
       headers: getHeaders(true)
     });
     if (!res.ok) throw new Error('Failed to delete term');
+    return res.json();
+  },
+
+  // Reactivate term
+  reactivate: async (id: string) => {
+    const res = await fetch(`${API_URL}/terms/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(true),
+      body: JSON.stringify({ isActive: true })
+    });
+    if (!res.ok) throw new Error('Failed to reactivate term');
+    return res.json();
+  },
+
+  // Set term as current (exclusive per program)
+  setCurrentTerm: async (id: string) => {
+    const res = await fetch(`${API_URL}/terms/${id}/set-current`, {
+      method: 'PATCH',
+      headers: getHeaders(true)
+    });
+    if (!res.ok) throw new Error('Failed to set current term');
     return res.json();
   }
 };

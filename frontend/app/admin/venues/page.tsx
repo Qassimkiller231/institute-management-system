@@ -16,6 +16,7 @@ export default function VenuesManagement() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'active' | 'all' | 'inactive'>('active');
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
@@ -30,12 +31,16 @@ export default function VenuesManagement() {
 
   const [editData, setEditData] = useState<UpdateVenueDto>({});
 
-  useEffect(() => { fetchVenues(); }, []);
+  useEffect(() => { fetchVenues(); }, [filterStatus]);
 
   const fetchVenues = async () => {
     try {
       setLoading(true);
-      const data = await venuesAPI.getAll();
+      let isActiveParam: boolean | undefined = undefined;
+      if (filterStatus === 'active') isActiveParam = true;
+      else if (filterStatus === 'inactive') isActiveParam = false;
+      
+      const data = await venuesAPI.getAll(isActiveParam);
       setVenues(data.data || []);
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -81,6 +86,17 @@ export default function VenuesManagement() {
     }
   };
 
+  const handleReactivate = async (id: string, name: string) => {
+    if (!confirm(`Reactivate "${name}"?`)) return;
+    try {
+      await venuesAPI.reactivate(id);
+      alert('Venue reactivated successfully!');
+      fetchVenues();
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    }
+  };
+
   const openCreateModal = () => {
     setModalMode('create');
     resetForm();
@@ -119,9 +135,20 @@ export default function VenuesManagement() {
           <h1 className="text-3xl font-bold mb-2">Venues Management</h1>
           <p className="text-gray-600">Manage teaching venues and locations</p>
         </div>
-        <button onClick={openCreateModal} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
-          + Create Venue
-        </button>
+        <div className="flex gap-3">
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as any)}
+            className="px-4 py-2 border rounded-lg text-gray-900"
+          >
+            <option value="active">Active Only</option>
+            <option value="all">All Items</option>
+            <option value="inactive">Inactive Only</option>
+          </select>
+          <button onClick={openCreateModal} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">
+            + Create Venue
+          </button>
+        </div>
       </div>
 
       <div className="bg-white rounded-lg shadow mb-6 p-4">
@@ -154,13 +181,22 @@ export default function VenuesManagement() {
             </thead>
             <tbody className="divide-y divide-gray-200">
               {filteredVenues.map((venue) => (
-                <tr key={venue.id} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 font-medium text-gray-900">{venue.name}</td>
+                <tr key={venue.id} className={`${!(venue as any).isActive ? 'bg-gray-100 opacity-60' : ''} hover:bg-gray-50`}>
+                  <td className="px-6 py-4 font-medium text-gray-900">
+                    {venue.name}
+                    {!(venue as any).isActive && (
+                      <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs rounded">Inactive</span>
+                    )}
+                  </td>
                   <td className="px-6 py-4 text-sm text-gray-600">{venue.address || '-'}</td>
                   <td className="px-6 py-4 text-gray-900">{venue._count?.halls || 0}</td>
                 <td className="px-6 py-4">
                   <button onClick={() => openEditModal(venue)} className="text-blue-600 hover:underline mr-4">Edit</button>
-                  <button onClick={() => handleDelete(venue.id, venue.name)} className="text-red-600 hover:underline">Delete</button>
+                  {!(venue as any).isActive ? (
+                    <button onClick={() => handleReactivate(venue.id, venue.name)} className="text-green-600 hover:underline">Reactivate</button>
+                  ) : (
+                    <button onClick={() => handleDelete(venue.id, venue.name)} className="text-red-600 hover:underline">Delete</button>
+                  )}
                 </td>
               </tr>
             ))}

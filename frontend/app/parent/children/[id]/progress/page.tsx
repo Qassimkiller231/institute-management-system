@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { getToken } from '@/lib/auth';
+import { useRouter, useParams } from 'next/navigation';
+import { studentsAPI, criteriaAPI } from '@/lib/api';
 
 interface Criterion {
   criteriaId: string;
@@ -53,12 +54,7 @@ export default function ChildProgressPage() {
         }
 
         // Fetch student with enrollments
-        const studentRes = await fetch(`http://localhost:3001/api/students/${studentId}`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-
-        if (!studentRes.ok) throw new Error('Failed to fetch student');
-        const studentData = await studentRes.json();
+        const studentData = await studentsAPI.getById(studentId);
         const studentInfo = studentData.data || studentData;
         setStudent(studentInfo);
 
@@ -83,15 +79,11 @@ export default function ChildProgressPage() {
         const groupId = activeEnrollment.group.id;
 
         // Fetch progress data
-        const progressRes = await fetch(
-          `http://localhost:3001/api/progress-criteria/student/${studentId}/progress?enrollmentId=${activeEnrollment.id}&levelId=${levelId}&groupId=${groupId}`,
-          {
-            headers: { 'Authorization': `Bearer ${token}` }
-          }
-        );
-
-        if (!progressRes.ok) throw new Error('Failed to fetch progress data');
-        const progressResponse = await progressRes.json();
+        const progressResponse = await criteriaAPI.getStudentProgress(studentId, {
+          enrollmentId: activeEnrollment.id,
+          levelId: levelId
+        });
+        
         const progress = progressResponse.data || progressResponse;
 
         // Get level name

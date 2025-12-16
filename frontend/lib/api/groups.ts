@@ -102,5 +102,16 @@ export const groupsAPI = {
     });
     if (!res.ok) throw new Error('Failed to delete group');
     return res.json();
+  },
+
+  // Reactivate group
+  reactivate: async (id: string) => {
+    const res = await fetch(`${API_URL}/groups/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(true),
+      body: JSON.stringify({ isActive: true })
+    });
+    if (!res.ok) throw new Error('Failed to reactivate group');
+    return res.json();
   }
 };

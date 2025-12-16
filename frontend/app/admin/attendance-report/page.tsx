@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken } from '@/lib/auth';
+import { reportsAPI, groupsAPI, termsAPI } from '@/lib/api';
 
 interface AttendanceData {
   studentName: string;
@@ -35,17 +35,13 @@ export default function AttendanceReportPage() {
 
   const fetchDropdownData = async () => {
     try {
-      const token = getToken();
       const [groupsRes, termsRes] = await Promise.all([
-        fetch('http://localhost:3001/api/groups', { headers: { Authorization: `Bearer ${token}` }}),
-        fetch('http://localhost:3001/api/terms', { headers: { Authorization: `Bearer ${token}` }})
+        groupsAPI.getAll(),
+        termsAPI.getAll()
       ]);
       
-      const groupsData = await groupsRes.json();
-      const termsData = await termsRes.json();
-      
-      setGroups(groupsData.data || []);
-      setTerms(termsData.data || []);
+      setGroups(groupsRes.data || []);
+      setTerms(termsRes.data || []);
     } catch (err) {
       console.error('Error loading filters:', err);
     }
@@ -59,21 +55,8 @@ export default function AttendanceReportPage() {
 
     try {
       setLoading(true);
-      const token = getToken();
-      const params = new URLSearchParams();
-      if (filters.groupId) params.append('groupId', filters.groupId);
-      if (filters.termId) params.append('termId', filters.termId);
-      if (filters.startDate) params.append('startDate', filters.startDate);
-      if (filters.endDate) params.append('endDate', filters.endDate);
-
-      const response = await fetch(`http://localhost:3001/api/reports/attendance?${params}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Failed to generate report');
-      
-      const data = await response.json();
-      setReportData(data.data || []);
+      const response = await reportsAPI.getAttendanceReport(filters);
+      setReportData(response.data || []);
     } catch (err: any) {
       alert('Error: ' + err.message);
     } finally {
@@ -138,11 +121,13 @@ export default function AttendanceReportPage() {
               <select
                 value={filters.termId}
                 onChange={(e) => setFilters({ ...filters, termId: e.target.value })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+                className="w-full px-4 py-2 border rounded-lg text-gray-900"
               >
                 <option value="">All Terms</option>
-                {terms.map(t => (
-                  <option key={t.id} value={t.id}>{t.name}</option>
+                {terms.map(term => (
+                  <option key={term.id} value={term.id}>
+                    {term.isCurrent ? '⭐ ' : ''}{term.program?.name ? `${term.program.name} - ${term.name}` : term.name}
+                  </option>
                 ))}
               </select>
             </div>

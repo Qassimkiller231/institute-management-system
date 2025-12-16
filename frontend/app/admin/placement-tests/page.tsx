@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { API_URL, getHeaders } from '@/lib/api/client';
+import { getMCQLevel } from '@/lib/levelConfig';
 
 export default function PlacementTestsPage() {
   const [loading, setLoading] = useState(false);
@@ -111,7 +112,7 @@ export default function PlacementTestsPage() {
               <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Test Date</th>
               <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Progress</th>
               <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Score</th>
-              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Recommended Level</th>
+              <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">MCQ Level</th>
               <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Status</th>
               <th className="px-6 py-3 text-center text-sm font-semibold text-gray-900">Actions</th>
             </tr>
@@ -119,8 +120,12 @@ export default function PlacementTestsPage() {
           <tbody className="divide-y divide-gray-200">
             {filteredTests.map((test) => (
               <tr key={test.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 text-sm font-medium text-gray-900">{test.studentName}</td>
-                <td className="px-6 py-4 text-sm text-center text-gray-900">{test.testDate}</td>
+                <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                  {test.student ? `${test.student.firstName} ${test.student.secondName || ''}`.trim() : 'N/A'}
+                </td>
+                <td className="px-6 py-4 text-sm text-center text-gray-900">
+                  {test.createdAt ? new Date(test.createdAt).toLocaleDateString() : 'N/A'}
+                </td>
                 <td className="px-6 py-4">
                   {test.status === 'IN_PROGRESS' ? (
                     <div className="flex items-center gap-2">
@@ -137,12 +142,15 @@ export default function PlacementTestsPage() {
                   )}
                 </td>
                 <td className="px-6 py-4 text-sm text-center font-semibold text-gray-900">
-                  {test.score ? `${test.score}/50` : '-'}
+                  {test.answers && typeof test.answers === 'object' ?
+                    `${test.answers.earnedPoints || 0} / ${test.answers.totalPoints || 0}`
+                    : '-'
+                  }
                 </td>
                 <td className="px-6 py-4 text-center">
-                  {test.recommendedLevel ? (
+                  {test.answers && typeof test.answers === 'object' ? (
                     <span className="inline-flex px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-xs font-semibold">
-                      {test.recommendedLevel}
+                      {getMCQLevel(test.answers.earnedPoints || 0, test.answers.totalPoints || 10)}
                     </span>
                   ) : (
                     <span className="text-sm text-gray-900">-</span>

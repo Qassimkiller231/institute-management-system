@@ -61,6 +61,15 @@ export const attendanceAPI = {
     return res.json();
   },
 
+  // Get student attendance stats
+  getStudentStats: async (studentId: string) => {
+    const res = await fetch(`${API_URL}/attendance/student/${studentId}/stats`, {
+      headers: getHeaders(true)
+    });
+    if (!res.ok) throw new Error('Failed to fetch attendance stats');
+    return res.json();
+  },
+
   // Mark attendance
   mark: async (data: MarkAttendanceDto) => {
     const res = await fetch(`${API_URL}/attendance`, {

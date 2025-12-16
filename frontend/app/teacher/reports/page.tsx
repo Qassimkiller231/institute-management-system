@@ -2,8 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken, getTeacherId } from '@/lib/auth';
-import { groupsAPI } from '@/lib/api';
+
+import { getTeacherId } from '@/lib/auth';
+import { groupsAPI, reportsAPI } from '@/lib/api';
 
 interface Group {
   id: string;
@@ -42,28 +43,8 @@ export default function TeacherReportsPage() {
 
     setLoading(true);
     try {
-      const token = getToken();
-      let endpoint = '';
 
-      switch (reportType) {
-        case 'attendance':
-          endpoint = `/reports/group/${selectedGroup}/attendance`;
-          break;
-        case 'progress':
-          endpoint = `/reports/group/${selectedGroup}/progress`;
-          break;
-        case 'performance':
-          endpoint = `/reports/group/${selectedGroup}/performance`;
-          break;
-      }
-
-      const response = await fetch(`http://localhost:3001/api${endpoint}`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Failed to generate report');
-
-      const blob = await response.blob();
+      const blob = await reportsAPI.generateGroupReport(selectedGroup, reportType);
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

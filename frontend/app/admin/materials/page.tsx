@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import MaterialCard, {
   MaterialCardData,
 } from "@/components/shared/MaterialCard";
-import { materialsAPI, groupsAPI, CreateMaterialDto, UpdateMaterialDto } from "@/lib/api";
+import { materialsAPI, groupsAPI, programsAPI, CreateMaterialDto, UpdateMaterialDto } from "@/lib/api";
 
 export default function AdminMaterialsPage() {
   const router = useRouter();
@@ -48,11 +48,9 @@ export default function AdminMaterialsPage() {
 
   const fetchPrograms = async () => {
     try {
-      const response = await fetch('http://localhost:3001/api/programs', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      });
-      const data = await response.json();
-      setPrograms(data.data?.data || data.data || []);
+      const response = await programsAPI.getAll();
+      const data = response.data || [];
+      setPrograms(Array.isArray(data) ? data : data.data || []);
     } catch (err) {
       console.error("Failed to fetch programs", err);
     }

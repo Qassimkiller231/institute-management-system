@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken } from '@/lib/auth';
 import { parentsAPI, Parent, CreateParentDto, UpdateParentDto } from '@/lib/api/parents';
+import { studentsAPI } from '@/lib/api';
 
 interface Student {
   id: string;
@@ -19,7 +20,7 @@ export default function ParentManagement() {
   const [students, setStudents] = useState<Student[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'active' | 'all' | 'inactive'>('active');
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit' | 'linkStudent'>('create');
   const [selectedParent, setSelectedParent] = useState<Parent | null>(null);
@@ -49,7 +50,7 @@ export default function ParentManagement() {
       }
 
       const response = await parentsAPI.getAll({
-        isActive: statusFilter ? statusFilter === 'active' : undefined
+        isActive: filterStatus === 'active' ? true : filterStatus === 'inactive' ? false : undefined
       });
       
       setParents(response.data || []);
@@ -63,23 +64,16 @@ export default function ParentManagement() {
 
   const fetchStudents = async () => {
     try {
-      const token = getToken();
-      const response = await fetch('http://localhost:3001/api/students', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      
-      if (!response.ok) throw new Error('Failed to fetch students');
-      
-      const data = await response.json();
-      setStudents(data.data || []);
-    } catch (err: any) {
+      const result = await studentsAPI.getAll();
+      setStudents(result.data || []);
+    } catch (err) {
       console.error('Error loading students:', err);
     }
   };
 
   useEffect(() => {
     fetchParents();
-  }, [statusFilter]);
+  }, [filterStatus]);
 
   const handleCreate = async () => {
     // Validation
@@ -235,7 +229,7 @@ export default function ParentManagement() {
 
   const resetFilters = () => {
     setSearchTerm('');
-    setStatusFilter('');
+    setFilterStatus('active');
   };
 
   const filteredParents = parents.filter(p => {
@@ -291,13 +285,13 @@ export default function ParentManagement() {
               className="px-4 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             />
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as any)}
               className="px-4 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             >
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="active">Active Only</option>
+              <option value="all">All Items</option>
+              <option value="inactive">Inactive Only</option>
             </select>
           </div>
         </div>

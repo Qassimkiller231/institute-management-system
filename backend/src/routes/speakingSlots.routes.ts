@@ -9,6 +9,13 @@ const router = express.Router();
 // All routes require auth
 router.use(authenticate);
 
+// Get ALL slots (Admin only)
+router.get(
+  '/',
+  requireTeacherOrAdmin,
+  speakingSlotController.getAllSlots
+);
+
 // View available slots (Students can view)
 router.get(
   '/available',

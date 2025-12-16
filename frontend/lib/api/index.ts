@@ -31,5 +31,6 @@ export * from './terms';
 export * from './reporting';
 export * from './payments';
 export * from './criteria';
+export * from './faqs';
 export * from './chatbot';
 export * from './parents';

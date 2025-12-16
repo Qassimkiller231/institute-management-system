@@ -42,9 +42,10 @@ export const createProgram = async (req: Request, res: Response) => {
 export const getAllPrograms = async (req: Request, res: Response) => {
   try {
     const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
+    console.log(isActive);
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
-
+    
     const result = await programService.getAllPrograms({
       isActive,
       page,
@@ -159,6 +160,9 @@ export const getAllTerms = async (req: Request, res: Response) => {
     const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
     const page = parseInt(req.query.page as string) || 1;
     const limit = parseInt(req.query.limit as string) || 50;
+
+    console.log('🌟 CONTROLLER - query params:', req.query);
+    console.log('🌟 CONTROLLER - parsed isActive:', isActive);
 
     const result = await termService.getAllTerms({
       programId,

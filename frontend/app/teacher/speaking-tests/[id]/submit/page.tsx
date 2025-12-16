@@ -32,6 +32,10 @@ interface SlotData {
     id: string;
     score?: number;
     status: string;
+    answers?: {
+      earnedPoints?: number;
+      totalPoints?: number;
+    };
   };
 }
 
@@ -57,8 +61,12 @@ export default function SubmitSpeakingResult() {
 
   // Auto-calculate MCQ level when slot loads
   useEffect(() => {
-    if (slot?.testSession?.score) {
-      const calculatedLevel = getMCQLevel(slot.testSession.score);
+    if (slot?.testSession?.answers) {
+      const answers = slot.testSession.answers as any;
+      const earnedPoints = answers.earnedPoints || 0;
+      const totalPoints = answers.totalPoints || 50;
+      
+      const calculatedLevel = getMCQLevel(earnedPoints, totalPoints);
       setMcqLevel(calculatedLevel);
 
       // Auto-suggest final level (defaults to MCQ level initially)
@@ -273,8 +281,8 @@ export default function SubmitSpeakingResult() {
             <div>
               <p className="text-sm text-gray-600 mb-2">MCQ Score</p>
               <p className="text-4xl font-bold text-blue-600">
-                {slot.testSession?.score || 0}{" "}
-                <span className="text-xl text-gray-500">/ 50</span>
+                {slot.testSession?.answers?.earnedPoints || 0}{" "}
+                <span className="text-xl text-gray-500">/ {slot.testSession?.answers?.totalPoints || 50}</span>
               </p>
             </div>
 

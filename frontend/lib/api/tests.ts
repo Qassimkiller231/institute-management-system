@@ -43,6 +43,15 @@ export const testAPI = {
         }
       }
     );
-    return response.json();
+  },
+  getLastSession: async (studentId: string, testId: string) => {
+    const res = await fetch(`${API_URL}/test-sessions/last-session?studentId=${studentId}&testId=${testId}`, {
+      headers: getHeaders(true)
+    });
+    // Check if 404 (not found) - this is a valid "null" result, not an error
+    if (res.status === 404) {
+      return { success: true, session: null };
+    }
+    return res.json();
   }
 };

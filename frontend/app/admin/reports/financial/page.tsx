@@ -45,8 +45,8 @@ export default function FinancialReportsPage() {
         collectionRate: backendData.totalPlanned > 0 
           ? (backendData.totalPaid / backendData.totalPlanned) * 100 
           : 0,
-        paymentMethods: {}, // TODO: Backend doesn't provide this yet
-        monthlyTrend: [] // TODO: Backend doesn't provide this yet
+        paymentMethods: backendData.paymentMethods || {},
+        monthlyTrend: backendData.monthlyTrend || []
       };
       
       console.log('Transformed data:', transformedData);
@@ -123,7 +123,9 @@ export default function FinancialReportsPage() {
               <option value="">All Terms</option>
               {terms.length > 0 ? (
                 terms.map(term => (
-                  <option key={term.id} value={term.id}>{term.name}</option>
+                  <option key={term.id} value={term.id}>
+                    {term.isCurrent ? '⭐ ' : ''}{term.program?.name ? `${term.program.name} - ${term.name}` : term.name}
+                  </option>
                 ))
               ) : (
                 <option disabled>Loading terms...</option>

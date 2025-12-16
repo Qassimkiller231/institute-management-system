@@ -7,6 +7,7 @@ export interface GroupCardData {
   groupCode: string;
   name: string | null;
   capacity: number;
+  isActive?: boolean;
   level: {
     name: string;
     displayName: string;
@@ -37,6 +38,7 @@ interface GroupCardProps {
   showTeacherActions?: boolean;
   onEdit?: (id: string) => void;
   onDelete?: (id: string) => void;
+  onReactivate?: (id: string, name: string) => void;
   onClick?: (id: string) => void;
 }
 
@@ -47,6 +49,7 @@ export default function GroupCard({
   showTeacherActions = false,
   onEdit,
   onDelete,
+  onReactivate,
   onClick,
 }: GroupCardProps) {
   const router = useRouter();
@@ -143,15 +146,27 @@ export default function GroupCard({
             >
               Edit
             </button>
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDelete?.(group.id);
-              }}
-              className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
-            >
-              Delete
-            </button>
+            {group.isActive === false ? (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onReactivate?.(group.id, group.groupCode);
+                }}
+                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm font-medium"
+              >
+                Reactivate
+              </button>
+            ) : (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDelete?.(group.id);
+                }}
+                className="flex-1 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 text-sm font-medium"
+              >
+                Delete
+              </button>
+            )}
           </div>
         )}
       </div>

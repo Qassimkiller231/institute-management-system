@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken } from '@/lib/auth';
+import { announcementsAPI } from '@/lib/api';
 
 interface Announcement {
   id: string;
@@ -37,13 +38,7 @@ export default function ParentAnnouncementsPage() {
         return;
       }
 
-      const res = await fetch('http://localhost:3001/api/announcements', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) throw new Error('Failed to fetch announcements');
-      
-      const data = await res.json();
+      const data = await announcementsAPI.getAll();
       console.log('=== ANNOUNCEMENT DEBUG ===');
       console.log('Total announcements:', data.data?.length);
       console.log('First announcement:', JSON.stringify(data.data?.[0], null, 2));

@@ -56,6 +56,21 @@ export const startTestSession = async (data: StartTestSessionInput) => {
     throw new Error('You already have an active placement test. Please complete it first.');
   }
 
+  // ✨ NEW: Check if student has ALREADY COMPLETED this specific test
+  const existingCompletedSession = await prisma.testSession.findFirst({
+    where: {
+      studentId: data.studentId,
+      testId: data.testId,
+      status: {
+        in: ['COMPLETED', 'FINAL_RESULTS', 'MCQ_COMPLETED', 'SPEAKING_COMPLETED']
+      }
+    }
+  });
+
+  if (existingCompletedSession) {
+    throw new Error('You have already taken this test. You cannot retake the same test.');
+  }
+
   // Create new session
   const session = await prisma.testSession.create({
     data: {
@@ -303,16 +318,13 @@ export const finalizeTestSession = async (input: FinalizeSessionInput) => {
 // Add this function to testSession_service.ts
 
 /**
- * Get active test session for a student
- * Returns the most recent IN_PROGRESS or MCQ_COMPLETED session
+ * Get the most recent test session for a student and test (regardless of status)
  */
-export const getActiveSessionForStudent = async (studentId: string) => {
-  const activeSession = await prisma.testSession.findFirst({
+export const getLastTestSession = async (studentId: string, testId: string) => {
+  return await prisma.testSession.findFirst({
     where: {
       studentId,
-      status: {
-        in: ['IN_PROGRESS', 'MCQ_COMPLETED']
-      }
+      testId
     },
     include: {
       test: true
@@ -321,20 +333,4 @@ export const getActiveSessionForStudent = async (studentId: string) => {
       createdAt: 'desc'
     }
   });
-
-  if (!activeSession) {
-    throw new Error('No active test session found');
-  }
-
-  return {
-    id: activeSession.id,
-    testId: activeSession.testId,
-    status: activeSession.status,
-    startedAt: activeSession.startedAt,
-    score: activeSession.score,
-    test: {
-      name: activeSession.test.name,
-      durationMinutes: activeSession.test.durationMinutes
-    }
-  };
 };

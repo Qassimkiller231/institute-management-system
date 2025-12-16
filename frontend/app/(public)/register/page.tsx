@@ -90,11 +90,12 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      const phoneWithCode = phoneCountryCode + formData.phone.replace(/\D/g, '');
+      // Backend expects just the phone number without country code
+      const phoneDigits = formData.phone.replace(/\D/g, '');
       
       const result = await studentAPI.create({
         ...formData,
-        phone: phoneWithCode
+        phone: phoneDigits
       });
 
       if (result.success) {
@@ -110,8 +111,27 @@ export default function RegisterPage() {
       } else {
         setError(result.message || 'Failed to create account');
       }
-    } catch (err) {
-      setError('Network error. Please try again.');
+    } catch (err: any) {
+      // Parse error message from backend
+      let errorMessage = 'Failed to create account. Please try again.';
+      
+      if (err?.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err?.message) {
+        const msg = err.message.toLowerCase();
+        // Check for specific error patterns
+        if (msg.includes('phone') || msg.includes('unique constraint failed on the fields: (`phone`)')) {
+          errorMessage = 'This phone number is already registered. Please use a different number or login.';
+        } else if (msg.includes('cpr')) {
+          errorMessage = 'This CPR is already registered. Please use a different CPR or login.';
+        } else if (msg.includes('email')) {
+          errorMessage = 'This email is already in use. Please use a different email or login.';
+        } else {
+          errorMessage = err.message;
+        }
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

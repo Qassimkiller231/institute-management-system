@@ -44,14 +44,15 @@ export const getAllStudents = async (req: AuthRequest, res: Response) => {
     // Common filters
     const baseFilters = {
       isActive: req.query.isActive === 'true' ? true :
-                req.query.isActive === 'false' ? false : undefined,
+        req.query.isActive === 'false' ? false : undefined,
       gender: req.query.gender as string,
       schoolType: req.query.schoolType as string,
       schoolYear: req.query.schoolYear as string,
       preferredCenter: req.query.preferredCenter as string,
       search: req.query.search as string,
       page: req.query.page ? parseInt(req.query.page as string) : 1,
-      limit: req.query.limit ? parseInt(req.query.limit as string) : 50
+      limit: req.query.limit ? parseInt(req.query.limit as string) : 50,
+      needsSpeakingTest: req.query.needsSpeakingTest === 'true'
     };
 
     // Enrollment-based filters (for dashboard)
@@ -99,7 +100,7 @@ export const getAllStudents = async (req: AuthRequest, res: Response) => {
 export const getStudentById = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     // Security: Students can only view their own data
     if (req.user?.role === 'STUDENT' && req.user?.studentId !== id) {
       return res.status(403).json({
@@ -143,7 +144,7 @@ export const updateStudent = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Update student error:', error);
-    
+
     if (error.message === 'Student not found') {
       return res.status(404).json({
         success: false,
@@ -174,7 +175,7 @@ export const deleteStudent = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Delete student error:', error);
-    
+
     if (error.message === 'Student not found') {
       return res.status(404).json({
         success: false,
@@ -263,7 +264,7 @@ export const searchStudents = async (req: AuthRequest, res: Response) => {
 export const uploadProfilePicture = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
-    
+
     // Check if file was uploaded
     if (!req.file) {
       return res.status(400).json({

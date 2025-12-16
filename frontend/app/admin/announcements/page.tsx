@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { announcementsAPI, programsAPI } from '@/lib/api';
+import { announcementsAPI, programsAPI, groupsAPI } from '@/lib/api';
 import AnnouncementCard, { AnnouncementCardData } from '@/components/shared/AnnouncementCard';
 
 interface Program {
@@ -40,14 +40,15 @@ export default function AdminAnnouncementsPage() {
       setLoading(true);
       const [announcementsData, programsData, groupsData] = await Promise.all([
         announcementsAPI.getAll(),
-        programsAPI.getAll(),
-        fetch('http://localhost:3001/api/groups?isActive=true', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        }).then(r => r.json())
+        programsAPI.getAll(true), // Only active programs
+        groupsAPI.getAll() // Use groupsAPI for proper auth
       ]);
       setAnnouncements(announcementsData.data || []);
       setPrograms(programsData.data || []);
-      setGroups(groupsData.data || []);
+      // Extract groups from response
+      const extractedGroups = groupsData.data || [];
+      console.log('Groups fetched:', extractedGroups);
+      setGroups(Array.isArray(extractedGroups) ? extractedGroups : []);
     } catch (err: any) {
       setError(err.message);
     } finally {

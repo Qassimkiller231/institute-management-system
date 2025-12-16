@@ -27,10 +27,14 @@ export interface UpdateHallDto {
 
 export const hallsAPI = {
   // Get all halls
-  getAll: async (venueId?: string) => {
-    const url = venueId 
-      ? `${API_URL}/halls?venueId=${venueId}`
-      : `${API_URL}/halls`;
+  getAll: async (venueId?: string, isActive?: boolean) => {
+    const params = new URLSearchParams();
+    if (venueId) params.append('venueId', venueId);
+    if (isActive !== undefined) params.append('isActive', String(isActive));
+
+    const queryString = params.toString();
+    const url = `${API_URL}/halls${queryString ? `?${queryString}` : ''}`;
+
     const res = await fetch(url, {
       headers: getHeaders(true)
     });
@@ -82,6 +86,17 @@ export const hallsAPI = {
       headers: getHeaders(true)
     });
     if (!res.ok) throw new Error('Failed to delete hall');
+    return res.json();
+  },
+
+  // Reactivate hall
+  reactivate: async (id: string) => {
+    const res = await fetch(`${API_URL}/halls/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(true),
+      body: JSON.stringify({ isActive: true })
+    });
+    if (!res.ok) throw new Error('Failed to reactivate hall');
     return res.json();
   }
 };

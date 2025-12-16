@@ -48,7 +48,7 @@ export const getTeacherDashboard = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Get teacher dashboard error:', error);
-    
+
     if (error.message === 'Teacher not found') {
       return res.status(404).json({
         success: false,
@@ -90,7 +90,7 @@ export const getGroupPerformanceReport = async (req: AuthRequest, res: Response)
     });
   } catch (error: any) {
     console.error('Get group performance report error:', error);
-    
+
     if (error.message === 'Group not found') {
       return res.status(404).json({
         success: false,
@@ -130,7 +130,7 @@ export const getStudentPerformanceReport = async (req: AuthRequest, res: Respons
     });
   } catch (error: any) {
     console.error('Get student performance report error:', error);
-    
+
     if (error.message === 'Student not found' || error.message === 'Enrollment not found for student') {
       return res.status(404).json({
         success: false,
@@ -208,7 +208,7 @@ export const getTermDuesOverview = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Get term dues overview error:', error);
-    
+
     if (error.message === 'Term not found') {
       return res.status(404).json({
         success: false,
@@ -219,6 +219,25 @@ export const getTermDuesOverview = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to fetch term dues overview'
+    });
+  }
+};
+
+// 7.5. Overall Financial Analytics (All Terms)
+export const getOverallFinancialAnalytics = async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await financialService.getOverallFinancialAnalytics();
+
+    res.status(200).json({
+      success: true,
+      message: 'Overall financial analytics fetched successfully',
+      data: result
+    });
+  } catch (error: any) {
+    console.error('Get overall financial analytics error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch overall financial analytics'
     });
   }
 };
@@ -244,7 +263,7 @@ export const getProgramStudentOverview = async (req: AuthRequest, res: Response)
     });
   } catch (error: any) {
     console.error('Get program student overview error:', error);
-    
+
     if (error.message === 'Program not found') {
       return res.status(404).json({
         success: false,

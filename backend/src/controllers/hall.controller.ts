@@ -13,11 +13,13 @@ export const createHall = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// hall.controller.ts - Fix getAllHalls (expects object)
+// GET /api/halls - Get all halls
 export const getAllHalls = async (req: AuthRequest, res: Response) => {
   try {
+    const isActive = req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined;
     const filters = {
-      venueId: req.query.venueId as string | undefined
+      venueId: req.query.venueId as string | undefined,
+      isActive
     };
     const result = await hallService.getAllHalls(filters);
     res.status(200).json({ success: true, data: result });

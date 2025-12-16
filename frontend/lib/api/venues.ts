@@ -25,8 +25,11 @@ export interface UpdateVenueDto {
 
 export const venuesAPI = {
   // Get all venues
-  getAll: async () => {
-    const res = await fetch(`${API_URL}/venues`, {
+  getAll: async (isActive?: boolean) => {
+    const url = isActive !== undefined
+      ? `${API_URL}/venues?isActive=${isActive}`
+      : `${API_URL}/venues`;
+    const res = await fetch(url, {
       headers: getHeaders(true)
     });
     if (!res.ok) throw new Error('Failed to fetch venues');
@@ -70,13 +73,24 @@ export const venuesAPI = {
     return res.json();
   },
 
-  // Delete venue
+  // Delete venue (soft delete)
   delete: async (id: string) => {
     const res = await fetch(`${API_URL}/venues/${id}`, {
       method: 'DELETE',
       headers: getHeaders(true)
     });
     if (!res.ok) throw new Error('Failed to delete venue');
+    return res.json();
+  },
+
+  // Reactivate venue
+  reactivate: async (id: string) => {
+    const res = await fetch(`${API_URL}/venues/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(true),
+      body: JSON.stringify({ isActive: true })
+    });
+    if (!res.ok) throw new Error('Failed to reactivate venue');
     return res.json();
   }
 };

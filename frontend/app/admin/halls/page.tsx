@@ -24,6 +24,7 @@ export default function HallsManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [venueFilter, setVenueFilter] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'active' | 'all' | 'inactive'>('active');
   const [showModal, setShowModal] = useState(false);
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedHall, setSelectedHall] = useState<Hall | null>(null);
@@ -40,7 +41,7 @@ export default function HallsManagement() {
   useEffect(() => { 
     fetchVenues();
     fetchHalls(); 
-  }, []);
+  }, [filterStatus]);
 
   const fetchVenues = async () => {
     try {
@@ -54,7 +55,11 @@ export default function HallsManagement() {
   const fetchHalls = async () => {
     try {
       setLoading(true);
-      const data = await hallsAPI.getAll();
+      let isActiveParam: boolean | undefined = undefined;
+      if (filterStatus === 'active') isActiveParam = true;
+      else if (filterStatus === 'inactive') isActiveParam = false;
+      
+      const data = await hallsAPI.getAll(venueFilter || undefined, isActiveParam);
       setHalls(data.data || []);
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -96,6 +101,17 @@ export default function HallsManagement() {
     try {
       await hallsAPI.delete(id);
       alert('Deleted!');
+      fetchHalls();
+    } catch (err: any) {
+      alert('Error: ' + err.message);
+    }
+  };
+
+  const handleReactivate = async (id: string, name: string) => {
+    if (!confirm(`Reactivate "${name}"?`)) return;
+    try {
+      await hallsAPI.reactivate(id);
+      alert('Hall reactivated successfully!');
       fetchHalls();
     } catch (err: any) {
       alert('Error: ' + err.message);
@@ -156,6 +172,15 @@ export default function HallsManagement() {
           className="flex-1 px-4 py-2 border rounded-lg text-gray-900 placeholder-gray-400"
         />
         <select
+          value={filterStatus}
+          onChange={(e) => setFilterStatus(e.target.value as any)}
+          className="px-4 py-2 border rounded-lg text-gray-900"
+        >
+          <option value="active">Active Only</option>
+          <option value="all">All Items</option>
+          <option value="inactive">Inactive Only</option>
+        </select>
+        <select
           value={venueFilter}
           onChange={(e) => setVenueFilter(e.target.value)}
           className="px-4 py-2 border rounded-lg text-gray-900"
@@ -167,19 +192,7 @@ export default function HallsManagement() {
         </select>
       </div>
 
-      <div className="bg-white rounded-lg shadow mb-6 p-4">
-        <div className="flex gap-3 items-center mb-3">
-          <h3 className="text-sm font-semibold text-gray-700">Filters</h3>
-          <button
-            onClick={() => { setSearchTerm(''); setVenueFilter(''); }}
-            className="ml-auto px-4 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200"
-          >
-            Reset
-          </button>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-        </div>
-      </div>
+
 
       <div className="bg-white rounded-lg shadow overflow-hidden">
         <table className="w-full">
@@ -194,14 +207,23 @@ export default function HallsManagement() {
           </thead>
           <tbody className="divide-y divide-gray-200">
             {filteredHalls.map((hall) => (
-              <tr key={hall.id} className="hover:bg-gray-50">
-                <td className="px-6 py-4 font-medium text-gray-900">{hall.name}</td>
+              <tr key={hall.id} className={`${!(hall as any).isActive ? 'bg-gray-100 opacity-60' : ''} hover:bg-gray-50`}>
+                <td className="px-6 py-4 font-medium text-gray-900">
+                  {hall.name}
+                  {!(hall as any).isActive && (
+                    <span className="ml-2 px-2 py-1 bg-red-100 text-red-800 text-xs rounded">Inactive</span>
+                  )}
+                </td>
                 <td className="px-6 py-4 text-gray-700">{hall.venue?.name || '-'}</td>
                 <td className="px-6 py-4 text-gray-700">{hall.capacity}</td>
                 <td className="px-6 py-4 text-gray-700">{hall._count?.sessions || 0}</td>
                 <td className="px-6 py-4">
                   <button onClick={() => openEditModal(hall)} className="text-blue-600 hover:underline mr-4">Edit</button>
-                  <button onClick={() => handleDelete(hall.id, hall.name)} className="text-red-600 hover:underline">Delete</button>
+                  {!(hall as any).isActive ? (
+                    <button onClick={() => handleReactivate(hall.id, hall.name)} className="text-green-600 hover:underline">Reactivate</button>
+                  ) : (
+                    <button onClick={() => handleDelete(hall.id, hall.name)} className="text-red-600 hover:underline">Delete</button>
+                  )}
                 </td>
               </tr>
             ))}

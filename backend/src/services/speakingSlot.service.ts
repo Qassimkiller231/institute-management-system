@@ -60,11 +60,11 @@ export const getAvailableSpeakingSlots = async (
     // Calculate end time from slotTime + durationMinutes
     const startDateTime = new Date(s.slotTime);
     const endDateTime = new Date(startDateTime.getTime() + s.durationMinutes * 60000);
-    
+
     // Format times as HH:MM:SS for compatibility
     const startTime = startDateTime.toTimeString().split(' ')[0];
     const endTime = endDateTime.toTimeString().split(' ')[0];
-    
+
     return {
       id: s.id,
       teacherId: s.teacherId,
@@ -83,6 +83,39 @@ export const getAvailableSpeakingSlots = async (
       }
     };
   });
+};
+
+/**
+ * Get ALL speaking slots (for admin view)
+ */
+export const getAllSpeakingSlots = async () => {
+  const slots = await prisma.speakingSlot.findMany({
+    include: {
+      teacher: {
+        include: {
+          user: { select: { email: true } }
+        }
+      },
+      student: {
+        include: {
+          user: { select: { email: true } }
+        }
+      },
+      testSession: {
+        select: {
+          id: true,
+          score: true,
+          status: true
+        }
+      }
+    },
+    orderBy: [
+      { slotDate: 'desc' },
+      { slotTime: 'asc' }
+    ]
+  });
+
+  return slots;
 };
 
 export const bookSpeakingSlot = async (input: BookSpeakingSlotInput) => {
@@ -131,15 +164,15 @@ export const submitSpeakingResult = async (
 ) => {
   // Validate levels
   const validLevels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
-  
+
   if (!validLevels.includes(input.mcqLevel)) {
     throw new Error('Invalid MCQ level. Must be A1, A2, B1, B2, C1, or C2');
   }
-  
+
   if (!validLevels.includes(input.speakingLevel)) {
     throw new Error('Invalid speaking level. Must be A1, A2, B1, B2, C1, or C2');
   }
-  
+
   if (!validLevels.includes(input.finalLevel)) {
     throw new Error('Invalid final level. Must be A1, A2, B1, B2, C1, or C2');
   }
@@ -207,7 +240,8 @@ export const listSpeakingSlotsForTeacher = async (teacherId: string) => {
         select: {
           id: true,
           score: true,
-          status: true
+          status: true,
+          answers: true
         }
       }
     },

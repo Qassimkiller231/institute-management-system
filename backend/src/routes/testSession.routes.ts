@@ -12,6 +12,9 @@ router.get('/active', testSessionController.getActiveSession);
 // Start test session
 router.post('/start', testSessionController.startTestSession);
 
+// Get last session (completed or otherwise)
+router.get('/last-session', testSessionController.getLastSession);
+
 // Get questions for a session
 router.get('/:sessionId/questions', testSessionController.getSessionQuestions);
 

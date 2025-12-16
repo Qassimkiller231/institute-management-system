@@ -210,7 +210,7 @@ export const getActiveSession = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('getActiveSession error:', error);
-    
+
     // If no active session found, return 404 instead of 400
     if (error.message?.includes('No active test session')) {
       return res.status(404).json({
@@ -218,10 +218,54 @@ export const getActiveSession = async (req: AuthRequest, res: Response) => {
         message: error.message
       });
     }
-    
+
     return res.status(400).json({
       success: false,
       message: error.message || 'Failed to get active session'
+    });
+  }
+};
+
+/**
+ * GET /api/test-sessions/last-session?studentId=xxx&testId=yyy
+ * Get the most recent session for a student and test
+ */
+export const getLastSession = async (req: AuthRequest, res: Response) => {
+  try {
+    const { studentId, testId } = req.query;
+
+    if (!studentId || typeof studentId !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'studentId query parameter is required'
+      });
+    }
+
+    if (!testId || typeof testId !== 'string') {
+      return res.status(400).json({
+        success: false,
+        message: 'testId query parameter is required'
+      });
+    }
+
+    const session = await testSessionService.getLastTestSession(studentId, testId);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false, // Not an error, just no session found
+        message: 'No previous session found'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      session
+    });
+  } catch (error: any) {
+    console.error('getLastSession error:', error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to get last session'
     });
   }
 };

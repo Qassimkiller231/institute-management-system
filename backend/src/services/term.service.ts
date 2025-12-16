@@ -52,8 +52,12 @@ export const getAllTerms = async (filters: {
   const where: any = {};
   if (filters.programId) where.programId = filters.programId;
   if (filters.isCurrent !== undefined) where.isCurrent = filters.isCurrent;
-  // Default to showing only active terms unless explicitly set to false
-  where.isActive = filters.isActive !== undefined ? filters.isActive : true;
+  // Only filter by isActive if explicitly set
+  if (filters.isActive !== undefined) {
+    where.isActive = filters.isActive;
+  }
+
+  console.log('🔥 TERMS SERVICE - filters:', filters, 'where:', where);
 
   const [terms, total] = await Promise.all([
     prisma.term.findMany({
@@ -160,14 +164,65 @@ export const updateTerm = async (id: string, updates: {
   });
 };
 export const deleteTerm = async (id: string) => {
-  const existing = await prisma.term.findUnique({ where: { id } });
-  if (!existing) {
-    throw new Error('Term not found');
+  const term = await prisma.term.findUnique({
+    where: { id },
+    include: { _count: { select: { groups: true } } }
+  });
+
+  if (!term) throw new Error('Term not found');
+  if (term._count.groups > 0) {
+    throw new Error('Cannot delete term with existing groups');
   }
 
-  // Soft delete - just deactivate
+  // Soft delete
   return await prisma.term.update({
     where: { id },
     data: { isActive: false }
+  });
+};
+
+// Set term as current (exclusive per program)
+export const setCurrentTerm = async (termId: string) => {
+  // Get the term to find its program
+  const term = await prisma.term.findUnique({
+    where: { id: termId },
+    select: { programId: true, isCurrent: true }
+  });
+
+  if (!term) throw new Error('Term not found');
+
+  // If already current, toggle it off
+  if (term.isCurrent) {
+    return await prisma.term.update({
+      where: { id: termId },
+      data: { isCurrent: false },
+      include: {
+        program: true,
+        _count: {
+          select: { groups: true }
+        }
+      }
+    });
+  }
+
+  // Unset all current terms for this program
+  await prisma.term.updateMany({
+    where: {
+      programId: term.programId,
+      isCurrent: true
+    },
+    data: { isCurrent: false }
+  });
+
+  // Set this term as current
+  return await prisma.term.update({
+    where: { id: termId },
+    data: { isCurrent: true },
+    include: {
+      program: true,
+      _count: {
+        select: { groups: true }
+      }
+    }
   });
 };

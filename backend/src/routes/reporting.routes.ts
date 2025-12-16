@@ -70,11 +70,18 @@ router.get(
   reportingController.getTermDuesOverview
 );
 
+// Overall Financial Analytics (All Terms)
+router.get(
+  '/financial/overall',
+  requireAdmin,
+  reportingController.getOverallFinancialAnalytics
+);
+
 // ============================================
 // PROGRAM ROUTES (YOUR FAILING ONES - FIXED!)
 // ============================================
 
-// âš ï¸ IMPORTANT: Specific routes MUST come BEFORE general routes!
+// ⚠️ IMPORTANT: Specific routes MUST come BEFORE general routes!
 // Placement Test Summary (specific)
 router.get(
   '/program/placement-summary',

@@ -6,6 +6,7 @@ import { Elements } from '@stripe/react-stripe-js';
 import { stripePromise } from '@/lib/stripe/config';
 import StripePaymentForm from '@/components/payments/StripePaymentForm';
 import { getToken } from '@/lib/auth';
+import { paymentsAPI } from '@/lib/api';
 
 interface Payment {
   id: string;
@@ -46,18 +47,7 @@ export default function ParentPaymentsPage() {
         return;
       }
 
-      const res = await fetch('http://localhost:3001/api/payments', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) {
-        // Don't throw error for 404, just set empty array
-        console.error('Failed to fetch payments:', res.status);
-        setPayments([]);
-        return;
-      }
-      
-      const data = await res.json();
+      const data = await paymentsAPI.getPayments();
       setPayments(data.data || []);
     } catch (err: any) {
       console.error('Error loading payments:', err);

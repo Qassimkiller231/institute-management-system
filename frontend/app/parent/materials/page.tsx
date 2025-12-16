@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken } from '@/lib/auth';
+import { materialsAPI } from '@/lib/api';
 
 interface Material {
   id: string;
@@ -42,18 +43,7 @@ export default function ParentMaterialsPage() {
         return;
       }
 
-      const res = await fetch('http://localhost:3001/api/materials', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!res.ok) {
-        // Don't throw error, just set empty array
-        console.error('Failed to fetch materials:', res.status);
-        setMaterials([]);
-        return;
-      }
-      
-      const data = await res.json();
+      const data = await materialsAPI.getAll();
       setMaterials(data.data || []);
     } catch (err: any) {
       console.error('Error loading materials:', err);

@@ -40,8 +40,10 @@ export const getAllHalls = async (filters: {
 }) => {
   const where: any = {};
   if (filters.venueId) where.venueId = filters.venueId;
-  // Default to showing only active halls unless explicitly set to false
-  where.isActive = filters.isActive !== undefined ? filters.isActive : true;
+  // Only filter by isActive if explicitly set
+  if (filters.isActive !== undefined) {
+    where.isActive = filters.isActive;
+  }
 
   return await prisma.hall.findMany({
     where,

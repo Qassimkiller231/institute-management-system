@@ -11,15 +11,20 @@ export default function AdminGroupsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'active' | 'all' | 'inactive'>('active');
 
   useEffect(() => {
     fetchGroups();
-  }, []);
+  }, [filterStatus]);
 
   const fetchGroups = async () => {
     try {
       setLoading(true);
-      const data = await groupsAPI.getAll({ isActive: true });
+      const params: any = {};
+      if (filterStatus === 'active') params.isActive = true;
+      else if (filterStatus === 'inactive') params.isActive = false;
+      
+      const data = await groupsAPI.getAll(params);
 
       setGroups(data.data || []);
     } catch (err: any) {
@@ -34,8 +39,17 @@ export default function AdminGroupsPage() {
 
     try {
       await groupsAPI.delete(id);
+      fetchGroups();
+    } catch (err: any) {
+      alert(`Error: ${err.message}`);
+    }
+  };
 
-      // Refresh list
+  const handleReactivate = async (id: string, name: string) => {
+    if (!confirm(`Reactivate "${name}"?`)) return;
+
+    try {
+      await groupsAPI.reactivate(id);
       fetchGroups();
     } catch (err: any) {
       alert(`Error: ${err.message}`);
@@ -91,6 +105,15 @@ export default function AdminGroupsPage() {
             onChange={(e) => setSearchTerm(e.target.value)}
             className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           />
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as any)}
+            className="px-4 py-3 border border-gray-300 rounded-lg text-gray-900"
+          >
+            <option value="active">Active Only</option>
+            <option value="all">All Items</option>
+            <option value="inactive">Inactive Only</option>
+          </select>
           <button
             onClick={() => setSearchTerm('')}
             className="px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition"
@@ -160,7 +183,7 @@ export default function AdminGroupsPage() {
                 showTeacherActions={false} // Admin doesn't need attendance buttons
                 onEdit={(id) => router.push(`/admin/groups/${id}/edit`)}
                 onDelete={handleDelete}
-                onClick={(id) => router.push(`/admin/groups/${id}`)}
+                onReactivate={handleReactivate}
               />
             ))}
           </div>

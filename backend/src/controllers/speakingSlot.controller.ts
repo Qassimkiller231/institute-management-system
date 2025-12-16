@@ -3,10 +3,33 @@ import { Response } from 'express';
 import { AuthRequest } from '../types/auth.types';
 import {
   getAvailableSpeakingSlots,
+  getAllSpeakingSlots,
   bookSpeakingSlot,
   submitSpeakingResult,
-  listSpeakingSlotsForTeacher,cancelSpeakingSlot
+  listSpeakingSlotsForTeacher, cancelSpeakingSlot
 } from '../services/speakingSlot.service';
+
+/**
+ * GET /api/speaking-slots
+ * Get ALL speaking slots (for admin)
+ */
+export const getAllSlots = async (req: AuthRequest, res: Response) => {
+  try {
+    const slots = await getAllSpeakingSlots();
+
+    return res.status(200).json({
+      success: true,
+      total: slots.length,
+      data: slots
+    });
+  } catch (error: any) {
+    console.error('getAllSlots error:', error);
+    return res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to fetch all slots'
+    });
+  }
+};
 
 /**
  * GET /api/speaking-slots/available
@@ -108,13 +131,13 @@ export const bookSlot = async (req: AuthRequest, res: Response) => {
  */
 export const submitResult = async (req: AuthRequest, res: Response) => {
   try {
-    const { 
-      sessionId, 
-      slotId, 
+    const {
+      sessionId,
+      slotId,
       mcqLevel,
       speakingLevel,
       finalLevel,
-      feedback 
+      feedback
     } = req.body;
 
     if (!sessionId || !slotId) {
@@ -188,7 +211,7 @@ export const cancelSlot = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('cancelSlot error:', error);
-    
+
     // Handle specific errors
     if (error.message?.includes('not found')) {
       return res.status(404).json({
@@ -196,14 +219,14 @@ export const cancelSlot = async (req: AuthRequest, res: Response) => {
         message: error.message
       });
     }
-    
+
     if (error.message?.includes('Access denied')) {
       return res.status(403).json({
         success: false,
         message: error.message
       });
     }
-    
+
     return res.status(400).json({
       success: false,
       message: error.message || 'Failed to cancel slot'

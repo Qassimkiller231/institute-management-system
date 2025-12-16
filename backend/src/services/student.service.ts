@@ -134,6 +134,7 @@ export const getAllStudents = async (filters: {
   search?: string;
   page?: number;
   limit?: number;
+  needsSpeakingTest?: boolean;
 }) => {
   const page = filters.page || 1;
   const limit = filters.limit || 50;
@@ -146,6 +147,15 @@ export const getAllStudents = async (filters: {
   if (filters.schoolType) where.schoolType = filters.schoolType;
   if (filters.schoolYear) where.schoolYear = filters.schoolYear;
   if (filters.preferredCenter) where.preferredCenter = filters.preferredCenter;
+
+  // Filter for students who need a speaking test (MCQ completed but not yet booked)
+  if (filters.needsSpeakingTest) {
+    where.testSessions = {
+      some: {
+        status: 'MCQ_COMPLETED'
+      }
+    };
+  }
 
   if (filters.search) {
     where.OR = [

@@ -219,17 +219,54 @@ export const recordPayment = async (
     },
   });
 
-  // Check if all installments paid → mark plan as COMPLETED
-  // An installment is paid if it has a paymentDate
-  const allPaid = updated.paymentPlan.installments.every(
-    (i) => i.paymentDate !== null
-  );
+  // Calculate balance for receipt
+  const totalPaid = updated.paymentPlan.installments
+    .filter((i) => i.paymentDate !== null)
+    .reduce((sum, i) => sum + Number(i.amount), 0);
+  const balance = Number(updated.paymentPlan.finalAmount) - totalPaid;
 
-  if (allPaid) {
-    await prisma.studentPaymentPlan.update({
-      where: { id: updated.paymentPlan.id },
-      data: { status: 'COMPLETED' },
+  // Send Email Receipt
+  try {
+    const student = updated.paymentPlan.enrollment.student;
+    // We need to fetch the user email if it wasn't included in the previous include
+    // The previous include was: include: { paymentPlan: { include: { installments: true, enrollment: { include: { student: true } } } } }
+    // Student model usually has userId, so we need to fetch User to get email. 
+    // Optimization: Let's fetch it if missing, or update the include above.
+    // However, since we already have 'updated', let's just fetch the user email separately to be safe and clean.
+
+    const user = await prisma.user.findUnique({
+      where: { id: student.userId },
+      select: { email: true }
     });
+
+    if (user && user.email) {
+      // Dynamic import to avoid circular dependencies if any, or just standard import at top
+      const emailService = require('./email.service');
+
+      // Construct full name safely
+      const nameParts = [
+        student.firstName,
+        student.secondName,
+        student.thirdName
+      ].filter(Boolean); // Remove null/undefined/empty string
+
+      const fullName = nameParts.length > 0 ? nameParts.join(' ') : 'Student';
+
+      await emailService.sendPaymentReceiptEmail({
+        to: user.email,
+        studentName: fullName,
+        receiptNumber: data.receiptNumber || 'N/A',
+        amount: Number(installment.amount),
+        currency: 'BHD',
+        paymentMethod: data.paymentMethod,
+        paymentDate: new Date(),
+        installmentNumber: installment.installmentNumber,
+        balance: balance
+      });
+    }
+  } catch (emailErr) {
+    console.error('Failed to send email receipt:', emailErr);
+    // Continue execution, don't block payment recording
   }
 
   return updated;

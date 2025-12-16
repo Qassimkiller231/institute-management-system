@@ -1,8 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { paymentsAPI } from '@/lib/api';
-import { API_URL, getHeaders } from '@/lib/api/client';
+import { paymentsAPI, groupsAPI, programsAPI, termsAPI } from '@/lib/api';
 
 export default function PaymentsPage() {
   const [loading, setLoading] = useState(true);
@@ -35,14 +34,14 @@ export default function PaymentsPage() {
   const fetchFilterData = async () => {
     try {
       const [groupsRes, programsRes, termsRes] = await Promise.all([
-        fetch(`${API_URL}/groups`, { headers: getHeaders(true) }).then(r => r.json()),
-        fetch(`${API_URL}/programs`, { headers: getHeaders(true) }).then(r => r.json()),
-        fetch(`${API_URL}/terms`, { headers: getHeaders(true) }).then(r => r.json())
+        groupsAPI.getAll(),
+        programsAPI.getAll(),
+        termsAPI.getAll()
       ]);
       
-      setGroups(groupsRes?.data?.data || groupsRes?.data || []);
-      setPrograms(programsRes?.data?.data || programsRes?.data || []);
-      setTerms(termsRes?.data?.data || termsRes?.data || []);
+      setGroups(groupsRes?.data || []);
+      setPrograms(programsRes?.data || []);
+      setTerms(termsRes?.data || []);
     } catch (err) {
       console.error('Error loading filter data:', err);
     }
@@ -104,13 +103,7 @@ export default function PaymentsPage() {
     setShowPaymentModal(true);
   };
 
-  const handleViewReceipt = (payment: any) => {
-    if (payment.receiptUrl) {
-      window.open(payment.receiptUrl, '_blank');
-    } else {
-      alert(`Receipt #${payment.receiptNumber}\n\nStudent: ${payment.studentName}\nAmount: ${payment.amount.toFixed(2)} BD\nPayment Method: ${payment.paymentMethod}\nDate: ${payment.paymentDate}`);
-    }
-  };
+
 
   const submitPayment = async () => {
     try {
@@ -146,11 +139,108 @@ export default function PaymentsPage() {
     return matchesSearch && matchesStatus && matchesGroup && matchesProgram && matchesTerm;
   });
 
+  // Receipt Modal State
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+  const [receiptData, setReceiptData] = useState<any>(null);
+
   const stats = {
     total: payments.length,
     paid: payments.filter(p => p.status === 'PAID').length,
     pending: payments.filter(p => p.status === 'PENDING').length,
     overdue: payments.filter(p => p.status === 'OVERDUE').length,
+  };
+
+  const handleViewReceipt = (payment: any) => {
+    // Always use the internal modal for consistency, as requested
+    setReceiptData(payment);
+    setShowReceiptModal(true);
+  };
+
+  const renderReceiptModal = () => {
+    if (!receiptData) return null;
+
+    return (
+      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div className="bg-white rounded-lg shadow-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh]">
+          {/* Header */}
+          <div className="bg-[#3e445b] p-8 text-center text-white shrink-0">
+            <h2 className="text-xl font-semibold mb-2">Receipt from Function Institute</h2>
+            <p className="text-white/70 text-sm">Receipt #{receiptData.receiptNumber || 'PENDING'}</p>
+          </div>
+
+          {/* Content */}
+          <div className="p-8 overflow-y-auto">
+            {/* Amount Section */}
+            <div className="text-center mb-8">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Amount Paid</p>
+              <p className="text-4xl font-bold text-gray-900">{receiptData.amount.toFixed(2)} BD</p>
+            </div>
+
+            {/* Grid Details */}
+            <div className="grid grid-cols-2 gap-6 mb-8">
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Date Paid</p>
+                <p className="text-gray-900">{receiptData.paymentDate || '-'}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Payment Method</p>
+                <p className="text-gray-900">{receiptData.paymentMethod?.replace(/_/g, ' ') || '-'}</p>
+              </div>
+            </div>
+
+            {/* Summary Information */}
+            <div className="mb-6">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Summary</p>
+              <div className="bg-gray-50 rounded-lg p-6 space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Student</span>
+                  <span className="font-medium text-gray-900">{receiptData.studentName}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Installment #{receiptData.installmentNumber}</span>
+                  <span className="font-medium text-gray-900">{receiptData.amount.toFixed(2)} BD</span>
+                </div>
+                 <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Group Code</span>
+                  <span className="font-medium text-gray-900">{receiptData.groupCode}</span>
+                </div>
+                {/* Divider */}
+                <div className="border-t border-gray-200 my-3 pt-3 flex justify-between items-center">
+                  <span className="font-bold text-gray-900">Total Paid</span>
+                  <span className="font-bold text-gray-900">{receiptData.amount.toFixed(2)} BD</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Footer */}
+          <div className="bg-gray-50 p-6 border-t border-gray-100 text-center shrink-0">
+             <p className="text-sm text-gray-500 mb-4">
+              If you have any questions, contact us at <br/>
+              <span className="text-blue-600">support@functioninstitute.com</span>
+            </p>
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => setShowReceiptModal(false)}
+                className="px-6 py-2 bg-white border border-gray-300 text-gray-700 font-medium rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Close
+              </button>
+              {receiptData.receiptUrl && (
+                <a
+                  href={receiptData.receiptUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-6 py-2 bg-blue-600 text-white font-medium rounded-md hover:bg-blue-700 transition-colors"
+                >
+                  View Original
+                </a>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
   };
 
   if (loading) return <div className="p-8 text-gray-900">Loading...</div>;
@@ -295,7 +385,8 @@ export default function PaymentsPage() {
                           Record Payment
                         </button>
                       )}
-                      {payment.receiptNumber && (
+                      {/* Show View Receipt button if Paid (even if manually paid) */}
+                      {payment.status === 'PAID' && (
                         <button 
                           onClick={() => handleViewReceipt(payment)}
                           className="px-3 py-1 bg-gray-600 text-white text-xs rounded hover:bg-gray-700"
@@ -351,7 +442,9 @@ export default function PaymentsPage() {
                   value={paymentForm.paymentDate}
                   onChange={(e) => setPaymentForm({...paymentForm, paymentDate: e.target.value})}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-                />
+                >
+                 {/** Date input content */}
+                </input>
               </div>
 
               <div>
@@ -406,6 +499,9 @@ export default function PaymentsPage() {
           </div>
         </div>
       )}
+
+      {/* Render Receipt Modal */}
+      {showReceiptModal && renderReceiptModal()}
     </div>
   );
 }

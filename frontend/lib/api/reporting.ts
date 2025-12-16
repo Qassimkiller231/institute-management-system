@@ -3,7 +3,7 @@ import { API_URL, getHeaders } from './client';
 export const reportingAPI = {
   // Dashboard Analytics
   getDashboardAnalytics: async (termId?: string) => {
-    const url = termId 
+    const url = termId
       ? `${API_URL}/reports/dashboard/admin?termId=${termId}`
       : `${API_URL}/reports/dashboard/admin`;
     const res = await fetch(url, {
@@ -15,10 +15,10 @@ export const reportingAPI = {
 
   // Financial Analytics
   getFinancialAnalytics: async (termId?: string) => {
-    // Backend has /reports/financial/monthly or /reports/financial/term/:termId
-    const url = termId 
+    // Use overall endpoint for all terms, specific term endpoint otherwise
+    const url = termId
       ? `${API_URL}/reports/financial/term/${termId}`
-      : `${API_URL}/reports/financial/monthly`;
+      : `${API_URL}/reports/financial/overall`;
     const res = await fetch(url, {
       headers: getHeaders(true)
     });
@@ -28,7 +28,7 @@ export const reportingAPI = {
 
   // Program Analytics
   getProgramAnalytics: async (programId?: string) => {
-    const url = programId 
+    const url = programId
       ? `${API_URL}/analytics/program?programId=${programId}`
       : `${API_URL}/analytics/program`;
     const res = await fetch(url, {
@@ -43,11 +43,11 @@ export const reportingAPI = {
     const queryParams = new URLSearchParams();
     if (params?.groupId) queryParams.append('groupId', params.groupId);
     if (params?.studentId) queryParams.append('studentId', params.studentId);
-    
-    const url = queryParams.toString() 
+
+    const url = queryParams.toString()
       ? `${API_URL}/reports/performance?${queryParams}`
       : `${API_URL}/reports/performance`;
-    
+
     const res = await fetch(url, {
       headers: getHeaders(true)
     });
@@ -69,7 +69,7 @@ export const reportingAPI = {
       headers: getHeaders(true)
     });
     if (!res.ok) throw new Error('Failed to generate PDF');
-    
+
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -95,7 +95,7 @@ export const reportingAPI = {
       headers: getHeaders(true)
     });
     if (!res.ok) throw new Error('Failed to generate PDF');
-    
+
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');

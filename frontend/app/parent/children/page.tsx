@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken } from '@/lib/auth';
+import { authAPI } from '@/lib/api';
 
 interface LinkedStudent {
   id: string;
@@ -39,13 +40,7 @@ export default function MyChildrenPage() {
         return;
       }
 
-      const userRes = await fetch('http://localhost:3001/api/auth/me', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!userRes.ok) throw new Error('Failed to fetch user data');
-      
-      const userData = await userRes.json();
+      const userData = await authAPI.getCurrentUser();
 
       if (userData.data.parent?.parentStudentLinks) {
         const linkedStudents = userData.data.parent.parentStudentLinks.map((link: any) => ({

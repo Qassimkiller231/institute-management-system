@@ -151,9 +151,11 @@ export default function CreateGroupPage() {
               >
                 <option value="">Select Term</option>
                 {terms
-                  .filter(term => term.programId === selectedProgramId && term.isActive !== false)
+                  .filter(t => t.programId === selectedProgramId)
                   .map(term => (
-                    <option key={term.id} value={term.id}>{term.name}</option>
+                    <option key={term.id} value={term.id}>
+                      {term.isCurrent ? '⭐ ' : ''}{term.program?.name ? `${term.program.name} - ${term.name}` : term.name}
+                    </option>
                   ))}
               </select>
             </div>

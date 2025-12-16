@@ -104,14 +104,14 @@ export const deleteLevel = async (id: string) => {
     where: { id },
     include: { _count: { select: { groups: true } } }
   });
-  
+
   if (!existing) {
     throw new Error('Level not found');
   }
-  
+
   if (existing._count.groups > 0) {
     throw new Error('Cannot delete level - groups are using it');
   }
-  
+
   return await prisma.level.delete({ where: { id } });
 };

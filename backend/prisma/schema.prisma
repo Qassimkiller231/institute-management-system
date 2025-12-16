@@ -795,3 +795,24 @@ model AuditLog {
   @@index([tableName])
   @@index([recordId])
 }
+
+// ============================================
+// MODULE 11: FAQ MANAGEMENT
+// ============================================
+
+model FAQ {
+  id        String   @id @default(uuid())
+  question  String   // Display question for admin UI
+  keywords  String[] // Keywords to match in chatbot queries
+  answer    String   @db.Text // Response text (can be long)
+  category  String?  // Optional categorization
+  isActive  Boolean  @default(true)
+  roles     String[] @default(["ALL"]) // Which roles can see this FAQ
+  order     Int      @default(0) // Display order
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+  @@index([category])
+  @@index([createdAt])
+}

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { paymentsAPI } from '@/lib/api';
+import { paymentsAPI, enrollmentsAPI } from '@/lib/api';
 
 export default function PaymentPlansPage() {
   const [loading, setLoading] = useState(true);
@@ -41,21 +41,13 @@ export default function PaymentPlansPage() {
 
   const fetchEnrollments = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/enrollments`, {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-          'Content-Type': 'application/json'
-        }
-      });
+      const result = await enrollmentsAPI.getAll();
       
-      if (!response.ok) {
+      if (!result.success) {
         throw new Error('Failed to fetch enrollments');
       }
       
-      const data = await response.json();
-      
-      // Get all enrollments first
-      const allEnrollments = data.data || [];
+      const allEnrollments = result.data || [];
       
       // Filter out enrollments that already have payment plans
       const enrollmentsWithoutPlans = allEnrollments.filter((enr: any) => 
@@ -121,18 +113,7 @@ export default function PaymentPlansPage() {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/payments/plans/${plan.id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-          'Content-Type': 'application/json'
-        }
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to delete payment plan');
-      }
+      await paymentsAPI.deletePlan(plan.id);
       
       alert('Payment plan deleted successfully!');
       fetchPlans();
@@ -143,19 +124,7 @@ export default function PaymentPlansPage() {
 
   const submitEdit = async () => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/payments/plans/${selectedPlan.id}`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(editForm)
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update payment plan');
-      }
+      await paymentsAPI.updatePlan(selectedPlan.id, editForm);
       
       alert('Payment plan updated successfully!');
       setShowEditModal(false);
@@ -180,17 +149,47 @@ export default function PaymentPlansPage() {
 
   const generateInstallments = () => {
     const finalAmount = createForm.totalAmount - createForm.discountAmount;
-    const installmentAmount = finalAmount / createForm.totalInstallments;
+    
+    // Calculate base amount (floor to nearest integer)
+    let exactShare = finalAmount / createForm.totalInstallments;
+    let baseAmount = Math.floor(exactShare);
+    
+    // User preference: Round down to nearest 5 if possible
+    // Example: 16.6 -> 16 -> 15
+    const multipleOfFive = Math.floor(baseAmount / 5) * 5;
+    if (multipleOfFive > 0) {
+      baseAmount = multipleOfFive;
+    }
+    
+    // If base becomes 0 (e.g. amount < 5), fallback to simple floor
+    if (baseAmount === 0) {
+      baseAmount = Math.floor(exactShare);
+    }
+    
     const installments = [];
+    let runningTotal = 0;
     
     for (let i = 1; i <= createForm.totalInstallments; i++) {
-      const dueDate = new Date();
-      dueDate.setMonth(dueDate.getMonth() + i);
-      installments.push({
-        installmentNumber: i,
-        amount: installmentAmount,
-        paymentDate: dueDate.toISOString().split('T')[0]
-      });
+        const dueDate = new Date();
+        dueDate.setMonth(dueDate.getMonth() + i);
+        
+        // For last installment, take the remaining balance
+        let amount = baseAmount;
+        if (i === createForm.totalInstallments) {
+            amount = finalAmount - runningTotal;
+            // Prevent negative last installment if logic goes wrong (shouldn't happen with floor)
+            if (amount < 0) amount = 0;
+            // Round to 2 decimals to handle floating point errors
+            amount = Math.round(amount * 100) / 100;
+        } else {
+            runningTotal += amount;
+        }
+
+        installments.push({
+            installmentNumber: i,
+            amount: amount,
+            paymentDate: dueDate.toISOString().split('T')[0]
+        });
     }
     
     setCreateForm({ ...createForm, installments });
@@ -203,19 +202,7 @@ export default function PaymentPlansPage() {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/payments/plans`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(createForm)
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create payment plan');
-      }
+      await paymentsAPI.createPlan(createForm);
       
       alert('Payment plan created successfully!');
       setShowCreateModal(false);
@@ -240,30 +227,18 @@ export default function PaymentPlansPage() {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/payments/plans/${selectedPlan.id}/installments`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(newInstallment)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
+      await paymentsAPI.addInstallment(selectedPlan.id, newInstallment);
 
       alert('Installment added successfully!');
       setShowAddInstallment(false);
       setNewInstallment({ amount: 0, dueDate: '' });
       fetchPlans(); // Refresh to get updated plan
-      // Re-open modal with updated data
-      const updatedPlans = await (await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/payments/plans`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-      })).json();
-      const updatedPlan = updatedPlans.data?.find((p: any) => p.id === selectedPlan.id);
+      
+      // Re-fetch plans to refresh modal data (could be optimized)
+      const response = await paymentsAPI.getAllPlans();
+      const updatedPlan = response.data?.find((p: any) => p.id === selectedPlan.id);
       if (updatedPlan) setSelectedPlan(updatedPlan);
+      
     } catch (err: any) {
       alert('Error adding installment: ' + err.message);
     }
@@ -279,28 +254,15 @@ export default function PaymentPlansPage() {
 
   const handleSaveInstallment = async (instId: string) => {
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/payments/installments/${instId}/details`, {
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(editingInstallment)
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
+      await paymentsAPI.updateInstallment(instId, editingInstallment);
 
       alert('Installment updated successfully!');
       setEditingInstallmentId(null);
       fetchPlans();
+      
       // Refresh modal data
-      const updatedPlans = await (await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/payments/plans`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-      })).json();
-      const updatedPlan = updatedPlans.data?.find((p: any) => p.id === selectedPlan.id);
+      const response = await paymentsAPI.getAllPlans();
+      const updatedPlan = response.data?.find((p: any) => p.id === selectedPlan.id);
       if (updatedPlan) setSelectedPlan(updatedPlan);
     } catch (err: any) {
       alert('Error updating installment: ' + err.message);
@@ -313,25 +275,14 @@ export default function PaymentPlansPage() {
     }
 
     try {
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/payments/installments/${instId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
+      await paymentsAPI.deleteInstallment(instId);
 
       alert('Installment deleted successfully!');
       fetchPlans();
-      // Refresh modal  data
-      const updatedPlans = await (await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000'}/payments/plans`, {
-        headers: { 'Authorization': `Bearer ${localStorage.getItem('authToken')}` }
-      })).json();
-      const updatedPlan = updatedPlans.data?.find((p: any) => p.id === selectedPlan.id);
+      
+      // Refresh modal data
+      const response = await paymentsAPI.getAllPlans();
+      const updatedPlan = response.data?.find((p: any) => p.id === selectedPlan.id);
       if (updatedPlan) setSelectedPlan(updatedPlan);
     } catch (err: any) {
       alert('Error deleting installment: ' + err.message);

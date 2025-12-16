@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken, logout } from '@/lib/auth';
+import { teachersAPI, levelsAPI, venuesAPI } from '@/lib/api';
 
 interface Teacher {
   id: string;
@@ -46,7 +47,7 @@ export default function TeacherManagement() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'active' | 'all' | 'inactive'>('active');
   const [levelFilter, setLevelFilter] = useState('');
   const [venueFilter, setVenueFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -63,25 +64,17 @@ export default function TeacherManagement() {
   useEffect(() => {
     fetchTeachers();
     fetchDropdownData();
-  }, []);
+  }, [filterStatus]);
 
   const fetchDropdownData = async () => {
     try {
-      const token = getToken();
-      const [levelsRes, venuesRes] = await Promise.all([
-        fetch('http://localhost:3001/api/levels', {
-          headers: { Authorization: `Bearer ${token}` }
-        }),
-        fetch('http://localhost:3001/api/venues', {
-          headers: { Authorization: `Bearer ${token}` }
-        })
+      const [levelsResult, venuesResult] = await Promise.all([
+        levelsAPI.getAll(),
+        venuesAPI.getAll()
       ]);
 
-      const levelsData = await levelsRes.json();
-      const venuesData = await venuesRes.json();
-
-      setLevels(levelsData.data || []);
-      setVenues(venuesData.data || []);
+      setLevels(levelsResult.data || []);
+      setVenues(venuesResult.data || []);
     } catch (err) {
       console.error('Error loading dropdown data:', err);
     }
@@ -90,15 +83,10 @@ export default function TeacherManagement() {
   const fetchTeachers = async () => {
     try {
       setLoading(true);
-      const token = getToken();
-      const response = await fetch('http://localhost:3001/api/teachers', {
-        headers: { Authorization: `Bearer ${token}` }
+      const result = await teachersAPI.getAll({
+        isActive: filterStatus === 'all' ? undefined : filterStatus === 'active'
       });
-
-      if (!response.ok) throw new Error('Failed to fetch teachers');
-
-      const data = await response.json();
-      setTeachers(data.data || []);
+      setTeachers(result.data || []);
     } catch (err: any) {
       alert('Error loading teachers: ' + err.message);
     } finally {
@@ -127,20 +115,13 @@ export default function TeacherManagement() {
     }
 
     try {
-      const token = getToken();
-      const response = await fetch('http://localhost:3001/api/teachers', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify(formData)
+      await teachersAPI.create({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          specialization: formData.specialization
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create teacher');
-      }
 
       alert('Teacher created successfully!');
       setShowModal(false);
@@ -156,24 +137,11 @@ export default function TeacherManagement() {
     if (!selectedTeacher) return;
 
     try {
-      const token = getToken();
-      const response = await fetch(`http://localhost:3001/api/teachers/${selectedTeacher.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
+      await teachersAPI.update(selectedTeacher.id, {
           firstName: formData.firstName,
           lastName: formData.lastName,
           specialization: formData.specialization
-        })
       });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update teacher');
-      }
 
       alert('Teacher updated successfully!');
       setShowModal(false);
@@ -188,14 +156,7 @@ export default function TeacherManagement() {
     if (!confirm(`Are you sure you want to deactivate ${name}?`)) return;
 
     try {
-      const token = getToken();
-      const response = await fetch(`http://localhost:3001/api/teachers/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Failed to deactivate teacher');
-
+      await teachersAPI.delete(id);
       alert('Teacher deactivated successfully!');
       fetchTeachers();
     } catch (err: any) {
@@ -207,18 +168,7 @@ export default function TeacherManagement() {
     if (!confirm(`Are you sure you want to reactivate ${name}?`)) return;
 
     try {
-      const token = getToken();
-      const response = await fetch(`http://localhost:3001/api/teachers/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ isActive: true })
-      });
-
-      if (!response.ok) throw new Error('Failed to reactivate teacher');
-
+      await teachersAPI.update(id, { isActive: true });
       alert('Teacher reactivated successfully!');
       fetchTeachers();
     } catch (err: any) {
@@ -258,7 +208,7 @@ export default function TeacherManagement() {
 
   const resetFilters = () => {
     setSearchTerm('');
-    setStatusFilter('');
+    setFilterStatus('active');
     setLevelFilter('');
     setVenueFilter('');
   };
@@ -267,9 +217,6 @@ export default function TeacherManagement() {
     const matchesSearch = t.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       t.user.email.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === '' || 
-                         (statusFilter === 'active' && t.isActive) || 
-                         (statusFilter === 'inactive' && !t.isActive);
     
     // Level filter: check if teacher teaches any group with this level
     const matchesLevel = !levelFilter || 
@@ -279,7 +226,7 @@ export default function TeacherManagement() {
     const matchesVenue = !venueFilter || 
       (t.groups && t.groups.some(g => g.venue?.id === venueFilter));
     
-    return matchesSearch && matchesStatus && matchesLevel && matchesVenue;
+    return matchesSearch && matchesLevel && matchesVenue;
   });
 
   return (
@@ -328,13 +275,13 @@ export default function TeacherManagement() {
               className="px-4 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
             />
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as any)}
               className="px-4 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-green-500 text-gray-900"
             >
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="active">Active Only</option>
+              <option value="all">All Items</option>
+              <option value="inactive">Inactive Only</option>
             </select>
             <select
               value={levelFilter}

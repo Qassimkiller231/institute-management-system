@@ -13,13 +13,21 @@ export const createLevel = async (req: AuthRequest, res: Response) => {
   }
 };
 
-// level.controller.ts - Fix getAllLevels
+// GET /api/levels - Get all levels
 export const getAllLevels = async (req: AuthRequest, res: Response) => {
   try {
-    const result = await levelService.getAllLevels();  // No parameter
-    res.status(200).json({ success: true, data: result });
+    const levels = await levelService.getAllLevels();
+
+    res.json({
+      success: true,
+      data: levels
+    });
   } catch (error: any) {
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ LEVELS ERROR:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message
+    });
   }
 };
 

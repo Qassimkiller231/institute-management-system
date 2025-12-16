@@ -8,6 +8,13 @@ export const speakingSlotAPI = {
     return res.json();
   },
 
+  getAll: async () => {
+    const res = await fetch(`${API_URL}/speaking-slots`, {
+      headers: getHeaders(true)
+    });
+    return res.json();
+  },
+
   getByTeacher: async (teacherId: string) => {
     const res = await fetch(`${API_URL}/speaking-slots/teacher/${teacherId}`, {
       headers: getHeaders(true)
@@ -27,6 +34,15 @@ export const speakingSlotAPI = {
       method: 'POST',
       headers: getHeaders(true),
       body: JSON.stringify(data)
+    });
+    return res.json();
+  },
+
+  cancel: async (slotId: string, sessionId: string) => {
+    const res = await fetch(`${API_URL}/speaking-slots/${slotId}/cancel`, {
+      method: 'PUT',
+      headers: getHeaders(true),
+      body: JSON.stringify({ sessionId }),
     });
     return res.json();
   },

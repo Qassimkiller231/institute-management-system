@@ -17,8 +17,10 @@ export const getAllTerms = async (req: AuthRequest, res: Response) => {
   try {
     const filters = {
       programId: req.query.programId as string,
-      isCurrent: req.query.isCurrent === 'true' ? true : undefined
+      isCurrent: req.query.isCurrent === 'true' ? true : undefined,
+      isActive: req.query.isActive === 'true' ? true : req.query.isActive === 'false' ? false : undefined
     };
+    console.log("filters", filters);
     const result = await termService.getAllTerms(filters);
     res.status(200).json({ success: true, data: result });
   } catch (error: any) {
@@ -53,6 +55,18 @@ export const deleteTerm = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const result = await termService.deleteTerm(id);
+    res.status(200).json({ success: true, data: result });
+  } catch (error: any) {
+    const status = error.message === 'Term not found' ? 404 : 500;
+    res.status(status).json({ success: false, message: error.message });
+  }
+};
+
+// Set term as current (exclusive per program)
+export const setCurrentTerm = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    const result = await termService.setCurrentTerm(id);
     res.status(200).json({ success: true, data: result });
   } catch (error: any) {
     const status = error.message === 'Term not found' ? 404 : 500;

@@ -30,8 +30,10 @@ export const getAllVenues = async (filters: {
   isActive?: boolean;
 }) => {
   const where: any = {};
-  // Default to showing only active venues unless explicitly set to false
-  where.isActive = filters.isActive !== undefined ? filters.isActive : true;
+  // Only filter by isActive if explicitly set
+  if (filters.isActive !== undefined) {
+    where.isActive = filters.isActive;
+  }
 
   return await prisma.venue.findMany({
     where,

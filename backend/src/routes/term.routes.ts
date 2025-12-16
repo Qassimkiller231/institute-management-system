@@ -12,6 +12,7 @@ router.use(authenticate);
 // Admin only for create/update/delete
 router.post('/', requireAdmin, termController.createTerm);
 router.put('/:id', requireAdmin, termController.updateTerm);
+router.patch('/:id/set-current', requireAdmin, termController.setCurrentTerm);
 router.delete('/:id', requireAdmin, termController.deleteTerm);
 
 // Anyone can view

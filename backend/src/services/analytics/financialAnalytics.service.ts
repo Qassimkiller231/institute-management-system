@@ -33,7 +33,7 @@ export const getMonthlyProgramDues = async (year?: number) => {
   for (const inst of installments) {
     const program = inst.paymentPlan?.enrollment?.group?.term?.program;
     if (!program) continue;
-    if(!inst.paymentDate) continue;
+    if (!inst.paymentDate) continue;
     const month = inst.paymentDate.getMonth() + 1;
     const amount = Number(inst.amount);
 
@@ -83,16 +83,55 @@ export const getTermDuesOverview = async (termId: string) => {
 
   let planned = 0;
   let paid = 0;
+  const monthlyData: Map<string, { collected: number; expected: number }> = new Map();
+  const paymentMethods: Record<string, number> = {};
 
   for (const p of plans) {
     planned += Number(p.finalAmount);
+
     for (const inst of p.installments) {
+      // Track expected for each month based on due date
+      if (inst.dueDate) {
+        const dueKey = `${inst.dueDate.getFullYear()}-${String(inst.dueDate.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthlyData.has(dueKey)) {
+          monthlyData.set(dueKey, { collected: 0, expected: 0 });
+        }
+        monthlyData.get(dueKey)!.expected += Number(inst.amount);
+      }
+
       // Only count as paid if payment date exists
       if (inst.paymentDate) {
-        paid += Number(inst.amount);
+        const amount = Number(inst.amount);
+        paid += amount;
+
+        // Group by payment month
+        const paidKey = `${inst.paymentDate.getFullYear()}-${String(inst.paymentDate.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthlyData.has(paidKey)) {
+          monthlyData.set(paidKey, { collected: 0, expected: 0 });
+        }
+        monthlyData.get(paidKey)!.collected += amount;
+
+        // Track payment methods
+        const method = inst.paymentMethod || 'CASH';
+        paymentMethods[method] = (paymentMethods[method] || 0) + amount;
       }
     }
   }
+
+  // Format monthly trend
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthlyTrend = Array.from(monthlyData.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, val]) => {
+      const [year, month] = key.split('-');
+      const monthName = monthNames[parseInt(month) - 1];
+      return {
+        month: `${monthName} ${year}`,
+        collected: val.collected,
+        expected: val.expected,
+        difference: val.collected - val.expected
+      };
+    });
 
   return {
     term: {
@@ -104,6 +143,93 @@ export const getTermDuesOverview = async (termId: string) => {
     totalPlans: plans.length,
     totalPlanned: planned,
     totalPaid: paid,
-    outstanding: planned - paid
+    outstanding: planned - paid,
+    monthlyTrend,
+    paymentMethods
+  };
+};
+
+// 3. Overall financial analytics (all terms)
+export const getOverallFinancialAnalytics = async () => {
+  // Get ALL payment plans with their installments and program info
+  const plans = await prisma.studentPaymentPlan.findMany({
+    include: {
+      installments: true,
+      enrollment: {
+        include: {
+          group: {
+            include: {
+              term: { include: { program: true } }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  let totalPlanned = 0;
+  let totalPaid = 0;
+  const monthlyData: Map<string, { collected: number; expected: number }> = new Map();
+  const paymentMethods: Record<string, number> = {};
+
+  for (const plan of plans) {
+    const planAmount = Number(plan.finalAmount);
+    totalPlanned += planAmount;
+
+    // Calculate monthly expected based on plan amount divided by installments
+    const expectedPerMonth = plan.installments.length > 0
+      ? planAmount / plan.installments.length
+      : 0;
+
+    for (const inst of plan.installments) {
+      // Track expected for each month based on due date
+      if (inst.dueDate) {
+        const dueKey = `${inst.dueDate.getFullYear()}-${String(inst.dueDate.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthlyData.has(dueKey)) {
+          monthlyData.set(dueKey, { collected: 0, expected: 0 });
+        }
+        monthlyData.get(dueKey)!.expected += Number(inst.amount);
+      }
+
+      // Track actual payments
+      if (inst.paymentDate) {
+        const amount = Number(inst.amount);
+        totalPaid += amount;
+
+        // Group by payment month
+        const paidKey = `${inst.paymentDate.getFullYear()}-${String(inst.paymentDate.getMonth() + 1).padStart(2, '0')}`;
+        if (!monthlyData.has(paidKey)) {
+          monthlyData.set(paidKey, { collected: 0, expected: 0 });
+        }
+        monthlyData.get(paidKey)!.collected += amount;
+
+        // Track payment methods
+        const method = inst.paymentMethod || 'CASH';
+        paymentMethods[method] = (paymentMethods[method] || 0) + amount;
+      }
+    }
+  }
+
+  // Format monthly trend
+  const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const monthlyTrend = Array.from(monthlyData.entries())
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([key, val]) => {
+      const [year, month] = key.split('-');
+      const monthName = monthNames[parseInt(month) - 1];
+      return {
+        month: `${monthName} ${year}`,
+        collected: val.collected,
+        expected: val.expected,
+        difference: val.collected - val.expected
+      };
+    });
+
+  return {
+    totalPlanned,
+    totalPaid,
+    outstanding: totalPlanned - totalPaid,
+    monthlyTrend,
+    paymentMethods
   };
 };

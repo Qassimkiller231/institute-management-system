@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { getToken, logout } from '@/lib/auth';
+import { studentsAPI, levelsAPI, venuesAPI } from '@/lib/api';
 
 interface Student {
   id: string;
@@ -53,7 +54,7 @@ export default function StudentManagement() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [genderFilter, setGenderFilter] = useState('');
-  const [statusFilter, setStatusFilter] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'active' | 'all' | 'inactive'>('active');
   const [levelFilter, setLevelFilter] = useState('');
   const [venueFilter, setVenueFilter] = useState('');
   const [showModal, setShowModal] = useState(false);
@@ -102,24 +103,12 @@ export default function StudentManagement() {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      const token = getToken();
-      
-      // Build query params
-      const params = new URLSearchParams();
-      if (levelFilter) params.append('levelId', levelFilter);
-      if (venueFilter) params.append('venueId', venueFilter);
-      
-      const queryString = params.toString();
-      const url = `http://localhost:3001/api/students${queryString ? `?${queryString}` : ''}`;
-      
-      const response = await fetch(url, {
-        headers: { Authorization: `Bearer ${token}` }
+      const result = await studentsAPI.getAll({
+        levelId: levelFilter,
+        venueId: venueFilter,
+        isActive: filterStatus === 'all' ? undefined : filterStatus === 'active'
       });
-
-      if (!response.ok) throw new Error('Failed to fetch students');
-
-      const data = await response.json();
-      setStudents(data.data || []);
+      setStudents(result.data || []);
     } catch (err: any) {
       alert('Error loading students: ' + err.message);
     } finally {
@@ -130,7 +119,7 @@ export default function StudentManagement() {
   // Re-fetch when filters change
   useEffect(() => {
     fetchStudents();
-  }, [levelFilter, venueFilter]);
+  }, [levelFilter, venueFilter, filterStatus]);
 
   const handleCreate = async () => {
     // Validation
@@ -172,43 +161,24 @@ export default function StudentManagement() {
     }
 
     try {
-      const token = getToken();
-      
       // Find the selected level name from currentLevelId
       const selectedLevel = levels.find(l => l.id === formData.currentLevelId);
       
-      const response = await fetch('http://localhost:3001/api/students', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          ...formData,
-          currentLevel: selectedLevel?.name || null
-        })
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to create student');
-      }
-
-      const result = await response.json();
+      const createData: any = {
+        ...formData,
+        currentLevel: selectedLevel?.name || null,
+        nationality: 'Bahraini' // Defaulting if not in form, or I should add it to form
+      };
       
+      const result = await studentsAPI.create(createData);
+
       // Upload profile picture if provided
       if (profilePictureFile && result.data?.id) {
         try {
-          const formData = new FormData();
-          formData.append('profilePicture', profilePictureFile);
+          const uploadFormData = new FormData();
+          uploadFormData.append('profilePicture', profilePictureFile);
           
-          await fetch(`http://localhost:3001/api/students/${result.data.id}/profile-picture`, {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${token}`
-            },
-            body: formData
-          });
+          await studentsAPI.uploadProfilePicture(result.data.id, uploadFormData);
         } catch (err) {
           console.error('Error uploading profile picture:', err);
         }
@@ -234,34 +204,22 @@ export default function StudentManagement() {
     }
 
     try {
-      const token = getToken();
-      
       // Find the selected level name
       const selectedLevel = levels.find(l => l.id === formData.currentLevelId);
       
-      const response = await fetch(`http://localhost:3001/api/students/${selectedStudent.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          firstName: formData.firstName,
-          secondName: formData.secondName,
-          thirdName: formData.thirdName,
-          dateOfBirth: formData.dateOfBirth,
-          gender: formData.gender,
-          email: formData.email,
-          phone: formData.phone,
-          cpr: formData.cpr,
-          currentLevel: selectedLevel?.name || null
-        })
-      });
+      const updateData: any = {
+        firstName: formData.firstName,
+        secondName: formData.secondName,
+        thirdName: formData.thirdName,
+        dateOfBirth: formData.dateOfBirth,
+        gender: formData.gender as 'MALE' | 'FEMALE',
+        email: formData.email,
+        phone: formData.phone,
+        cpr: formData.cpr,
+        currentLevel: selectedLevel?.name || null
+      };
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to update student');
-      }
+      await studentsAPI.update(selectedStudent.id, updateData);
 
       // Upload profile picture if provided
       if (profilePictureFile) {
@@ -269,13 +227,7 @@ export default function StudentManagement() {
           const uploadFormData = new FormData();
           uploadFormData.append('profilePicture', profilePictureFile);
           
-          await fetch(`http://localhost:3001/api/students/${selectedStudent.id}/profile-picture`, {
-            method: 'POST',
-            headers: {
-              Authorization: `Bearer ${token}`
-            },
-            body: uploadFormData
-          });
+          await studentsAPI.uploadProfilePicture(selectedStudent.id, uploadFormData);
         } catch (err) {
           console.error('Error uploading profile picture:', err);
         }
@@ -294,14 +246,7 @@ export default function StudentManagement() {
     if (!confirm(`Are you sure you want to deactivate ${name}?`)) return;
 
     try {
-      const token = getToken();
-      const response = await fetch(`http://localhost:3001/api/students/${id}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` }
-      });
-
-      if (!response.ok) throw new Error('Failed to deactivate student');
-
+      await studentsAPI.delete(id);
       alert('Student deactivated successfully!');
       fetchStudents();
     } catch (err: any) {
@@ -313,18 +258,7 @@ export default function StudentManagement() {
     if (!confirm(`Are you sure you want to reactivate ${name}?`)) return;
 
     try {
-      const token = getToken();
-      const response = await fetch(`http://localhost:3001/api/students/${id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ isActive: true })
-      });
-
-      if (!response.ok) throw new Error('Failed to reactivate student');
-
+      await studentsAPI.update(id, { isActive: true });
       alert('Student reactivated successfully!');
       fetchStudents();
     } catch (err: any) {
@@ -378,7 +312,7 @@ export default function StudentManagement() {
   const resetFilters = () => {
     setSearchTerm('');
     setGenderFilter('');
-    setStatusFilter('');
+    setFilterStatus('active');
     setLevelFilter('');
     setVenueFilter('');
   };
@@ -389,10 +323,7 @@ export default function StudentManagement() {
       (s.cpr || '').includes(searchTerm) ||
       (s.user?.email || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesGender = !genderFilter || s.gender === genderFilter;
-    const matchesStatus = statusFilter === '' || 
-                         (statusFilter === 'active' && s.isActive) || 
-                         (statusFilter === 'inactive' && !s.isActive);
-    return matchesSearch && matchesGender && matchesStatus;
+    return matchesSearch && matchesGender;
   });
 
   return (
@@ -450,13 +381,13 @@ export default function StudentManagement() {
               <option value="FEMALE">Female</option>
             </select>
             <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value as any)}
               className="px-4 py-2 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
             >
-              <option value="">All Status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
+              <option value="active">Active Only</option>
+              <option value="all">All Items</option>
+              <option value="inactive">Inactive Only</option>
             </select>
             <select
               value={levelFilter}
