@@ -2,14 +2,19 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getToken } from '@/lib/auth';
+import { getToken } from '@/lib/authStorage';
 import { materialsAPI } from '@/lib/api';
+import { LoadingState } from '@/components/common/LoadingState';
+
+// ========================================
+// TYPES
+// ========================================
 
 interface Material {
   id: string;
   title: string;
   description?: string;
-  materialType: string; // Changed from type - actual DB field
+  materialType: string;
   fileUrl?: string;
   uploadedAt: string;
   group?: {
@@ -23,16 +28,34 @@ interface Material {
 }
 
 export default function ParentMaterialsPage() {
+  // ========================================
+  // STATE & HOOKS
+  // ========================================
   const router = useRouter();
+  
   const [loading, setLoading] = useState(true);
   const [materials, setMaterials] = useState<Material[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
 
+  // ========================================
+  // EFFECTS
+  // ========================================
+  
+  /**
+   * Effect: Load materials on mount
+   */
   useEffect(() => {
     fetchMaterials();
   }, []);
 
+  // ========================================
+  // DATA LOADING
+  // ========================================
+  
+  /**
+   * Fetch all materials from API
+   */
   const fetchMaterials = async () => {
     try {
       setLoading(true);
@@ -46,22 +69,33 @@ export default function ParentMaterialsPage() {
       const data = await materialsAPI.getAll();
       setMaterials(data.data || []);
     } catch (err: any) {
-      console.error('Error loading materials:', err);
-      // Set empty array instead of showing alert
+      // console.error('Error loading materials:', err); // Debug
       setMaterials([]);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredMaterials = materials.filter(m => {
-    const matchesSearch = m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         m.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'all' || m.materialType === typeFilter;
-    return matchesSearch && matchesType;
-  });
+  // ========================================
+  // UTILITY FUNCTIONS
+  // ========================================
+  
+  /**
+   * Filter materials based on search and type
+   */
+  const getFilteredMaterials = (): Material[] => {
+    return materials.filter(m => {
+      const matchesSearch = m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                           m.description?.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = typeFilter === 'all' || m.materialType === typeFilter;
+      return matchesSearch && matchesType;
+    });
+  };
 
-  const getTypeIcon = (type: string) => {
+  /**
+   * Get emoji icon for material type
+   */
+  const getTypeIcon = (type: string): string => {
     switch (type?.toUpperCase()) {
       case 'SLIDES':
         return '📊';
@@ -80,7 +114,10 @@ export default function ParentMaterialsPage() {
     }
   };
 
-  const getTypeColor = (type: string) => {
+  /**
+   * Get color class for material type
+   */
+  const getTypeColor = (type: string): string => {
     switch (type?.toUpperCase()) {
       case 'SLIDES':
         return 'bg-blue-100 text-blue-800';
@@ -97,25 +134,28 @@ export default function ParentMaterialsPage() {
     }
   };
 
-  if (loading) {
+  /**
+   * Get unique material types for filter
+   */
+  const getMaterialTypes = (): string[] => {
+    return ['all', ...new Set(materials.map(m => m.materialType).filter(t => t))];
+  };
+
+  // ========================================
+  // RENDER FUNCTIONS
+  // ========================================
+
+  /**
+   * Render header with search and filters
+   */
+  const renderHeader = () => {
+    const materialTypes = getMaterialTypes();
+
     return (
-      <div className="text-center py-12">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-        <p className="mt-4 text-gray-600">Loading materials...</p>
-      </div>
-    );
-  }
-
-  const materialTypes = ['all', ...new Set(materials.map(m => m.materialType).filter(t => t))];
-
-  return (
-    <div className="space-y-6">
-      {/* Header */}
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">Learning Materials</h2>
         <p className="text-gray-600 mb-4">Access course materials and resources</p>
         
-        {/* Search and Filter */}
         <div className="grid md:grid-cols-2 gap-4">
           <input
             type="text"
@@ -129,7 +169,7 @@ export default function ParentMaterialsPage() {
             onChange={(e) => setTypeFilter(e.target.value)}
             className="px-4 py-2 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900"
           >
-            {materialTypes.filter(type => type).map(type => ( // Filter out undefined/null
+            {materialTypes.filter(type => type).map(type => (
               <option key={type} value={type}>
                 {type === 'all' ? 'All Types' : type.charAt(0).toUpperCase() + type.slice(1).toLowerCase()}
               </option>
@@ -137,110 +177,166 @@ export default function ParentMaterialsPage() {
           </select>
         </div>
       </div>
+    );
+  };
 
-      {/* Materials Grid */}
-      {filteredMaterials.length === 0 ? (
-        <div className="bg-white rounded-lg shadow p-12 text-center">
-          <div className="text-6xl mb-4">📚</div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">No Materials Found</h3>
-          <p className="text-gray-600">
-            {materials.length === 0 
-              ? 'No learning materials are available at this time.'
-              : 'No materials match your search criteria.'}
+  /**
+   * Render empty state
+   */
+  const renderEmptyState = () => {
+    return (
+      <div className="bg-white rounded-lg shadow p-12 text-center">
+        <div className="text-6xl mb-4">📚</div>
+        <h3 className="text-xl font-semibold text-gray-900 mb-2">No Materials Found</h3>
+        <p className="text-gray-600">
+          {materials.length === 0 
+            ? 'No learning materials are available at this time.'
+            : 'No materials match your search criteria.'}
+        </p>
+      </div>
+    );
+  };
+
+  /**
+   * Render individual material card
+   */
+  const renderMaterialCard = (material: Material) => {
+    return (
+      <div key={material.id} className="bg-white rounded-lg shadow hover:shadow-lg transition">
+        <div className="p-6">
+          {/* Icon and Type */}
+          <div className="flex items-start justify-between mb-3">
+            <div className="text-4xl">{getTypeIcon(material.materialType)}</div>
+            <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(material.materialType)}`}>
+              {material.materialType}
+            </span>
+          </div>
+
+          {/* Title */}
+          <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
+            {material.title}
+          </h3>
+
+          {/* Description */}
+          {material.description && (
+            <p className="text-sm text-gray-600 mb-3 line-clamp-3">
+              {material.description}
+            </p>
+          )}
+
+          {/* Group Info */}
+          {material.group && (
+            <div className="mb-3 text-xs text-gray-500">
+              <p>{material.group.name}</p>
+              <p>{material.group.level.name}</p>
+            </div>
+          )}
+
+          {/* Date */}
+          <p className="text-xs text-gray-500 mb-4">
+            Added {material.uploadedAt ? new Date(material.uploadedAt).toLocaleDateString() : 'N/A'}
           </p>
+
+          {/* Action Button */}
+          {material.fileUrl ? (
+            <a
+              href={material.fileUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block w-full px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition text-sm font-medium"
+            >
+              {material.materialType === 'LINK' ? 'Open Link' : 'Download'}
+            </a>
+          ) : (
+            <button
+              disabled
+              className="w-full px-4 py-2 bg-gray-100 text-gray-400 rounded-lg text-sm font-medium cursor-not-allowed"
+            >
+              No File Available
+            </button>
+          )}
         </div>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredMaterials.map((material) => (
-            <div key={material.id} className="bg-white rounded-lg shadow hover:shadow-lg transition">
-              <div className="p-6">
-                {/* Icon and Type */}
-                <div className="flex items-start justify-between mb-3">
-                  <div className="text-4xl">{getTypeIcon(material.materialType)}</div>
-                  <span className={`px-2 py-1 rounded-full text-xs font-medium ${getTypeColor(material.materialType)}`}>
-                    {material.materialType}
-                  </span>
-                </div>
+      </div>
+    );
+  };
 
-                {/* Title */}
-                <h3 className="text-lg font-bold text-gray-900 mb-2 line-clamp-2">
-                  {material.title}
-                </h3>
+  /**
+   * Render materials grid
+   */
+  const renderMaterialsGrid = () => {
+    const filteredMaterials = getFilteredMaterials();
 
-                {/* Description */}
-                {material.description && (
-                  <p className="text-sm text-gray-600 mb-3 line-clamp-3">
-                    {material.description}
-                  </p>
-                )}
+    if (filteredMaterials.length === 0) {
+      return renderEmptyState();
+    }
 
-                {/* Group Info */}
-                {material.group && (
-                  <div className="mb-3 text-xs text-gray-500">
-                    <p>{material.group.name}</p>
-                    <p>{material.group.level.name}</p>
-                  </div>
-                )}
+    return (
+      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {filteredMaterials.map((material) => renderMaterialCard(material))}
+      </div>
+    );
+  };
 
-                {/* Date */}
-                <p className="text-xs text-gray-500 mb-4">
-                  Added {material.uploadedAt ? new Date(material.uploadedAt).toLocaleDateString() : 'N/A'}
-                </p>
+  /**
+   * Render statistics section
+   */
+  const renderStats = () => {
+    if (materials.length === 0) return null;
 
-                {/* Action Button */}
-                {material.fileUrl ? (
-                  <a
-                    href={material.fileUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="block w-full px-4 py-2 bg-blue-600 text-white text-center rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-                  >
-                    {material.materialType === 'LINK' ? 'Open Link' : 'Download'}
-                  </a>
-                ) : (
-                  <button
-                    disabled
-                    className="w-full px-4 py-2 bg-gray-100 text-gray-400 rounded-lg text-sm font-medium cursor-not-allowed"
-                  >
-                    No File Available
-                  </button>
-                )}
-              </div>
+    const stats = [
+      {
+        label: 'Total Materials',
+        value: materials.length,
+      },
+      {
+        label: 'Documents',
+        value: materials.filter(m => m.materialType?.toUpperCase() === 'PDF' || m.materialType?.toUpperCase() === 'DOCUMENT').length,
+      },
+      {
+        label: 'Videos',
+        value: materials.filter(m => m.materialType?.toUpperCase() === 'VIDEO').length,
+      },
+      {
+        label: 'Links',
+        value: materials.filter(m => m.materialType?.toUpperCase() === 'LINK').length,
+      },
+    ];
+
+    return (
+      <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
+        <h3 className="text-lg font-semibold mb-4">Materials Overview</h3>
+        <div className="grid md:grid-cols-4 gap-4">
+          {stats.map((stat, index) => (
+            <div key={index}>
+              <p className="text-green-100 text-sm">{stat.label}</p>
+              <p className="text-3xl font-bold">{stat.value}</p>
             </div>
           ))}
         </div>
-      )}
+      </div>
+    );
+  };
 
-      {/* Stats */}
-      {materials.length > 0 && (
-        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg shadow-lg p-6 text-white">
-          <h3 className="text-lg font-semibold mb-4">Materials Overview</h3>
-          <div className="grid md:grid-cols-4 gap-4">
-            <div>
-              <p className="text-green-100 text-sm">Total Materials</p>
-              <p className="text-3xl font-bold">{materials.length}</p>
-            </div>
-            <div>
-              <p className="text-green-100 text-sm">Documents</p>
-              <p className="text-3xl font-bold">
-                {materials.filter(m => m.materialType?.toUpperCase() === 'PDF' || m.materialType?.toUpperCase() === 'DOCUMENT').length}
-              </p>
-            </div>
-            <div>
-              <p className="text-green-100 text-sm">Videos</p>
-              <p className="text-3xl font-bold">
-                {materials.filter(m => m.materialType?.toUpperCase() === 'VIDEO').length}
-              </p>
-            </div>
-            <div>
-              <p className="text-green-100 text-sm">Links</p>
-              <p className="text-3xl font-bold">
-                {materials.filter(m => m.materialType?.toUpperCase() === 'LINK').length}
-              </p>
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
-  );
+  /**
+   * Render main materials page
+   */
+  const renderMaterialsPage = () => {
+    return (
+      <div className="space-y-6">
+        {renderHeader()}
+        {renderMaterialsGrid()}
+        {renderStats()}
+      </div>
+    );
+  };
+
+  // ========================================
+  // MAIN RETURN (State Logic)
+  // ========================================
+  
+  if (loading) {
+    return <LoadingState message="Loading materials..." />;
+  }
+
+  return renderMaterialsPage();
 }

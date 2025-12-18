@@ -16,7 +16,6 @@ async function checkSoftDeletedItems() {
         { name: 'Student', model: prisma.student },
         { name: 'Teacher', model: prisma.teacher },
         { name: 'Parent', model: prisma.parent },
-        { name: 'Admin', model: prisma.admin },
     ];
 
     for (const check of checks) {

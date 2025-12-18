@@ -59,6 +59,15 @@ export const materialsAPI = {
     return res.json();
   },
 
+  // Get materials for a specific group
+  getByGroup: async (groupId: string) => {
+    const res = await fetch(`${API_URL}/materials/group/${groupId}`, {
+      headers: getHeaders(true)
+    });
+    if (!res.ok) throw new Error('Failed to fetch materials');
+    return res.json();
+  },
+
   // Create new material
   create: async (data: CreateMaterialDto) => {
     const res = await fetch(`${API_URL}/materials`, {

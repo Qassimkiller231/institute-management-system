@@ -2,8 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
-import { useRouter, useParams } from 'next/navigation';
 import { studentsAPI, criteriaAPI } from '@/lib/api';
+import { getToken } from '@/lib/authStorage';
+import { LoadingState } from '@/components/common/LoadingState';
+
+// ========================================
+// TYPES
+// ========================================
 
 interface Criterion {
   criteriaId: string;
@@ -34,6 +39,9 @@ interface Student {
 }
 
 export default function ChildProgressPage() {
+  // ========================================
+  // STATE & HOOKS
+  // ========================================
   const router = useRouter();
   const params = useParams();
   const studentId = params.id as string;
@@ -43,6 +51,13 @@ export default function ChildProgressPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // ========================================
+  // EFFECTS
+  // ========================================
+  
+  /**
+   * Effect: Fetch progress data on mount
+   */
   useEffect(() => {
     const fetchProgress = async () => {
       try {
@@ -96,7 +111,7 @@ export default function ChildProgressPage() {
         });
 
       } catch (err) {
-        console.error('Error fetching progress:', err);
+        // console.error('Error fetching progress:', err); // Debug
         setError(err instanceof Error ? err.message : 'Failed to load progress data');
       } finally {
         setLoading(false);
@@ -108,6 +123,13 @@ export default function ChildProgressPage() {
     }
   }, [studentId, router]);
 
+  // ========================================
+  // UTILITY FUNCTIONS
+  // ========================================
+  
+  /**
+   * Get next level based on current level
+   */
   const getNextLevel = (currentLevel: string): string => {
     const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
     const currentIndex = levels.indexOf(currentLevel);
@@ -116,23 +138,14 @@ export default function ChildProgressPage() {
       : 'Advanced';
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-6xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="bg-white rounded-lg shadow p-6 mb-6">
-              <div className="h-32 bg-gray-200 rounded mb-4"></div>
-              <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // ========================================
+  // RENDER FUNCTIONS
+  // ========================================
 
-  if (error) {
+  /**
+   * Render error state
+   */
+  const renderError = () => {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-6xl mx-auto">
@@ -149,9 +162,12 @@ export default function ChildProgressPage() {
         </div>
       </div>
     );
-  }
+  };
 
-  if (!progressData || progressData.totalCriteria === 0) {
+  /**
+   * Render empty state (no criteria)
+   */
+  const renderEmptyState = () => {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-6xl mx-auto">
@@ -172,15 +188,13 @@ export default function ChildProgressPage() {
         </div>
       </div>
     );
-  }
+  };
 
-  const { completedCount, totalCriteria, progressPercentage, criteria, currentLevel, nextLevel } = progressData;
-  const completedCriteria = criteria.filter(c => c.completed);
-  const pendingCriteria = criteria.filter(c => !c.completed);
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+  /**
+   * Render header section
+   */
+  const renderHeader = () => {
+    return (
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-8 px-6">
         <div className="max-w-6xl mx-auto">
           <button 
@@ -195,150 +209,238 @@ export default function ChildProgressPage() {
           <p className="text-blue-100">Track your child's learning journey and achievements</p>
         </div>
       </div>
+    );
+  };
 
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {/* Current Level Card */}
-        <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
-          <div className="flex items-center justify-between mb-6">
-            <div>
-              <h2 className="text-2xl font-bold text-gray-900 mb-1">Current Level</h2>
-              <p className="text-4xl font-bold text-blue-600">{currentLevel}</p>
-            </div>
-            <div className="text-right">
-              <p className="text-sm text-gray-600 mb-1">Overall Progress</p>
-              <div className="relative w-32 h-32">
-                <svg className="transform -rotate-90 w-32 h-32">
-                  <circle
-                    cx="64"
-                    cy="64"
-                    r="56"
-                    stroke="#e5e7eb"
-                    strokeWidth="8"
-                    fill="none"
-                  />
-                  <circle
-                    cx="64"
-                    cy="64"
-                    r="56"
-                    stroke="#3b82f6"
-                    strokeWidth="8"
-                    fill="none"
-                    strokeDasharray={`${2 * Math.PI * 56}`}
-                    strokeDashoffset={`${2 * Math.PI * 56 * (1 - progressPercentage / 100)}`}
-                    strokeLinecap="round"
-                  />
-                </svg>
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <span className="text-2xl font-bold text-gray-900">{Math.round(progressPercentage)}%</span>
-                </div>
-              </div>
-            </div>
+  /**
+   * Render circular progress indicator
+   */
+  const renderCircularProgress = (percentage: number) => {
+    const radius = 56;
+    const circumference = 2 * Math.PI * radius;
+    const offset = circumference * (1 - percentage / 100);
+
+    return (
+      <div className="relative w-32 h-32">
+        <svg className="transform -rotate-90 w-32 h-32">
+          <circle
+            cx="64"
+            cy="64"
+            r={radius}
+            stroke="#e5e7eb"
+            strokeWidth="8"
+            fill="none"
+          />
+          <circle
+            cx="64"
+            cy="64"
+            r={radius}
+            stroke="#3b82f6"
+            strokeWidth="8"
+            fill="none"
+            strokeDasharray={circumference}
+            strokeDashoffset={offset}
+            strokeLinecap="round"
+          />
+        </svg>
+        <div className="absolute inset-0 flex items-center justify-center">
+          <span className="text-2xl font-bold text-gray-900">{Math.round(percentage)}%</span>
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Render completion celebration
+   */
+  const renderCompletionCelebration = () => {
+    if (!progressData || progressData.progressPercentage < 100) return null;
+
+    return (
+      <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
+        <span className="text-3xl">🎉</span>
+        <div>
+          <p className="font-semibold text-green-800">Congratulations!</p>
+          <p className="text-green-700 text-sm">
+            Your child has completed all criteria for {progressData.currentLevel}. Ready for {progressData.nextLevel}!
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Render current level card
+   */
+  const renderCurrentLevelCard = () => {
+    if (!progressData) return null;
+
+    const { currentLevel, progressPercentage, completedCount, totalCriteria } = progressData;
+
+    return (
+      <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-1">Current Level</h2>
+            <p className="text-4xl font-bold text-blue-600">{currentLevel}</p>
           </div>
-
-          <div className="bg-gray-50 rounded-lg p-4 mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-gray-700 font-medium">
-                {completedCount} of {totalCriteria} criteria completed
-              </span>
-              <span className="text-blue-600 font-semibold">{Math.round(progressPercentage)}%</span>
-            </div>
-            <div className="w-full bg-gray-200 rounded-full h-3">
-              <div 
-                className="bg-blue-600 h-3 rounded-full transition-all duration-500"
-                style={{ width: `${progressPercentage}%` }}
-              ></div>
-            </div>
+          <div className="text-right">
+            <p className="text-sm text-gray-600 mb-1">Overall Progress</p>
+            {renderCircularProgress(progressPercentage)}
           </div>
-
-          {progressPercentage === 100 && (
-            <div className="bg-green-50 border border-green-200 rounded-lg p-4 flex items-center gap-3">
-              <span className="text-3xl">🎉</span>
-              <div>
-                <p className="font-semibold text-green-800">Congratulations!</p>
-                <p className="text-green-700 text-sm">
-                  Your child has completed all criteria for {currentLevel}. Ready for {nextLevel}!
-                </p>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Completed Criteria */}
-        {completedCriteria.length > 0 && (
-          <div className="mb-8">
-            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span className="text-green-600">✓</span> Completed Criteria ({completedCriteria.length})
-            </h3>
-            <div className="space-y-3">
-              {completedCriteria.map((criterion) => (
-                <div 
-                  key={criterion.criteriaId}
-                  className="bg-white rounded-lg shadow p-5 border-l-4 border-green-500"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <span className="text-green-600 text-xl">✓</span>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 mb-1">{criterion.name}</h4>
-                      {criterion.description && (
-                        <p className="text-gray-600 text-sm mb-2">{criterion.description}</p>
-                      )}
-                      {criterion.completedAt && (
-                        <p className="text-xs text-gray-500">
-                          Completed on {new Date(criterion.completedAt).toLocaleDateString()}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
+        <div className="bg-gray-50 rounded-lg p-4 mb-4">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-gray-700 font-medium">
+              {completedCount} of {totalCriteria} criteria completed
+            </span>
+            <span className="text-blue-600 font-semibold">{Math.round(progressPercentage)}%</span>
           </div>
-        )}
+          <div className="w-full bg-gray-200 rounded-full h-3">
+            <div 
+              className="bg-blue-600 h-3 rounded-full transition-all duration-500"
+              style={{ width: `${progressPercentage}%` }}
+            ></div>
+          </div>
+        </div>
 
-        {/* Pending Criteria */}
-        {pendingCriteria.length > 0 && (
-          <div>
-            <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
-              <span className="text-yellow-600">○</span> Pending Criteria ({pendingCriteria.length})
-            </h3>
-            <div className="space-y-3">
-              {pendingCriteria.map((criterion) => (
-                <div 
-                  key={criterion.criteriaId}
-                  className="bg-white rounded-lg shadow p-5 border-l-4 border-gray-300"
-                >
-                  <div className="flex items-start gap-4">
-                    <div className="flex-shrink-0 w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center">
-                      <span className="text-gray-400 text-xl">○</span>
-                    </div>
-                    <div className="flex-1">
-                      <h4 className="font-semibold text-gray-900 mb-1">{criterion.name}</h4>
-                      {criterion.description && (
-                        <p className="text-gray-600 text-sm">{criterion.description}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* Next Steps Card */}
-        {progressPercentage < 100 && (
-          <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
-            <h3 className="text-lg font-bold text-gray-900 mb-2">Keep Going! 💪</h3>
-            <p className="text-gray-700 mb-3">
-              {pendingCriteria.length} criteria remaining to advance to {nextLevel}.
-            </p>
-            <p className="text-sm text-gray-600">
-              The teacher will mark criteria as complete when mastery is demonstrated.
-            </p>
-          </div>
-        )}
+        {renderCompletionCelebration()}
       </div>
-    </div>
-  );
+    );
+  };
+
+  /**
+   * Render single criterion card
+   */
+  const renderCriterionCard = (criterion: Criterion, isCompleted: boolean) => {
+    return (
+      <div 
+        key={criterion.criteriaId}
+        className={`bg-white rounded-lg shadow p-5 border-l-4 ${
+          isCompleted ? 'border-green-500' : 'border-gray-300'
+        }`}
+      >
+        <div className="flex items-start gap-4">
+          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+            isCompleted ? 'bg-green-100' : 'bg-gray-100'
+          }`}>
+            <span className={`text-xl ${isCompleted ? 'text-green-600' : 'text-gray-400'}`}>
+              {isCompleted ? '✓' : '○'}
+            </span>
+          </div>
+          <div className="flex-1">
+            <h4 className="font-semibold text-gray-900 mb-1">{criterion.name}</h4>
+            {criterion.description && (
+              <p className="text-gray-600 text-sm mb-2">{criterion.description}</p>
+            )}
+            {criterion.completedAt && (
+              <p className="text-xs text-gray-500">
+                Completed on {new Date(criterion.completedAt).toLocaleDateString()}
+              </p>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Render completed criteria section
+   */
+  const renderCompletedCriteria = (completedCriteria: Criterion[]) => {
+    if (completedCriteria.length === 0) return null;
+
+    return (
+      <div className="mb-8">
+        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="text-green-600">✓</span> Completed Criteria ({completedCriteria.length})
+        </h3>
+        <div className="space-y-3">
+          {completedCriteria.map((criterion) => renderCriterionCard(criterion, true))}
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Render pending criteria section
+   */
+  const renderPendingCriteria = (pendingCriteria: Criterion[]) => {
+    if (pendingCriteria.length === 0) return null;
+
+    return (
+      <div>
+        <h3 className="text-xl font-bold text-gray-900 mb-4 flex items-center gap-2">
+          <span className="text-yellow-600">○</span> Pending Criteria ({pendingCriteria.length})
+        </h3>
+        <div className="space-y-3">
+          {pendingCriteria.map((criterion) => renderCriterionCard(criterion, false))}
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Render next steps card
+   */
+  const renderNextSteps = () => {
+    if (!progressData || progressData.progressPercentage >= 100) return null;
+
+    const pendingCount = progressData.criteria.filter(c => !c.completed).length;
+
+    return (
+      <div className="mt-8 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-lg p-6">
+        <h3 className="text-lg font-bold text-gray-900 mb-2">Keep Going! 💪</h3>
+        <p className="text-gray-700 mb-3">
+          {pendingCount} criteria remaining to advance to {progressData.nextLevel}.
+        </p>
+        <p className="text-sm text-gray-600">
+          The teacher will mark criteria as complete when mastery is demonstrated.
+        </p>
+      </div>
+    );
+  };
+
+  /**
+   * Render main progress page
+   */
+  const renderProgressPage = () => {
+    if (!progressData) return null;
+
+    const { criteria } = progressData;
+    const completedCriteria = criteria.filter(c => c.completed);
+    const pendingCriteria = criteria.filter(c => !c.completed);
+
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {renderHeader()}
+
+        <div className="max-w-6xl mx-auto px-6 py-8">
+          {renderCurrentLevelCard()}
+          {renderCompletedCriteria(completedCriteria)}
+          {renderPendingCriteria(pendingCriteria)}
+          {renderNextSteps()}
+        </div>
+      </div>
+    );
+  };
+
+  // ========================================
+  // MAIN RETURN (State Logic)
+  // ========================================
+  
+  if (loading) {
+    return <LoadingState message="Loading progress..." />;
+  }
+
+  if (error) {
+    return renderError();
+  }
+
+  if (!progressData || progressData.totalCriteria === 0) {
+    return renderEmptyState();
+  }
+
+  return renderProgressPage();
 }

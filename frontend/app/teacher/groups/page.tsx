@@ -2,9 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getTeacherId } from '@/lib/auth';
+import { getTeacherId } from '@/lib/authStorage';
 import { groupsAPI } from '@/lib/api';
 import GroupCard, { GroupCardData } from '@/components/shared/GroupCard';
+import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 
 export default function TeacherGroupsPage() {
   const router = useRouter();
@@ -34,44 +36,15 @@ export default function TeacherGroupsPage() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse">
-            <div className="h-8 bg-gray-200 rounded w-1/4 mb-6"></div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="bg-white rounded-lg shadow p-6 h-64"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // ========================================
+  // RENDER FUNCTIONS
+  // ========================================
 
-  if (error) {
+  /**
+   * Render page header
+   */
+  const renderHeader = () => {
     return (
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-7xl mx-auto">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-            <p className="text-red-800 font-semibold">Error loading groups</p>
-            <p className="text-red-600 mt-2">{error}</p>
-            <button
-              onClick={fetchGroups}
-              className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-            >
-              Try Again
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="min-h-screen bg-gray-50">
       <div className="bg-gradient-to-r from-indigo-600 to-purple-600 text-white py-8 px-6">
         <div className="max-w-7xl mx-auto">
           <button
@@ -84,27 +57,83 @@ export default function TeacherGroupsPage() {
           <p className="text-indigo-100">Manage your assigned teaching groups</p>
         </div>
       </div>
+    );
+  };
 
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {groups.length === 0 ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-600 text-lg">No groups assigned yet.</p>
-          </div>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {groups.map((group) => (
-              <GroupCard
-                key={group.id}
-                group={group}
-                showTeacher={false}
-                showActions={false}
-                showTeacherActions={true}
-                onClick={(id) => router.push(`/teacher/groups/${id}`)}
-              />
-            ))}
-          </div>
-        )}
+  /**
+   * Render empty state
+   */
+  const renderEmptyState = () => {
+    return (
+      <div className="bg-white rounded-lg shadow p-12 text-center">
+        <p className="text-gray-600 text-lg">No groups assigned yet.</p>
       </div>
-    </div>
-  );
+    );
+  };
+
+  /**
+   * Render groups grid
+   */
+  const renderGroupsGrid = () => {
+    return (
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {groups.map((group) => (
+          <GroupCard
+            key={group.id}
+            group={group}
+            showTeacher={false}
+            showActions={false}
+            showTeacherActions={true}
+            onClick={(id) => router.push(`/teacher/groups/${id}`)}
+          />
+        ))}
+      </div>
+    );
+  };
+
+  /**
+   * Render groups section
+   */
+  const renderGroupsSection = () => {
+    if (groups.length === 0) {
+      return renderEmptyState();
+    }
+
+    return renderGroupsGrid();
+  };
+
+  /**
+   * Render main groups page
+   */
+  const renderGroupsPage = () => {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {renderHeader()}
+
+        <div className="max-w-7xl mx-auto px-6 py-8">
+          {renderGroupsSection()}
+        </div>
+      </div>
+    );
+  };
+
+  // ========================================
+  // MAIN RENDER
+  // ========================================
+  
+  if (loading) {
+    return <LoadingState message="Loading groups..." />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState 
+        title="Error loading groups"
+        message={error}
+        onRetry={fetchGroups}
+      />
+    );
+  }
+
+  return renderGroupsPage();
 }

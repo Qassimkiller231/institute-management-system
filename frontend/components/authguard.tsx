@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
-import { validateAndRecoverAuth, isAuthenticated } from '@/lib/auth';
+import { validateAndRecoverAuth, isAuthenticated } from '@/lib/authStorage';
 
 const PUBLIC_ROUTES = ['/login', '/verify-otp', '/register'];
 

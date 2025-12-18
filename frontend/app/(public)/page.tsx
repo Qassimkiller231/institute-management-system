@@ -1,30 +1,47 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import { getToken } from '@/lib/authStorage';
+import { saveLoginRedirect } from '@/lib/redirectStorage';
 
 export default function LandingPage() {
+  // ========================================
+  // HOOKS
+  // ========================================
   const router = useRouter();
 
+  // ========================================
+  // HANDLERS
+  // ========================================
+  
+  /**
+   * Handle Take Placement Test action
+   * Routes to test if logged in, otherwise to registration
+   */
   const handleTakePlacementTest = () => {
-    // Check if user is already logged in
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('authToken');
+      const token = getToken();
+      
       if (token) {
         // Already logged in, go straight to test
         router.push('/take-test');
       } else {
-        // Not logged in, ask: new user or existing?
-        // For now, default to register (new user flow)
-        // TODO: Could add a modal asking "New or returning student?"
-        sessionStorage.setItem('loginRedirect', '/take-test');
+        // Not logged in, redirect to register after saving intent
+        saveLoginRedirect('/take-test');
         router.push('/register');
       }
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
-      {/* Hero Section */}
+  // ========================================
+  // RENDER FUNCTIONS
+  // ========================================
+  
+  /**
+   * Hero section with main headline and CTA buttons
+   */
+  const renderHeroSection = () => {
+    return (
       <div className="relative overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 pt-20 pb-16 text-center lg:pt-32">
           <h1 className="text-5xl md:text-6xl lg:text-7xl font-extrabold text-gray-900 mb-6">
@@ -74,53 +91,70 @@ export default function LandingPage() {
         <div className="absolute top-0 right-0 -mt-20 -mr-20 w-80 h-80 bg-blue-200 rounded-full opacity-20 blur-3xl"></div>
         <div className="absolute bottom-0 left-0 -mb-20 -ml-20 w-80 h-80 bg-blue-300 rounded-full opacity-20 blur-3xl"></div>
       </div>
+    );
+  };
 
-      {/* Programs Overview */}
+  /**
+   * Individual program card
+   */
+  const renderProgramCard = (program: {
+    icon: string;
+    title: string;
+    description: string;
+    meta: string;
+  }) => {
+    return (
+      <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-transparent hover:border-blue-500 transition">
+        <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-6">
+          <span className="text-3xl">{program.icon}</span>
+        </div>
+        <h3 className="text-2xl font-bold text-gray-900 mb-3">
+          {program.title}
+        </h3>
+        <p className="text-gray-600 mb-4">
+          {program.description}
+        </p>
+        <div className="flex items-center text-sm text-gray-500">
+          <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+          </svg>
+          {program.meta}
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Programs overview section
+   */
+  const renderProgramsSection = () => {
+    const programs = [
+      {
+        icon: '�',
+        title: 'English Multiverse',
+        description: 'For ages 11-17. A comprehensive English program designed specifically for teenagers with engaging content and interactive learning.',
+        meta: 'Ages 11-17 • Levels A1-B2',
+      },
+      {
+        icon: '🌟',
+        title: 'English Unlimited',
+        description: 'For ages 18+. Professional English program for adults focusing on practical communication skills and career advancement.',
+        meta: 'Ages 18+ • Levels A1-B2',
+      },
+    ];
+
+    return (
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16">
         <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">
           Our Programs
         </h2>
 
         <div className="grid md:grid-cols-2 gap-8 mb-12">
-          {/* English Multiverse */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-transparent hover:border-blue-500 transition">
-            <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-6">
-              <span className="text-3xl">🎓</span>
+          {programs.map((program, index) => (
+            <div key={index}>
+              {renderProgramCard(program)}
             </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              English Multiverse
-            </h3>
-            <p className="text-gray-600 mb-4">
-              For ages 11-17. A comprehensive English program designed specifically 
-              for teenagers with engaging content and interactive learning.
-            </p>
-            <div className="flex items-center text-sm text-gray-500">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-              </svg>
-              Ages 11-17 • Levels A1-B2
-            </div>
-          </div>
-
-          {/* English Unlimited */}
-          <div className="bg-white rounded-2xl shadow-xl p-8 border-2 border-transparent hover:border-blue-500 transition">
-            <div className="bg-blue-100 w-16 h-16 rounded-full flex items-center justify-center mb-6">
-              <span className="text-3xl">🌟</span>
-            </div>
-            <h3 className="text-2xl font-bold text-gray-900 mb-3">
-              English Unlimited
-            </h3>
-            <p className="text-gray-600 mb-4">
-              For ages 18+. Professional English program for adults focusing on 
-              practical communication skills and career advancement.
-            </p>
-            <div className="flex items-center text-sm text-gray-500">
-              <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-              </svg>
-              Ages 18+ • Levels A1-B2
-            </div>
-          </div>
+          ))}
         </div>
 
         <div className="text-center">
@@ -135,8 +169,63 @@ export default function LandingPage() {
           </button>
         </div>
       </div>
+    );
+  };
 
-      {/* Features Section */}
+  /**
+   * Individual feature card
+   */
+  const renderFeatureCard = (feature: {
+    icon: React.ReactNode;
+    title: string;
+    description: string;
+  }) => {
+    return (
+      <div className="text-center">
+        <div className="bg-blue-600 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
+          {feature.icon}
+        </div>
+        <h3 className="text-xl font-bold text-gray-900 mb-3">{feature.title}</h3>
+        <p className="text-gray-600">{feature.description}</p>
+      </div>
+    );
+  };
+
+  /**
+   * Features section (Why Choose Us)
+   */
+  const renderFeaturesSection = () => {
+    const features = [
+      {
+        icon: (
+          <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
+          </svg>
+        ),
+        title: 'Expert Teachers',
+        description: 'Learn from qualified native and bilingual teachers with years of experience',
+      },
+      {
+        icon: (
+          <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+        title: 'Proven Methods',
+        description: 'Structured curriculum following international standards and best practices',
+      },
+      {
+        icon: (
+          <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+        title: 'Flexible Schedule',
+        description: 'Multiple time slots and venues to fit your busy lifestyle',
+      },
+    ];
+
+    return (
       <div className="bg-gray-50 py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <h2 className="text-4xl font-bold text-center text-gray-900 mb-12">
@@ -144,46 +233,22 @@ export default function LandingPage() {
           </h2>
 
           <div className="grid md:grid-cols-3 gap-8">
-            <div className="text-center">
-              <div className="bg-blue-600 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                </svg>
+            {features.map((feature, index) => (
+              <div key={index}>
+                {renderFeatureCard(feature)}
               </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Expert Teachers</h3>
-              <p className="text-gray-600">
-                Learn from qualified native and bilingual teachers with years of experience
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-blue-600 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Proven Methods</h3>
-              <p className="text-gray-600">
-                Structured curriculum following international standards and best practices
-              </p>
-            </div>
-
-            <div className="text-center">
-              <div className="bg-blue-600 w-20 h-20 rounded-full flex items-center justify-center mx-auto mb-6">
-                <svg className="w-10 h-10 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              </div>
-              <h3 className="text-xl font-bold text-gray-900 mb-3">Flexible Schedule</h3>
-              <p className="text-gray-600">
-                Multiple time slots and venues to fit your busy lifestyle
-              </p>
-            </div>
+            ))}
           </div>
         </div>
       </div>
+    );
+  };
 
-      {/* CTA Section */}
+  /**
+   * Call-to-action section
+   */
+  const renderCTASection = () => {
+    return (
       <div className="bg-blue-600 py-16">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
           <h2 className="text-4xl font-bold text-white mb-6">
@@ -200,8 +265,14 @@ export default function LandingPage() {
           </button>
         </div>
       </div>
+    );
+  };
 
-      {/* Footer */}
+  /**
+   * Footer section
+   */
+  const renderFooter = () => {
+    return (
       <div className="bg-gray-900 text-white py-12">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid md:grid-cols-3 gap-8">
@@ -248,6 +319,20 @@ export default function LandingPage() {
           </div>
         </div>
       </div>
+    );
+  };
+
+  // ========================================
+  // MAIN RETURN
+  // ========================================
+  
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      {renderHeroSection()}
+      {renderProgramsSection()}
+      {renderFeaturesSection()}
+      {renderCTASection()}
+      {renderFooter()}
     </div>
   );
 }

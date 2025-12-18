@@ -1,7 +1,7 @@
 'use client';
 
 import { usePathname, useRouter } from 'next/navigation';
-import { logout } from '@/lib/auth';
+import { logout } from '@/lib/authStorage';
 import { useState } from 'react';
 import ChatBot from '@/components/chatbot/ChatBot';
 

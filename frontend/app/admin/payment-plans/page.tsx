@@ -42,21 +42,21 @@ export default function PaymentPlansPage() {
   const fetchEnrollments = async () => {
     try {
       const result = await enrollmentsAPI.getAll();
-      
+
       if (!result.success) {
         throw new Error('Failed to fetch enrollments');
       }
-      
+
       const allEnrollments = result.data || [];
-      
+
       // Filter out enrollments that already have payment plans
-      const enrollmentsWithoutPlans = allEnrollments.filter((enr: any) => 
+      const enrollmentsWithoutPlans = allEnrollments.filter((enr: any) =>
         !plans.some(plan => plan.enrollmentId === enr.id)
       );
-      
+
       setEnrollments(enrollmentsWithoutPlans);
     } catch (err: any) {
-      console.error('Error fetching enrollments:', err);
+      // console.error('Error fetching enrollments:', err);
       setEnrollments([]);
     }
   };
@@ -75,19 +75,19 @@ export default function PaymentPlansPage() {
 
   const calculatePlanStatus = (plan: any) => {
     if (!plan.installments || plan.installments.length === 0) return 'No Installments';
-    
+
     const totalPaid = plan.installments
       .filter((inst: any) => inst.paymentDate !== null)
       .reduce((sum: number, inst: any) => sum + Number(inst.amount), 0);
-    
+
     const totalAmount = Number(plan.finalAmount);
-    
+
     if (totalPaid >= totalAmount) return 'Fully Paid';
-    
-    const hasOverdue = plan.installments.some((inst: any) => 
+
+    const hasOverdue = plan.installments.some((inst: any) =>
       !inst.paymentDate && inst.dueDate && new Date(inst.dueDate) < new Date()
     );
-    
+
     return hasOverdue ? 'Overdue' : 'In Progress';
   };
 
@@ -114,7 +114,7 @@ export default function PaymentPlansPage() {
 
     try {
       await paymentsAPI.deletePlan(plan.id);
-      
+
       alert('Payment plan deleted successfully!');
       fetchPlans();
     } catch (err: any) {
@@ -125,7 +125,7 @@ export default function PaymentPlansPage() {
   const submitEdit = async () => {
     try {
       await paymentsAPI.updatePlan(selectedPlan.id, editForm);
-      
+
       alert('Payment plan updated successfully!');
       setShowEditModal(false);
       fetchPlans();
@@ -149,49 +149,49 @@ export default function PaymentPlansPage() {
 
   const generateInstallments = () => {
     const finalAmount = createForm.totalAmount - createForm.discountAmount;
-    
+
     // Calculate base amount (floor to nearest integer)
     let exactShare = finalAmount / createForm.totalInstallments;
     let baseAmount = Math.floor(exactShare);
-    
+
     // User preference: Round down to nearest 5 if possible
     // Example: 16.6 -> 16 -> 15
     const multipleOfFive = Math.floor(baseAmount / 5) * 5;
     if (multipleOfFive > 0) {
       baseAmount = multipleOfFive;
     }
-    
+
     // If base becomes 0 (e.g. amount < 5), fallback to simple floor
     if (baseAmount === 0) {
       baseAmount = Math.floor(exactShare);
     }
-    
+
     const installments = [];
     let runningTotal = 0;
-    
-    for (let i = 1; i <= createForm.totalInstallments; i++) {
-        const dueDate = new Date();
-        dueDate.setMonth(dueDate.getMonth() + i);
-        
-        // For last installment, take the remaining balance
-        let amount = baseAmount;
-        if (i === createForm.totalInstallments) {
-            amount = finalAmount - runningTotal;
-            // Prevent negative last installment if logic goes wrong (shouldn't happen with floor)
-            if (amount < 0) amount = 0;
-            // Round to 2 decimals to handle floating point errors
-            amount = Math.round(amount * 100) / 100;
-        } else {
-            runningTotal += amount;
-        }
 
-        installments.push({
-            installmentNumber: i,
-            amount: amount,
-            paymentDate: dueDate.toISOString().split('T')[0]
-        });
+    for (let i = 1; i <= createForm.totalInstallments; i++) {
+      const dueDate = new Date();
+      dueDate.setMonth(dueDate.getMonth() + i);
+
+      // For last installment, take the remaining balance
+      let amount = baseAmount;
+      if (i === createForm.totalInstallments) {
+        amount = finalAmount - runningTotal;
+        // Prevent negative last installment if logic goes wrong (shouldn't happen with floor)
+        if (amount < 0) amount = 0;
+        // Round to 2 decimals to handle floating point errors
+        amount = Math.round(amount * 100) / 100;
+      } else {
+        runningTotal += amount;
+      }
+
+      installments.push({
+        installmentNumber: i,
+        amount: amount,
+        paymentDate: dueDate.toISOString().split('T')[0]
+      });
     }
-    
+
     setCreateForm({ ...createForm, installments });
   };
 
@@ -203,7 +203,7 @@ export default function PaymentPlansPage() {
 
     try {
       await paymentsAPI.createPlan(createForm);
-      
+
       alert('Payment plan created successfully!');
       setShowCreateModal(false);
       fetchPlans();
@@ -233,12 +233,12 @@ export default function PaymentPlansPage() {
       setShowAddInstallment(false);
       setNewInstallment({ amount: 0, dueDate: '' });
       fetchPlans(); // Refresh to get updated plan
-      
+
       // Re-fetch plans to refresh modal data (could be optimized)
       const response = await paymentsAPI.getAllPlans();
       const updatedPlan = response.data?.find((p: any) => p.id === selectedPlan.id);
       if (updatedPlan) setSelectedPlan(updatedPlan);
-      
+
     } catch (err: any) {
       alert('Error adding installment: ' + err.message);
     }
@@ -259,7 +259,7 @@ export default function PaymentPlansPage() {
       alert('Installment updated successfully!');
       setEditingInstallmentId(null);
       fetchPlans();
-      
+
       // Refresh modal data
       const response = await paymentsAPI.getAllPlans();
       const updatedPlan = response.data?.find((p: any) => p.id === selectedPlan.id);
@@ -279,7 +279,7 @@ export default function PaymentPlansPage() {
 
       alert('Installment deleted successfully!');
       fetchPlans();
-      
+
       // Refresh modal data
       const response = await paymentsAPI.getAllPlans();
       const updatedPlan = response.data?.find((p: any) => p.id === selectedPlan.id);
@@ -293,10 +293,10 @@ export default function PaymentPlansPage() {
     const studentName = `${plan.enrollment?.student?.firstName || ''} ${plan.enrollment?.student?.secondName || ''}`.toLowerCase();
     const groupCode = plan.enrollment?.group?.groupCode?.toLowerCase() || '';
     const matchesSearch = studentName.includes(searchTerm.toLowerCase()) || groupCode.includes(searchTerm.toLowerCase());
-    
+
     const planStatus = calculatePlanStatus(plan);
     const matchesStatus = statusFilter === 'all' || planStatus === statusFilter;
-    
+
     return matchesSearch && matchesStatus;
   });
 
@@ -307,542 +307,158 @@ export default function PaymentPlansPage() {
     overdue: plans.filter(p => calculatePlanStatus(p) === 'Overdue').length
   };
 
-  if (loading) return <div className="p-8 text-gray-900">Loading...</div>;
+  // ========================================
+  // RENDER FUNCTIONS
+  // ========================================
+
+  const renderLoadingState = () => <div className="p-8 text-gray-900">Loading...</div>;
+
+  const renderHeader = () => (
+    <div className="mb-6 flex justify-between items-start"><div><h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Plans Management</h1><p className="text-gray-700">Manage student payment plans and installments</p></div><button onClick={handleCreatePlan} className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium">+ Create Plan</button></div>
+  );
+
+  const renderStats = () => (
+    <div className="grid md:grid-cols-4 gap-6 mb-6"><div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-600"><p className="text-sm font-medium text-gray-700 mb-1">Total Plans</p><p className="text-3xl font-bold text-gray-900">{stats.total}</p></div><div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-600"><p className="text-sm font-medium text-gray-700 mb-1">Fully Paid</p><p className="text-3xl font-bold text-gray-900">{stats.fullyPaid}</p></div><div className="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-600"><p className="text-sm font-medium text-gray-700 mb-1">In Progress</p><p className="text-3xl font-bold text-gray-900">{stats.inProgress}</p></div><div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-600"><p className="text-sm font-medium text-gray-700 mb-1">Overdue</p><p className="text-3xl font-bold text-gray-900">{stats.overdue}</p></div></div>
+  );
+
+  const renderFilters = () => (
+    <div className="bg-white rounded-lg shadow p-6 mb-6"><div className="grid md:grid-cols-2 gap-4"><input type="text" placeholder="Search by student name or group code..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-900" /><select value={statusFilter} onChange={(e) => setStatusFilter(e.target.value)} className="px-4 py-2 border border-gray-300 rounded-lg text-gray-900"><option value="all">All Status</option><option value="Fully Paid">Fully Paid</option><option value="In Progress">In Progress</option><option value="Overdue">Overdue</option></select></div></div>
+  );
+
+  const renderTableRow = (plan: any) => {
+    const paidAmount = calculatePaidAmount(plan);
+    const remaining = Number(plan.finalAmount) - paidAmount;
+    const status = calculatePlanStatus(plan);
+    const totalInstallments = plan.installments?.length || 0;
+    const paidInstallments = plan.installments?.filter((inst: any) => inst.paymentDate !== null).length || 0;
+    return (
+      <tr key={plan.id} className="hover:bg-gray-50"><td className="px-6 py-4 text-sm font-medium text-gray-900">{plan.enrollment?.student?.firstName} {plan.enrollment?.student?.secondName}</td><td className="px-6 py-4 text-sm text-gray-900">{plan.enrollment?.group?.groupCode || 'N/A'}</td><td className="px-6 py-4 text-center"><span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${paidInstallments === totalInstallments ? 'bg-green-100 text-green-800' : paidInstallments > 0 ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}`}>{paidInstallments}/{totalInstallments}</span></td><td className="px-6 py-4 text-sm text-right text-gray-900">{Number(plan.totalAmount).toFixed(2)} BD</td><td className="px-6 py-4 text-sm text-right text-gray-900">{Number(plan.discountAmount || 0).toFixed(2)} BD</td><td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{Number(plan.finalAmount).toFixed(2)} BD</td><td className="px-6 py-4 text-sm text-right text-green-600 font-medium">{paidAmount.toFixed(2)} BD</td><td className="px-6 py-4 text-sm text-right text-red-600 font-medium">{remaining.toFixed(2)} BD</td><td className="px-6 py-4 text-center"><span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${status === 'Fully Paid' ? 'bg-green-100 text-green-800' : status === 'In Progress' ? 'bg-blue-100 text-blue-800' : status === 'Overdue' ? 'bg-red-100 text-red-800' : 'bg-gray-100 text-gray-800'}`}>{status}</span></td><td className="px-6 py-4 text-center"><div className="flex justify-center gap-2"><button onClick={() => handleViewInstallments(plan)} className="px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700">View</button><button onClick={() => handleEdit(plan)} className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700">Edit</button><button onClick={() => handleDelete(plan)} className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700">Delete</button></div></td></tr>
+    );
+  };
+
+  const renderTable = () => (
+    <div className="bg-white rounded-lg shadow overflow-hidden"><div className="overflow-x-auto"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Student</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Group</th><th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">Installments</th><th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Total</th><th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Discount</th><th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Final Amount</th><th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Paid</th><th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Remaining</th><th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th><th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">Actions</th></tr></thead><tbody className="divide-y divide-gray-200">{filteredPlans.map(renderTableRow)}</tbody></table></div>{filteredPlans.length === 0 && <div className="p-12 text-center"><p className="text-gray-600">No payment plans found</p></div>}</div>
+  );
+
+  const renderEditModal = () => !showEditModal ? null : (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div className="bg-white rounded-lg p-6 w-full max-w-md"><h2 className="text-xl font-bold text-gray-900 mb-4">Edit Payment Plan</h2><p className="text-sm text-gray-600 mb-4">Student: <strong>{selectedPlan?.enrollment?.student?.firstName} {selectedPlan?.enrollment?.student?.secondName}</strong></p><div className="space-y-4"><div><label className="block text-sm font-medium text-gray-900 mb-1">Total Amount (BD)</label><input type="number" step="0.01" value={editForm.totalAmount} onChange={(e) => setEditForm({ ...editForm, totalAmount: parseFloat(e.target.value) })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900" /></div><div><label className="block text-sm font-medium text-gray-900 mb-1">Discount Amount (BD)</label><input type="number" step="0.01" value={editForm.discountAmount} onChange={(e) => setEditForm({ ...editForm, discountAmount: parseFloat(e.target.value) })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900" /></div><div><label className="block text-sm font-medium text-gray-900 mb-1">Discount Reason</label><input type="text" value={editForm.discountReason} onChange={(e) => setEditForm({ ...editForm, discountReason: e.target.value })} placeholder="e.g., Scholarship" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900" /></div><div className="p-3 bg-blue-50 rounded"><p className="text-sm text-gray-700"><strong>Final Amount:</strong> {(editForm.totalAmount - editForm.discountAmount).toFixed(2)} BD</p></div></div><div className="flex gap-3 mt-6"><button onClick={submitEdit} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Update Plan</button><button onClick={() => setShowEditModal(false)} className="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">Cancel</button></div></div></div>
+  );
+
+  const renderCreateModal = () => !showCreateModal ? null : (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto"><div className="bg-white rounded-lg p-6 w-full max-w-2xl my-8"><h2 className="text-xl font-bold text-gray-900 mb-4">Create Payment Plan</h2><div className="space-y-4"><div><label className="block text-sm font-medium text-gray-900 mb-1">Select Enrollment</label><select value={createForm.enrollmentId} onChange={(e) => setCreateForm({ ...createForm, enrollmentId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"><option value="">-- Select Enrollment --</option>{enrollments.map((enr: any) => <option key={enr.id} value={enr.id}>{enr.student?.firstName} {enr.student?.secondName} - {enr.group?.groupCode}</option>)}</select></div><div className="grid md:grid-cols-2 gap-4"><div><label className="block text-sm font-medium text-gray-900 mb-1">Total Amount (BD)</label><input type="number" step="0.01" value={createForm.totalAmount} onChange={(e) => setCreateForm({ ...createForm, totalAmount: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900" /></div><div><label className="block text-sm font-medium text-gray-900 mb-1">Discount Amount (BD)</label><input type="number" step="0.01" value={createForm.discountAmount} onChange={(e) => setCreateForm({ ...createForm, discountAmount: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900" /></div></div><div><label className="block text-sm font-medium text-gray-900 mb-1">Discount Reason</label><input type="text" value={createForm.discountReason} onChange={(e) => setCreateForm({ ...createForm, discountReason: e.target.value })} placeholder="e.g., Scholarship, Early Bird" className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900" /></div><div><label className="block text-sm font-medium text-gray-900 mb-1">Number of Installments</label><input type="number" min="1" max="12" value={createForm.totalInstallments} onChange={(e) => setCreateForm({ ...createForm, totalInstallments: parseInt(e.target.value) || 1 })} className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900" /></div><div className="flex gap-3"><button onClick={generateInstallments} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">Generate Installments</button></div>{createForm.installments.length > 0 && <div className="mt-4"><h3 className="font-semibold text-gray-900 mb-2">Generated Installments:</h3><div className="max-h-48 overflow-y-auto border rounded p-2">{createForm.installments.map((inst: any, idx: number) => <div key={idx} className="flex justify-between py-1 text-sm"><span>Installment #{inst.installmentNumber}</span><span>{inst.amount.toFixed(2)} BD - Due: {inst.paymentDate}</span></div>)}</div></div>}<div className="p-3 bg-blue-50 rounded"><p className="text-sm text-gray-700"><strong>Final Amount:</strong> {(createForm.totalAmount - createForm.discountAmount).toFixed(2)} BD</p></div></div><div className="flex gap-3 mt-6"><button onClick={submitCreate} disabled={createForm.installments.length === 0} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400">Create Plan</button><button onClick={() => setShowCreateModal(false)} className="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">Cancel</button></div></div></div>
+  );
+
+  const renderInstallmentRow = (inst: any) => {
+    let status = 'PENDING';
+    if (inst.paymentDate) status = 'PAID';
+    else if (inst.dueDate && new Date(inst.dueDate) < new Date()) status = 'OVERDUE';
+    const isEditing = editingInstallmentId === inst.id;
+    const isPaid = inst.paymentDate !== null;
+    return (
+      <tr key={inst.id} className="hover:bg-gray-50">
+        <td className="px-4 py-2 text-sm">{inst.installmentNumber}</td>
+        <td className="px-4 py-2 text-sm text-right font-medium">
+          {isEditing && !isPaid ? (
+            <input
+              type="number"
+              step="0.01"
+              value={editingInstallment.amount}
+              onChange={(e) => setEditingInstallment({ ...editingInstallment, amount: parseFloat(e.target.value) })}
+              className="w-full px-2 py-1 border rounded text-right"
+            />
+          ) : (
+            `${Number(inst.amount).toFixed(2)} BD`
+          )}
+        </td>
+        <td className="px-4 py-2 text-sm text-center">
+          {isEditing && !isPaid ? (
+            <input
+              type="date"
+              value={editingInstallment.dueDate}
+              onChange={(e) => setEditingInstallment({ ...editingInstallment, dueDate: e.target.value })}
+              className="w-full px-2 py-1 border rounded"
+            />
+          ) : (
+            inst.dueDate ? new Date(inst.dueDate).toLocaleDateString() : '-'
+          )}
+        </td>
+        <td className="px-4 py-2 text-sm text-center">
+          {inst.paymentDate ? new Date(inst.paymentDate).toLocaleDateString() : '-'}
+        </td>
+        <td className="px-4 py-2 text-sm text-center">{inst.paymentMethod || '-'}</td>
+        <td className="px-4 py-2 text-center">
+          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${status === 'PAID' ? 'bg-green-100 text-green-800' :
+              status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
+                'bg-red-100 text-red-800'
+            }`}>
+            {status}
+          </span>
+        </td>
+        <td className="px-4 py-2 text-center">
+          <div className="flex justify-center gap-2">
+            {!isPaid && (
+              isEditing ? (
+                <>
+                  <button
+                    onClick={() => handleSaveInstallment(inst.id)}
+                    className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
+                  >
+                    Save
+                  </button>
+                  <button
+                    onClick={() => setEditingInstallmentId(null)}
+                    className="px-2 py-1 bg-gray-300 text-gray-800 text-xs rounded hover:bg-gray-400"
+                  >
+                    Cancel
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button
+                    onClick={() => handleEditInstallment(inst)}
+                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    onClick={() => handleDeleteInstallment(inst.id)}
+                    className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
+                  >
+                    Delete
+                  </button>
+                </>
+              )
+            )}
+            {isPaid && <span className="text-xs text-gray-500">Paid</span>}
+          </div>
+        </td>
+      </tr>
+    );
+  };
+
+  const renderAddInstallmentForm = () => !showAddInstallment ? null : (
+    <div className="mb-4 p-4 bg-blue-50 rounded border border-blue-200"><h3 className="font-semibold text-gray-900 mb-3">Add New Installment</h3><div className="grid md:grid-cols-3 gap-4"><div><label className="block text-sm font-medium text-gray-900 mb-1">Amount (BD)</label><input type="number" step="0.01" value={newInstallment.amount} onChange={(e) => setNewInstallment({ ...newInstallment, amount: parseFloat(e.target.value) || 0 })} className="w-full px-3 py-2 border border-gray-300 rounded text-gray-900" /></div><div><label className="block text-sm font-medium text-gray-900 mb-1">Due Date</label><input type="date" value={newInstallment.dueDate} onChange={(e) => setNewInstallment({ ...newInstallment, dueDate: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded text-gray-900" /></div><div className="flex items-end gap-2"><button onClick={handleAddInstallment} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">Save</button><button onClick={() => setShowAddInstallment(false)} className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400">Cancel</button></div></div></div>
+  );
+
+  const renderInstallmentsModal = () => !showInstallmentsModal || !selectedPlan ? null : (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto"><div className="bg-white rounded-lg p-6 w-full max-w-5xl my-8"><div className="flex justify-between items-start mb-4"><h2 className="text-xl font-bold text-gray-900">Installments - {selectedPlan.enrollment?.student?.firstName} {selectedPlan.enrollment?.student?.secondName}</h2><button onClick={() => setShowAddInstallment(!showAddInstallment)} className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm">+ Add Installment</button></div><div className="mb-4 p-4 bg-gray-50 rounded"><div className="grid md:grid-cols-3 gap-4 text-sm"><div><span className="text-gray-600">Total Amount:</span><span className="font-semibold ml-2">{Number(selectedPlan.totalAmount).toFixed(2)} BD</span></div><div><span className="text-gray-600">Discount:</span><span className="font-semibold ml-2">{Number(selectedPlan.discountAmount || 0).toFixed(2)} BD</span></div><div><span className="text-gray-600">Final Amount:</span><span className="font-semibold ml-2">{Number(selectedPlan.finalAmount).toFixed(2)} BD</span></div></div></div>{renderAddInstallmentForm()}<div className="overflow-x-auto"><table className="w-full"><thead className="bg-gray-50"><tr><th className="px-4 py-2 text-left text-sm font-semibold text-gray-900">#</th><th className="px-4 py-2 text-right text-sm font-semibold text-gray-900">Amount</th><th className="px-4 py-2 text-center text-sm font-semibold text-gray-900">Due Date</th><th className="px-4 py-2 text-center text-sm font-semibold text-gray-900">Payment Date</th><th className="px-4 py-2 text-center text-sm font-semibold text-gray-900">Method</th><th className="px-4 py-2 text-center text-sm font-semibold text-gray-900">Status</th><th className="px-4 py-2 text-center text-sm font-semibold text-gray-900">Actions</th></tr></thead><tbody className="divide-y divide-gray-200">{selectedPlan.installments?.map(renderInstallmentRow)}</tbody></table></div><div className="flex justify-end mt-6"><button onClick={() => setShowInstallmentsModal(false)} className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400">Close</button></div></div></div>
+  );
+
+  // ========================================
+  // MAIN RENDER
+  // ========================================
+
+  if (loading) return renderLoadingState();
 
   return (
     <div>
-      <div className="mb-6 flex justify-between items-start">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Payment Plans Management</h1>
-          <p className="text-gray-700">Manage student payment plans and installments</p>
-        </div>
-        <button
-          onClick={handleCreatePlan}
-          className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 font-medium"
-        >
-          + Create Plan
-        </button>
-      </div>
-
-      {/* Stats */}
-      <div className="grid md:grid-cols-4 gap-6 mb-6">
-        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-blue-600">
-          <p className="text-sm font-medium text-gray-700 mb-1">Total Plans</p>
-          <p className="text-3xl font-bold text-gray-900">{stats.total}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-green-600">
-          <p className="text-sm font-medium text-gray-700 mb-1">Fully Paid</p>
-          <p className="text-3xl font-bold text-gray-900">{stats.fullyPaid}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-yellow-600">
-          <p className="text-sm font-medium text-gray-700 mb-1">In Progress</p>
-          <p className="text-3xl font-bold text-gray-900">{stats.inProgress}</p>
-        </div>
-        <div className="bg-white rounded-lg shadow p-6 border-l-4 border-red-600">
-          <p className="text-sm font-medium text-gray-700 mb-1">Overdue</p>
-          <p className="text-3xl font-bold text-gray-900">{stats.overdue}</p>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white rounded-lg shadow p-6 mb-6">
-        <div className="grid md:grid-cols-2 gap-4">
-          <input
-            type="text"
-            placeholder="Search by student name or group code..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-900"
-          />
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="px-4 py-2 border border-gray-300 rounded-lg text-gray-900"
-          >
-            <option value="all">All Status</option>
-            <option value="Fully Paid">Fully Paid</option>
-            <option value="In Progress">In Progress</option>
-            <option value="Overdue">Overdue</option>
-          </select>
-        </div>
-      </div>
-
-      {/* Table */}
-      <div className="bg-white rounded-lg shadow overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Student</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase tracking-wider">Group</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">Installments</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Total</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Discount</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Final Amount</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Paid</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase tracking-wider">Remaining</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">Status</th>
-                <th className="px-6 py-3 text-center text-xs font-medium text-gray-700 uppercase tracking-wider">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
-              {filteredPlans.map((plan) => {
-                const paidAmount = calculatePaidAmount(plan);
-                const remaining = Number(plan.finalAmount) - paidAmount;
-                const status = calculatePlanStatus(plan);
-                const totalInstallments = plan.installments?.length || 0;
-                const paidInstallments = plan.installments?.filter((inst: any) => inst.paymentDate !== null).length || 0;
-
-                return (
-                  <tr key={plan.id} className="hover:bg-gray-50">
-                    <td className="px-6 py-4 text-sm font-medium text-gray-900">
-                      {plan.enrollment?.student?.firstName} {plan.enrollment?.student?.secondName}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">{plan.enrollment?.group?.groupCode || 'N/A'}</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                        paidInstallments === totalInstallments ? 'bg-green-100 text-green-800' :
-                        paidInstallments > 0 ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {paidInstallments}/{totalInstallments}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-sm text-right text-gray-900">{Number(plan.totalAmount).toFixed(2)} BD</td>
-                    <td className="px-6 py-4 text-sm text-right text-gray-900">{Number(plan.discountAmount || 0).toFixed(2)} BD</td>
-                    <td className="px-6 py-4 text-sm text-right font-semibold text-gray-900">{Number(plan.finalAmount).toFixed(2)} BD</td>
-                    <td className="px-6 py-4 text-sm text-right text-green-600 font-medium">{paidAmount.toFixed(2)} BD</td>
-                    <td className="px-6 py-4 text-sm text-right text-red-600 font-medium">{remaining.toFixed(2)} BD</td>
-                    <td className="px-6 py-4 text-center">
-                      <span className={`inline-flex px-3 py-1 rounded-full text-xs font-semibold ${
-                        status === 'Fully Paid' ? 'bg-green-100 text-green-800' :
-                        status === 'In Progress' ? 'bg-blue-100 text-blue-800' :
-                        status === 'Overdue' ? 'bg-red-100 text-red-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <div className="flex justify-center gap-2">
-                        <button
-                          onClick={() => handleViewInstallments(plan)}
-                          className="px-3 py-1 bg-purple-600 text-white text-xs rounded hover:bg-purple-700"
-                        >
-                          View
-                        </button>
-                        <button
-                          onClick={() => handleEdit(plan)}
-                          className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDelete(plan)}
-                          className="px-3 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
-                        >
-                          Delete
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-
-        {filteredPlans.length === 0 && (
-          <div className="p-12 text-center">
-            <p className="text-gray-600">No payment plans found</p>
-          </div>
-        )}
-      </div>
-
-      {/* Edit Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Edit Payment Plan</h2>
-            <p className="text-sm text-gray-600 mb-4">
-              Student: <strong>{selectedPlan?.enrollment?.student?.firstName} {selectedPlan?.enrollment?.student?.secondName}</strong>
-            </p>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Total Amount (BD)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editForm.totalAmount}
-                  onChange={(e) => setEditForm({...editForm, totalAmount: parseFloat(e.target.value)})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Discount Amount (BD)</label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={editForm.discountAmount}
-                  onChange={(e) => setEditForm({...editForm, discountAmount: parseFloat(e.target.value)})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Discount Reason</label>
-                <input
-                  type="text"
-                  value={editForm.discountReason}
-                  onChange={(e) => setEditForm({...editForm, discountReason: e.target.value})}
-                  placeholder="e.g., Scholarship"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-                />
-              </div>
-
-              <div className="p-3 bg-blue-50 rounded">
-                <p className="text-sm text-gray-700">
-                  <strong>Final Amount:</strong> {(editForm.totalAmount - editForm.discountAmount).toFixed(2)} BD
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={submitEdit}
-                className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-              >
-                Update Plan
-              </button>
-              <button
-                onClick={() => setShowEditModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Create Plan Modal */}
-      {showCreateModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg p-6 w-full max-w-2xl my-8">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Create Payment Plan</h2>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Select Enrollment</label>
-                <select
-                  value={createForm.enrollmentId}
-                  onChange={(e) => setCreateForm({...createForm, enrollmentId: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-                >
-                  <option value="">-- Select Enrollment --</option>
-                  {enrollments.map((enr: any) => (
-                    <option key={enr.id} value={enr.id}>
-                      {enr.student?.firstName} {enr.student?.secondName} - {enr.group?.groupCode}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="grid md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">Total Amount (BD)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={createForm.totalAmount}
-                    onChange={(e) => setCreateForm({...createForm, totalAmount: parseFloat(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-900 mb-1">Discount Amount (BD)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={createForm.discountAmount}
-                    onChange={(e) => setCreateForm({...createForm, discountAmount: parseFloat(e.target.value) || 0})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Discount Reason</label>
-                <input
-                  type="text"
-                  value={createForm.discountReason}
-                  onChange={(e) => setCreateForm({...createForm, discountReason: e.target.value})}
-                  placeholder="e.g., Scholarship, Early Bird"
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-900 mb-1">Number of Installments</label>
-                <input
-                  type="number"
-                  min="1"
-                  max="12"
-                  value={createForm.totalInstallments}
-                  onChange={(e) => setCreateForm({...createForm, totalInstallments: parseInt(e.target.value) || 1})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-                />
-              </div>
-
-              <div className="flex gap-3">
-                <button
-                  onClick={generateInstallments}
-                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-                >
-                  Generate Installments
-                </button>
-              </div>
-
-              {createForm.installments.length > 0 && (
-                <div className="mt-4">
-                  <h3 className="font-semibold text-gray-900 mb-2">Generated Installments:</h3>
-                  <div className="max-h-48 overflow-y-auto border rounded p-2">
-                    {createForm.installments.map((inst: any, idx: number) => (
-                      <div key={idx} className="flex justify-between py-1 text-sm">
-                        <span>Installment #{inst.installmentNumber}</span>
-                        <span>{inst.amount.toFixed(2)} BD - Due: {inst.paymentDate}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div className="p-3 bg-blue-50 rounded">
-                <p className="text-sm text-gray-700">
-                  <strong>Final Amount:</strong> {(createForm.totalAmount - createForm.discountAmount).toFixed(2)} BD
-                </p>
-              </div>
-            </div>
-
-            <div className="flex gap-3 mt-6">
-              <button
-                onClick={submitCreate}
-                disabled={createForm.installments.length === 0}
-                className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-400"
-              >
-                Create Plan
-              </button>
-              <button
-                onClick={() => setShowCreateModal(false)}
-                className="flex-1 px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400"
-              >
-                Cancel
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* View Installments Modal */}
-      {showInstallmentsModal && selectedPlan && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 overflow-y-auto">
-          <div className="bg-white rounded-lg p-6 w-full max-w-5xl my-8">
-            <div className="flex justify-between items-start mb-4">
-              <h2 className="text-xl font-bold text-gray-900">
-                Installments - {selectedPlan.enrollment?.student?.firstName} {selectedPlan.enrollment?.student?.secondName}
-              </h2>
-              <button
-                onClick={() => setShowAddInstallment(!showAddInstallment)}
-                className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 text-sm"
-              >
-                + Add Installment
-              </button>
-            </div>
-            
-            <div className="mb-4 p-4 bg-gray-50 rounded">
-              <div className="grid md:grid-cols-3 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">Total Amount:</span>
-                  <span className="font-semibold ml-2">{Number(selectedPlan.totalAmount).toFixed(2)} BD</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Discount:</span>
-                  <span className="font-semibold ml-2">{Number(selectedPlan.discountAmount || 0).toFixed(2)} BD</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Final Amount:</span>
-                  <span className="font-semibold ml-2">{Number(selectedPlan.finalAmount).toFixed(2)} BD</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Add Installment Form */}
-            {showAddInstallment && (
-              <div className="mb-4 p-4 bg-blue-50 rounded border border-blue-200">
-                <h3 className="font-semibold text-gray-900 mb-3">Add New Installment</h3>
-                <div className="grid md:grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">Amount (BD)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={newInstallment.amount}
-                      onChange={(e) => setNewInstallment({...newInstallment, amount: parseFloat(e.target.value) || 0})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded text-gray-900"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-900 mb-1">Due Date</label>
-                    <input
-                      type="date"
-                      value={newInstallment.dueDate}
-                      onChange={(e) => setNewInstallment({...newInstallment, dueDate: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded text-gray-900"
-                    />
-                  </div>
-                  <div className="flex items-end gap-2">
-                    <button
-                      onClick={handleAddInstallment}
-                      className="px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-                    >
-                      Save
-                    </button>
-                    <button
-                      onClick={() => setShowAddInstallment(false)}
-                      className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400"
-                    >
-                      Cancel
-                    </button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-4 py-2 text-left text-sm font-semibold text-gray-900">#</th>
-                    <th className="px-4 py-2 text-right text-sm font-semibold text-gray-900">Amount</th>
-                    <th className="px-4 py-2 text-center text-sm font-semibold text-gray-900">Due Date</th>
-                    <th className="px-4 py-2 text-center text-sm font-semibold text-gray-900">Payment Date</th>
-                    <th className="px-4 py-2 text-center text-sm font-semibold text-gray-900">Method</th>
-                    <th className="px-4 py-2 text-center text-sm font-semibold text-gray-900">Status</th>
-                    <th className="px-4 py-2 text-center text-sm font-semibold text-gray-900">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200">
-                  {selectedPlan.installments?.map((inst: any) => {
-                    let status = 'PENDING';
-                    if (inst.paymentDate) {
-                      status = 'PAID';
-                    } else if (inst.dueDate && new Date(inst.dueDate) < new Date()) {
-                      status = 'OVERDUE';
-                    }
-
-                    const isEditing = editingInstallmentId === inst.id;
-                    const isPaid = inst.paymentDate !== null;
-
-                    return (
-                      <tr key={inst.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-2 text-sm">{inst.installmentNumber}</td>
-                        <td className="px-4 py-2 text-sm text-right font-medium">
-                          {isEditing && !isPaid ? (
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={editingInstallment.amount}
-                              onChange={(e) => setEditingInstallment({...editingInstallment, amount: parseFloat(e.target.value)})}
-                              className="w-full px-2 py-1 border rounded text-right"
-                            />
-                          ) : (
-                            `${Number(inst.amount).toFixed(2)} BD`
-                          )}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-center">
-                          {isEditing && !isPaid ? (
-                            <input
-                              type="date"
-                              value={editingInstallment.dueDate}
-                              onChange={(e) => setEditingInstallment({...editingInstallment, dueDate: e.target.value})}
-                              className="w-full px-2 py-1 border rounded"
-                            />
-                          ) : (
-                            inst.dueDate ? new Date(inst.dueDate).toLocaleDateString() : '-'
-                          )}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-center">
-                          {inst.paymentDate ? new Date(inst.paymentDate).toLocaleDateString() : '-'}
-                        </td>
-                        <td className="px-4 py-2 text-sm text-center">{inst.paymentMethod || '-'}</td>
-                        <td className="px-4 py-2 text-center">
-                          <span className={`inline-flex px-2 py-1 rounded-full text-xs font-semibold ${
-                            status === 'PAID' ? 'bg-green-100 text-green-800' :
-                            status === 'PENDING' ? 'bg-yellow-100 text-yellow-800' :
-                            'bg-red-100 text-red-800'
-                          }`}>
-                            {status}
-                          </span>
-                        </td>
-                        <td className="px-4 py-2 text-center">
-                          <div className="flex justify-center gap-2">
-                            {!isPaid && (
-                              isEditing ? (
-                                <>
-                                  <button
-                                    onClick={() => handleSaveInstallment(inst.id)}
-                                    className="px-2 py-1 bg-green-600 text-white text-xs rounded hover:bg-green-700"
-                                  >
-                                    Save
-                                  </button>
-                                  <button
-                                    onClick={() => setEditingInstallmentId(null)}
-                                    className="px-2 py-1 bg-gray-300 text-gray-800 text-xs rounded hover:bg-gray-400"
-                                  >
-                                    Cancel
-                                  </button>
-                                </>
-                              ) : (
-                                <>
-                                  <button
-                                    onClick={() => handleEditInstallment(inst)}
-                                    className="px-2 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
-                                  >
-                                    Edit
-                                  </button>
-                                  <button
-                                    onClick={() => handleDeleteInstallment(inst.id)}
-                                    className="px-2 py-1 bg-red-600 text-white text-xs rounded hover:bg-red-700"
-                                  >
-                                    Delete
-                                  </button>
-                                </>
-                              )
-                            )}
-                            {isPaid && <span className="text-xs text-gray-500">Paid</span>}
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            <div className="flex justify-end mt-6">
-              <button
-                onClick={() => setShowInstallmentsModal(false)}
-                className="px-4 py-2 bg-gray-300 text-gray-800 rounded-lg hover:bg-gray-400"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {renderHeader()}
+      {renderStats()}
+      {renderFilters()}
+      {renderTable()}
+      {renderEditModal()}
+      {renderCreateModal()}
+      {renderInstallmentsModal()}
     </div>
   );
 }

@@ -37,10 +37,15 @@ export interface UpdateTermDto {
 
 export const termsAPI = {
   // Get all terms
-  getAll: async (isActive?: boolean) => {
-    const url = isActive !== undefined
-      ? `${API_URL}/terms?isActive=${isActive}`
+  getAll: async (params?: { programId?: string; isActive?: boolean }) => {
+    const searchParams = new URLSearchParams();
+    if (params?.programId) searchParams.append('programId', params.programId);
+    if (params?.isActive !== undefined) searchParams.append('isActive', String(params.isActive));
+
+    const url = searchParams.toString()
+      ? `${API_URL}/terms?${searchParams.toString()}`
       : `${API_URL}/terms`;
+
     const res = await fetch(url, {
       headers: getHeaders(true)
     });

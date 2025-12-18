@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { getTeacherId } from "@/lib/auth";
+import { getTeacherId } from "@/lib/authStorage";
 import { speakingSlotAPI } from "@/lib/api";
 import {
   getMCQLevel,
@@ -104,7 +104,7 @@ export default function SubmitSpeakingResult() {
         setError("Failed to load slots");
       }
     } catch (err) {
-      console.error("Error loading slot:", err);
+      // console.error("Error loading slot:", err);
       setError("Network error");
     } finally {
       setLoading(false);
@@ -139,7 +139,7 @@ export default function SubmitSpeakingResult() {
         setError(result.message || "Failed to submit result");
       }
     } catch (err: any) {
-      console.error("Error submitting result:", err);
+      // console.error("Error submitting result:", err);
       setError("Network error. Please try again.");
     } finally {
       setSubmitting(false);
@@ -175,7 +175,14 @@ export default function SubmitSpeakingResult() {
     return colors[level];
   };
 
-  if (loading) {
+  // ========================================
+  // RENDER FUNCTIONS
+  // ========================================
+
+  /**
+   * Render loading state
+   */
+  const renderLoadingState = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -184,9 +191,12 @@ export default function SubmitSpeakingResult() {
         </div>
       </div>
     );
-  }
+  };
 
-  if (error && !slot) {
+  /**
+   * Render error state
+   */
+  const renderErrorState = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
@@ -201,9 +211,12 @@ export default function SubmitSpeakingResult() {
         </div>
       </div>
     );
-  }
+  };
 
-  if (!slot) {
+  /**
+   * Render not found state
+   */
+  const renderNotFoundState = () => {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
         <div className="text-center">
@@ -218,239 +231,327 @@ export default function SubmitSpeakingResult() {
         </div>
       </div>
     );
-  }
+  };
 
-  return (
-    <div className="min-h-screen bg-gray-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="mb-6">
-          <button
-            onClick={() => router.push("/teacher/speaking-tests")}
-            className="text-blue-600 hover:text-blue-700 mb-4 flex items-center gap-2"
-          >
-            ← Back to Speaking Tests
-          </button>
-          <h1 className="text-3xl font-bold text-gray-900">
-            Submit Speaking Test Result
-          </h1>
-        </div>
+  /**
+   * Render page header
+   */
+  const renderHeader = () => {
+    return (
+      <div className="mb-6">
+        <button
+          onClick={() => router.push("/teacher/speaking-tests")}
+          className="text-blue-600 hover:text-blue-700 mb-4 flex items-center gap-2"
+        >
+          ← Back to Speaking Tests
+        </button>
+        <h1 className="text-3xl font-bold text-gray-900">
+          Submit Speaking Test Result
+        </h1>
+      </div>
+    );
+  };
 
-        {/* Student & Appointment Info */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">Test Details</h2>
+  /**
+   * Render student and appointment info
+   */
+  const renderStudentInfo = () => {
+    if (!slot) return null;
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Student</p>
-              <p className="font-semibold text-gray-900 text-lg">
-                {slot.student.firstName} {slot.student.lastName}
-              </p>
+    return (
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">Test Details</h2>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <p className="text-sm text-gray-600 mb-1">Student</p>
+            <p className="font-semibold text-gray-900 text-lg">
+              {slot.student.firstName} {slot.student.lastName}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">
+              {slot.student.user.email}
+            </p>
+            {slot.student.user.phone && (
               <p className="text-sm text-gray-600 mt-1">
-                {slot.student.user.email}
+                📞 {slot.student.user.phone}
               </p>
-              {slot.student.user.phone && (
-                <p className="text-sm text-gray-600 mt-1">
-                  📞 {slot.student.user.phone}
-                </p>
-              )}
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-600 mb-1">Appointment</p>
-              <p className="font-semibold text-gray-900">
-                {formatDate(slot.slotDate)}
-              </p>
-              <p className="text-gray-700 mt-1">
-                {formatTime(slot.slotTime)} ({slot.durationMinutes} minutes)
-              </p>
-              <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
-                {slot.status}
-              </span>
-            </div>
+            )}
           </div>
-        </div>
 
-        {/* MCQ Score & Level */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-4">
-            MCQ Test Results
-          </h2>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div>
-              <p className="text-sm text-gray-600 mb-2">MCQ Score</p>
-              <p className="text-4xl font-bold text-blue-600">
-                {slot.testSession?.answers?.earnedPoints || 0}{" "}
-                <span className="text-xl text-gray-500">/ {slot.testSession?.answers?.totalPoints || 50}</span>
-              </p>
-            </div>
-
-            <div>
-              <p className="text-sm text-gray-600 mb-2">
-                MCQ Level (Auto-calculated)
-              </p>
-              <div
-                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-bold text-2xl ${getLevelColor(
-                  mcqLevel
-                )}`}
-              >
-                {mcqLevel}
-              </div>
-              <p className="text-xs text-gray-500 mt-2">
-                {getLevelDescription(mcqLevel)}
-              </p>
-            </div>
+          <div>
+            <p className="text-sm text-gray-600 mb-1">Appointment</p>
+            <p className="font-semibold text-gray-900">
+              {formatDate(slot.slotDate)}
+            </p>
+            <p className="text-gray-700 mt-1">
+              {formatTime(slot.slotTime)} ({slot.durationMinutes} minutes)
+            </p>
+            <span className="inline-block mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded-full text-sm font-semibold">
+              {slot.status}
+            </span>
           </div>
-        </div>
-
-        {/* Speaking Level Selection */}
-        <div className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-xl font-bold text-gray-900 mb-6">
-            Enter Speaking Test Results
-          </h2>
-
-          {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleSubmit}>
-            {/* Speaking Level Dropdown */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Speaking Level <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={speakingLevel}
-                onChange={(e) => setSpeakingLevel(e.target.value as CEFRLevel)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg font-semibold text-gray-900 bg-white"
-                required
-              >
-                {CEFR_LEVELS.map((level) => (
-                  <option key={level} value={level} className="text-gray-900">
-                    {level} - {getLevelDescription(level)}
-                  </option>
-                ))}
-              </select>
-              <p className="text-sm text-gray-500 mt-2">
-                Select the CEFR level based on the student's speaking
-                performance
-              </p>
-            </div>
-
-            {/* Final Level Dropdown */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Final Level <span className="text-red-500">*</span>
-              </label>
-              <select
-                value={finalLevel}
-                onChange={(e) => setFinalLevel(e.target.value as CEFRLevel)}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg font-semibold text-gray-900 bg-white"
-                required
-              >
-                {CEFR_LEVELS.map((level) => (
-                  <option key={level} value={level} className="text-gray-900">
-                    {level} - {getLevelDescription(level)}
-                  </option>
-                ))}
-              </select>
-              <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
-                <p className="text-sm text-blue-800">
-                  💡 <strong>Suggested:</strong>{" "}
-                  {suggestFinalLevel(mcqLevel, speakingLevel)}
-                  <span className="text-blue-600 ml-2">
-                    (Lower of MCQ and Speaking levels)
-                  </span>
-                </p>
-              </div>
-            </div>
-
-            {/* Summary Box */}
-            <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
-              <h3 className="font-semibold text-gray-900 mb-3">
-                Level Summary
-              </h3>
-              <div className="grid grid-cols-3 gap-4 text-center">
-                <div>
-                  <p className="text-xs text-gray-600 mb-1">MCQ Level</p>
-                  <span
-                    className={`inline-block px-3 py-1 rounded font-bold ${getLevelColor(
-                      mcqLevel
-                    )}`}
-                  >
-                    {mcqLevel}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 mb-1">Speaking Level</p>
-                  <span
-                    className={`inline-block px-3 py-1 rounded font-bold ${getLevelColor(
-                      speakingLevel
-                    )}`}
-                  >
-                    {speakingLevel}
-                  </span>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-600 mb-1">Final Level</p>
-                  <span
-                    className={`inline-block px-3 py-1 rounded font-bold ${getLevelColor(
-                      finalLevel
-                    )}`}
-                  >
-                    {finalLevel}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            {/* Feedback Input */}
-            <div className="mb-6">
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Feedback (Optional)
-              </label>
-              <textarea
-                value={feedback}
-                onChange={(e) => setFeedback(e.target.value)}
-                rows={6}
-                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
-                placeholder="Enter detailed feedback about the student's speaking performance (pronunciation, fluency, grammar, vocabulary, etc.)"
-              />
-              <p className="text-sm text-gray-500 mt-2">
-                Provide constructive feedback to help the student improve
-              </p>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="flex gap-4">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="flex-1 bg-green-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-lg"
-              >
-                {submitting ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <span className="animate-spin">⏳</span> Submitting...
-                  </span>
-                ) : (
-                  "✅ Submit Result"
-                )}
-              </button>
-              <button
-                type="button"
-                onClick={() => router.push("/teacher/speaking-tests")}
-                disabled={submitting}
-                className="px-8 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
         </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  /**
+   * Render MCQ results
+   */
+  const renderMCQResults = () => {
+    if (!slot) return null;
+
+    return (
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-4">
+          MCQ Test Results
+        </h2>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div>
+            <p className="text-sm text-gray-600 mb-2">MCQ Score</p>
+            <p className="text-4xl font-bold text-blue-600">
+              {slot.testSession?.answers?.earnedPoints || 0}{" "}
+              <span className="text-xl text-gray-500">/ {slot.testSession?.answers?.totalPoints || 50}</span>
+            </p>
+          </div>
+
+          <div>
+            <p className="text-sm text-gray-600 mb-2">
+              MCQ Level (Auto-calculated)
+            </p>
+            <div
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 font-bold text-2xl ${getLevelColor(
+                mcqLevel
+              )}`}
+            >
+              {mcqLevel}
+            </div>
+            <p className="text-xs text-gray-500 mt-2">
+              {getLevelDescription(mcqLevel)}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Render speaking level form
+   */
+  const renderSpeakingLevelForm = () => {
+    return (
+      <div>
+        {/* Speaking Level Dropdown */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Speaking Level <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={speakingLevel}
+            onChange={(e) => setSpeakingLevel(e.target.value as CEFRLevel)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-lg font-semibold text-gray-900 bg-white"
+            required
+          >
+            {CEFR_LEVELS.map((level) => (
+              <option key={level} value={level} className="text-gray-900">
+                {level} - {getLevelDescription(level)}
+              </option>
+            ))}
+          </select>
+          <p className="text-sm text-gray-500 mt-2">
+            Select the CEFR level based on the student's speaking
+            performance
+          </p>
+        </div>
+
+        {/* Final Level Dropdown */}
+        <div className="mb-6">
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Final Level <span className="text-red-500">*</span>
+          </label>
+          <select
+            value={finalLevel}
+            onChange={(e) => setFinalLevel(e.target.value as CEFRLevel)}
+            className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent text-lg font-semibold text-gray-900 bg-white"
+            required
+          >
+            {CEFR_LEVELS.map((level) => (
+              <option key={level} value={level} className="text-gray-900">
+                {level} - {getLevelDescription(level)}
+              </option>
+            ))}
+          </select>
+          <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded">
+            <p className="text-sm text-blue-800">
+              💡 <strong>Suggested:</strong>{" "}
+              {suggestFinalLevel(mcqLevel, speakingLevel)}
+              <span className="text-blue-600 ml-2">
+                (Lower of MCQ and Speaking levels)
+              </span>
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Render level summary
+   */
+  const renderLevelSummary = () => {
+    return (
+      <div className="mb-6 p-4 bg-gray-50 border border-gray-200 rounded-lg">
+        <h3 className="font-semibold text-gray-900 mb-3">
+          Level Summary
+        </h3>
+        <div className="grid grid-cols-3 gap-4 text-center">
+          <div>
+            <p className="text-xs text-gray-600 mb-1">MCQ Level</p>
+            <span
+              className={`inline-block px-3 py-1 rounded font-bold ${getLevelColor(
+                mcqLevel
+              )}`}
+            >
+              {mcqLevel}
+            </span>
+          </div>
+          <div>
+            <p className="text-xs text-gray-600 mb-1">Speaking Level</p>
+            <span
+              className={`inline-block px-3 py-1 rounded font-bold ${getLevelColor(
+                speakingLevel
+              )}`}
+            >
+              {speakingLevel}
+            </span>
+          </div>
+          <div>
+            <p className="text-xs text-gray-600 mb-1">Final Level</p>
+            <span
+              className={`inline-block px-3 py-1 rounded font-bold ${getLevelColor(
+                finalLevel
+              )}`}
+            >
+              {finalLevel}
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Render feedback textarea
+   */
+  const renderFeedbackInput = () => {
+    return (
+      <div className="mb-6">
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Feedback (Optional)
+        </label>
+        <textarea
+          value={feedback}
+          onChange={(e) => setFeedback(e.target.value)}
+          rows={6}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 bg-white"
+          placeholder="Enter detailed feedback about the student's speaking performance (pronunciation, fluency, grammar, vocabulary, etc.)"
+        />
+        <p className="text-sm text-gray-500 mt-2">
+          Provide constructive feedback to help the student improve
+        </p>
+      </div>
+    );
+  };
+
+  /**
+   * Render action buttons
+   */
+  const renderActionButtons = () => {
+    return (
+      <div className="flex gap-4">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="flex-1 bg-green-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-green-700 transition disabled:opacity-50 disabled:cursor-not-allowed text-lg"
+        >
+          {submitting ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-spin">⏳</span> Submitting...
+            </span>
+          ) : (
+            "✅ Submit Result"
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push("/teacher/speaking-tests")}
+          disabled={submitting}
+          className="px-8 py-3 border-2 border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition disabled:opacity-50"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  };
+
+  /**
+   * Render main submit form
+   */
+  const renderSubmitForm = () => {
+    return (
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <h2 className="text-xl font-bold text-gray-900 mb-6">
+          Enter Speaking Test Results
+        </h2>
+
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mb-6">
+            {error}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit}>
+          {renderSpeakingLevelForm()}
+          {renderLevelSummary()}
+          {renderFeedbackInput()}
+          {renderActionButtons()}
+        </form>
+      </div>
+    );
+  };
+
+  /**
+   * Render main page
+   */
+  const renderSubmitPage = () => {
+    return (
+      <div className="min-h-screen bg-gray-50 py-8 px-4">
+        <div className="max-w-4xl mx-auto">
+          {renderHeader()}
+          {renderStudentInfo()}
+          {renderMCQResults()}
+          {renderSubmitForm()}
+        </div>
+      </div>
+    );
+  };
+
+  // ========================================
+  // MAIN RENDER
+  // ========================================
+  
+  if (loading) {
+    return renderLoadingState();
+  }
+
+  if (error && !slot) {
+    return renderErrorState();
+  }
+
+  if (!slot) {
+    return renderNotFoundState();
+  }
+
+  return renderSubmitPage();
 }

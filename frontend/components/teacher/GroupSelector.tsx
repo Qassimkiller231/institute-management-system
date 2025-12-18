@@ -3,7 +3,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getToken, getTeacherId } from '@/lib/auth';
+import { getToken, getTeacherId } from '@/lib/authStorage';
 
 interface Group {
   id: string;

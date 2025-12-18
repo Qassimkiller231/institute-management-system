@@ -40,5 +40,14 @@ export const sessionsAPI = {
     });
     if (!res.ok) throw new Error('Failed to fetch sessions');
     return res.json();
+  },
+
+  // Get sessions by student
+  getByStudent: async (studentId: string) => {
+    const res = await fetch(`${API_URL}/sessions?studentId=${studentId}`, {
+      headers: getHeaders(true)
+    });
+    if (!res.ok) throw new Error('Failed to fetch sessions');
+    return res.json();
   }
 };

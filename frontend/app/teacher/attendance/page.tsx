@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { getTeacherId } from '@/lib/auth';
+import { getTeacherId } from '@/lib/authStorage';
 import { groupsAPI, sessionsAPI, enrollmentsAPI, attendanceAPI } from '@/lib/api';
 
 interface Group {
@@ -94,7 +94,7 @@ export default function RecordAttendance() {
 
       setAttendance(attendanceMap);
     } catch (err) {
-      console.error('Error fetching existing attendance:', err);
+      // console.error('Error fetching existing attendance:', err);
       // Initialize default attendance if fetch fails
       initializeDefaultAttendance();
     }
@@ -120,7 +120,7 @@ export default function RecordAttendance() {
       const data = await groupsAPI.getAll({ teacherId });
       setGroups(data.data || []);
     } catch (err) {
-      console.error('Error fetching groups:', err);
+      // console.error('Error fetching groups:', err);
     }
   };
 
@@ -132,7 +132,7 @@ export default function RecordAttendance() {
       });
       setSessions(data.data || []);
     } catch (err) {
-      console.error('Error fetching sessions:', err);
+      // console.error('Error fetching sessions:', err);
     }
   };
 
@@ -150,7 +150,7 @@ export default function RecordAttendance() {
         enrollmentId: e.id
       })));
     } catch (err) {
-      console.error('Error fetching students:', err);
+      // console.error('Error fetching students:', err);
     } finally {
       setLoading(false);
     }
@@ -223,9 +223,15 @@ export default function RecordAttendance() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
+  // ========================================
+  // RENDER FUNCTIONS
+  // ========================================
+
+  /**
+   * Render page header
+   */
+  const renderHeader = () => {
+    return (
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <button
@@ -237,168 +243,260 @@ export default function RecordAttendance() {
           <h1 className="text-3xl font-bold text-gray-900">Record Attendance</h1>
         </div>
       </header>
+    );
+  };
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Selection Cards */}
-        <div className="grid md:grid-cols-2 gap-6 mb-8">
-          {/* Group Selection */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Group *
-            </label>
-            <select
-              value={selectedGroup}
-              onChange={(e) => {
-                setSelectedGroup(e.target.value);
-                setSelectedSession('');
-              }}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-medium"
-            >
-              <option value="" className="text-gray-700">Choose a group</option>
-              {groups.map(group => (
-                <option key={group.id} value={group.id}>
-                  {group.groupCode} {group.name && `- ${group.name}`}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Session Selection */}
-          <div className="bg-white rounded-lg shadow p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Select Session *
-            </label>
-            <select
-              value={selectedSession}
-              onChange={(e) => setSelectedSession(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-medium disabled:bg-gray-100 disabled:text-gray-500"
-              disabled={!selectedGroup}
-            >
-              <option value="" className="text-gray-700">Choose a session</option>
-              {sessions.map(session => (
-                <option key={session.id} value={session.id}>
-                  Session {session.sessionNumber} - {new Date(session.sessionDate).toLocaleDateString()} 
-                  {session.topic && ` - ${session.topic}`}
-                </option>
-              ))}
-            </select>
-          </div>
+  /**
+   * Render group and session selectors
+   */
+  const renderSelectors = () => {
+    return (
+      <div className="grid md:grid-cols-2 gap-6 mb-8">
+        {/* Group Selection */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Select Group *
+          </label>
+          <select
+            value={selectedGroup}
+            onChange={(e) => {
+              setSelectedGroup(e.target.value);
+              setSelectedSession('');
+            }}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-medium"
+          >
+            <option value="" className="text-gray-700">Choose a group</option>
+            {groups.map(group => (
+              <option key={group.id} value={group.id}>
+                {group.groupCode} {group.name && `- ${group.name}`}
+              </option>
+            ))}
+          </select>
         </div>
 
-        {/* Quick Mark All */}
-        {selectedGroup && students.length > 0 && (
-          <div className="bg-white rounded-lg shadow p-6 mb-6">
-            <h3 className="text-lg font-semibold mb-4 text-gray-900">Quick Actions</h3>
-            <div className="flex flex-wrap gap-3">
-              <button
-                onClick={() => handleMarkAll('PRESENT')}
-                className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
-              >
-                Mark All Present
-              </button>
-              <button
-                onClick={() => handleMarkAll('ABSENT')}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
-              >
-                Mark All Absent
-              </button>
-              <button
-                onClick={() => handleMarkAll('LATE')}
-                className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
-              >
-                Mark All Late
-              </button>
-            </div>
-          </div>
-        )}
+        {/* Session Selection */}
+        <div className="bg-white rounded-lg shadow p-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Select Session *
+          </label>
+          <select
+            value={selectedSession}
+            onChange={(e) => setSelectedSession(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-gray-900 font-medium disabled:bg-gray-100 disabled:text-gray-500"
+            disabled={!selectedGroup}
+          >
+            <option value="" className="text-gray-700">Choose a session</option>
+            {sessions.map(session => (
+              <option key={session.id} value={session.id}>
+                Session {session.sessionNumber} - {new Date(session.sessionDate).toLocaleDateString()} 
+                {session.topic && ` - ${session.topic}`}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
+    );
+  };
 
-        {/* Student List */}
-        {loading ? (
-          <div className="text-center py-12">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-            <p className="mt-4 text-gray-600">Loading students...</p>
-          </div>
-        ) : students.length > 0 ? (
-          <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Student Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
-                      Notes
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
-                  {students.map(student => (
-                    <tr key={student.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="font-medium text-gray-900">
-                          {student.firstName} {student.secondName} {student.thirdName}
-                        </div>
-                        <div className="text-sm text-gray-900">{student.user.email}</div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div className="flex gap-2">
-                          {(['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'] as const).map(status => (
-                            <button
-                              key={status}
-                              onClick={() => handleStatusChange(student.id, status)}
-                              className={`px-3 py-1 text-xs font-medium rounded-full border-2 transition ${
-                                attendance[student.id]?.status === status
-                                  ? getStatusColor(status)
-                                  : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                              }`}
-                            >
-                              {status}
-                            </button>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <input
-                          type="text"
-                          value={attendance[student.id]?.notes || ''}
-                          onChange={(e) => handleNotesChange(student.id, e.target.value)}
-                          placeholder="Optional notes..."
-                          className="w-full px-3 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
-                        />
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        ) : selectedGroup ? (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-800 text-lg font-semibold">No students found in this group</p>
-          </div>
-        ) : (
-          <div className="bg-white rounded-lg shadow p-12 text-center">
-            <p className="text-gray-800 text-lg font-semibold">Please select a group to view students</p>
-          </div>
-        )}
+  /**
+   * Render quick actions buttons
+   */
+  const renderQuickActions = () => {
+    if (!selectedGroup || students.length === 0) return null;
 
-        {/* Submit Button */}
-        {students.length > 0 && (
-          <div className="flex justify-end">
-            <button
-              onClick={handleSubmit}
-              disabled={saving || !selectedSession}
-              className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold"
-            >
-              {saving ? 'Saving...' : 'Save Attendance'}
-            </button>
+    return (
+      <div className="bg-white rounded-lg shadow p-6 mb-6">
+        <h3 className="text-lg font-semibold mb-4 text-gray-900">Quick Actions</h3>
+        <div className="flex flex-wrap gap-3">
+          <button
+            onClick={() => handleMarkAll('PRESENT')}
+            className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700"
+          >
+            Mark All Present
+          </button>
+          <button
+            onClick={() => handleMarkAll('ABSENT')}
+            className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700"
+          >
+            Mark All Absent
+          </button>
+          <button
+            onClick={() => handleMarkAll('LATE')}
+            className="px-4 py-2 bg-yellow-600 text-white rounded-lg hover:bg-yellow-700"
+          >
+            Mark All Late
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Render single student row
+   */
+  const renderStudentRow = (student: Student) => {
+    return (
+      <tr key={student.id}>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="font-medium text-gray-900">
+            {student.firstName} {student.secondName} {student.thirdName}
           </div>
-        )}
-      </main>
-    </div>
-  );
+          <div className="text-sm text-gray-900">{student.user.email}</div>
+        </td>
+        <td className="px-6 py-4 whitespace-nowrap">
+          <div className="flex gap-2">
+            {(['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'] as const).map(status => (
+              <button
+                key={status}
+                onClick={() => handleStatusChange(student.id, status)}
+                className={`px-3 py-1 text-xs font-medium rounded-full border-2 transition ${
+                  attendance[student.id]?.status === status
+                    ? getStatusColor(status)
+                    : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                }`}
+              >
+                {status}
+              </button>
+            ))}
+          </div>
+        </td>
+        <td className="px-6 py-4">
+          <input
+            type="text"
+            value={attendance[student.id]?.notes || ''}
+            onChange={(e) => handleNotesChange(student.id, e.target.value)}
+            placeholder="Optional notes..."
+            className="w-full px-3 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500"
+          />
+        </td>
+      </tr>
+    );
+  };
+
+  /**
+   * Render students table
+   */
+  const renderStudentsTable = () => {
+    return (
+      <div className="bg-white rounded-lg shadow overflow-hidden mb-6">
+        <div className="overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Student Name
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Status
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  Notes
+                </th>
+              </tr>
+            </thead>
+            <tbody className="bg-white divide-y divide-gray-200">
+              {students.map(student => renderStudentRow(student))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Render loading state
+   */
+  const renderLoadingState = () => {
+    return (
+      <div className="text-center py-12">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+        <p className="mt-4 text-gray-600">Loading students...</p>
+      </div>
+    );
+  };
+
+  /**
+   * Render empty group state
+   */
+  const renderEmptyGroupState = () => {
+    return (
+      <div className="bg-white rounded-lg shadow p-12 text-center">
+        <p className="text-gray-800 text-lg font-semibold">No students found in this group</p>
+      </div>
+    );
+  };
+
+  /**
+   * Render no selection state
+   */
+  const renderNoSelectionState = () => {
+    return (
+      <div className="bg-white rounded-lg shadow p-12 text-center">
+        <p className="text-gray-800 text-lg font-semibold">Please select a group to view students</p>
+      </div>
+    );
+  };
+
+  /**
+   * Render students section
+   */
+  const renderStudentsSection = () => {
+    if (loading) {
+      return renderLoadingState();
+    }
+
+    if (students.length > 0) {
+      return renderStudentsTable();
+    }
+
+    if (selectedGroup) {
+      return renderEmptyGroupState();
+    }
+
+    return renderNoSelectionState();
+  };
+
+  /**
+   * Render submit button
+   */
+  const renderSubmitButton = () => {
+    if (students.length === 0) return null;
+
+    return (
+      <div className="flex justify-end">
+        <button
+          onClick={handleSubmit}
+          disabled={saving || !selectedSession}
+          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed font-semibold"
+        >
+          {saving ? 'Saving...' : 'Save Attendance'}
+        </button>
+      </div>
+    );
+  };
+
+  /**
+   * Render main attendance page
+   */
+  const renderAttendancePage = () => {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {renderHeader()}
+
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {renderSelectors()}
+          {renderQuickActions()}
+          {renderStudentsSection()}
+          {renderSubmitButton()}
+        </main>
+      </div>
+    );
+  };
+
+  // ========================================
+  // MAIN RENDER
+  // ========================================
+  
+
+return renderAttendancePage();
 }

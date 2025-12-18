@@ -38,6 +38,15 @@ export interface UpdateStudentDto {
   nationality?: string;
   isActive?: boolean;
   currentLevel?: string;
+  // Address fields
+  area?: string;
+  houseNo?: string;
+  road?: string;
+  block?: string;
+  // Preference fields
+  preferredTiming?: string;
+  preferredCenter?: string;
+  needsTransport?: boolean;
 }
 
 export const studentsAPI = {

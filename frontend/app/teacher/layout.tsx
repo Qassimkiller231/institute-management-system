@@ -4,7 +4,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { isAuthenticated, isTeacher } from '@/lib/auth';
+import { isAuthenticated, isTeacher } from '@/lib/authStorage';
 import TeacherSidebar from '@/components/teacher/TeacherSidebar';
 
 export default function TeacherLayout({ children }: { children: React.ReactNode }) {

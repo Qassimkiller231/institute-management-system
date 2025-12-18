@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { getToken, logout, getTeacherId } from "@/lib/auth";
+import { logout, getTeacherId } from "@/lib/authStorage";
 import { reportsAPI, speakingSlotAPI, type DashboardStats } from "@/lib/api";
+import { LoadingState } from "@/components/common/LoadingState";
+import { ErrorState } from "@/components/common/ErrorState";
 
 interface AssignedGroup {
   groupId: string;
@@ -51,7 +53,7 @@ export default function TeacherDashboard() {
       ).length;
       setSpeakingTestsCount(booked);
     } catch (err) {
-      console.error('Error loading speaking tests:', err);
+      // console.error('Error loading speaking tests:', err);
     }
   };
   
@@ -88,39 +90,17 @@ export default function TeacherDashboard() {
     }
   };
 
-  if (loading) {
+  // ========================================
+  // RENDER FUNCTIONS
+  // ========================================
+
+  /**
+   * Render page header
+   */
+  const renderHeader = () => {
+    if (!stats) return null;
+
     return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading dashboard...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-md">
-          <p className="text-red-800 font-semibold">Error loading dashboard</p>
-          <p className="text-red-600 mt-2">{error}</p>
-          <button
-            onClick={fetchDashboard}
-            className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
-          >
-            Try Again
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  if (!stats) return null;
-
-  return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <header className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
@@ -139,152 +119,239 @@ export default function TeacherDashboard() {
           </div>
         </div>
       </header>
+    );
+  };
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Stats Grid */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
-          {/* Assigned Groups */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-600 font-medium">My Groups</h3>
-              <span className="text-3xl">👥</span>
-            </div>
-            <p className="text-4xl font-bold text-blue-600">
-              {stats.assignedGroups.length}
-            </p>
-            <p className="text-sm text-gray-500 mt-2">Assigned groups</p>
-          </div>
+  /**
+   * Render stats grid
+   */
+  const renderStatsGrid = () => {
+    if (!stats) return null;
 
-          {/* Total Students */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-600 font-medium">My Students</h3>
-              <span className="text-3xl">🎓</span>
-            </div>
-            <p className="text-4xl font-bold text-green-600">
-              {stats.assignedGroups.reduce(
-                (sum, g) => sum + g.totalStudents,
-                0
-              )}
-            </p>
-            <p className="text-sm text-gray-500 mt-2">Total students</p>
-          </div>
+    const totalStudents = stats.assignedGroups.reduce(
+      (sum, g) => sum + g.totalStudents,
+      0
+    );
 
-          {/* Today's Classes */}
-          <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="text-gray-600 font-medium">Today's Classes</h3>
-              <span className="text-3xl">📅</span>
-            </div>
-            <p className="text-4xl font-bold text-purple-600">
-              {stats.todaySchedule.length}
-            </p>
-            <p className="text-sm text-gray-500 mt-2">Scheduled today</p>
+    return (
+      <div className="grid md:grid-cols-3 gap-6 mb-8">
+        {/* Assigned Groups */}
+        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-gray-600 font-medium">My Groups</h3>
+            <span className="text-3xl">👥</span>
           </div>
+          <p className="text-4xl font-bold text-blue-600">
+            {stats.assignedGroups.length}
+          </p>
+          <p className="text-sm text-gray-500 mt-2">Assigned groups</p>
         </div>
 
-        {/* Today's Schedule */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Today's Schedule
-          </h2>
-          {stats.todaySchedule.length > 0 ? (
-            <div className="space-y-3">
-              {stats.todaySchedule.map((session, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-4 bg-blue-50 rounded-lg"
-                >
-                  <div>
-                    <p className="font-semibold text-gray-900">
-                      {session.groupName}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {session.startTime} - {session.endTime}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm text-gray-700">
-                      {session.venue || "No venue"}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      {session.hall || ""}
-                    </p>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-8">
-              No classes scheduled for today
-            </p>
-          )}
+        {/* Total Students */}
+        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-gray-600 font-medium">My Students</h3>
+            <span className="text-3xl">🎓</span>
+          </div>
+          <p className="text-4xl font-bold text-green-600">
+            {totalStudents}
+          </p>
+          <p className="text-sm text-gray-500 mt-2">Total students</p>
         </div>
 
-        {/* My Groups */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">My Groups</h2>
-          {stats.assignedGroups.length > 0 ? (
-            <div className="grid md:grid-cols-2 gap-4">
-              {stats.assignedGroups.map((group) => (
-                <div
-                  key={group.groupId}
-                  className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition"
-                >
-                  <h3 className="font-semibold text-lg text-gray-900 mb-2">
-                    {group.groupName}
-                  </h3>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <div>
-                      <p className="text-gray-600">Students:</p>
-                      <p className="font-semibold text-blue-600">
-                        {group.totalStudents}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-gray-600">Upcoming:</p>
-                      <p className="font-semibold text-purple-600">
-                        {group.upcomingClasses}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="text-gray-500 text-center py-8">
-              No groups assigned yet
-            </p>
-          )}
+        {/* Today's Classes */}
+        <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-gray-600 font-medium">Today's Classes</h3>
+            <span className="text-3xl">📅</span>
+          </div>
+          <p className="text-4xl font-bold text-purple-600">
+            {stats.todaySchedule.length}
+          </p>
+          <p className="text-sm text-gray-500 mt-2">Scheduled today</p>
         </div>
+      </div>
+    );
+  };
 
-        {/* Pending Tasks */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Pending Tasks
-          </h2>
-          <div className="grid md:grid-cols-3 gap-4">
-            <div className="p-4 bg-yellow-50 rounded-lg text-center">
-              <p className="text-3xl font-bold text-yellow-600">
-                {stats.pendingTasks.attendanceToMark}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">Attendance to Mark</p>
-            </div>
-            <div className="p-4 bg-green-50 rounded-lg text-center">
-              <p className="text-3xl font-bold text-green-600">
-                {stats.pendingTasks.progressToUpdate}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">Progress to Update</p>
-            </div>
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
-              <p className="text-3xl font-bold text-blue-600">
-                {speakingTestsCount}
-              </p>
-              <p className="text-sm text-gray-600 mt-1">Speaking Tests</p>
-            </div>
+  /**
+   * Render single session card
+   */
+  const renderSessionCard = (session: TodayClass, index: number) => {
+    return (
+      <div
+        key={index}
+        className="flex items-center justify-between p-4 bg-blue-50 rounded-lg"
+      >
+        <div>
+          <p className="font-semibold text-gray-900">
+            {session.groupName}
+          </p>
+          <p className="text-sm text-gray-600">
+            {session.startTime} - {session.endTime}
+          </p>
+        </div>
+        <div className="text-right">
+          <p className="text-sm text-gray-700">
+            {session.venue || "No venue"}
+          </p>
+          <p className="text-xs text-gray-500">
+            {session.hall || ""}
+          </p>
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Render today's schedule section
+   */
+  const renderTodaySchedule = () => {
+    if (!stats) return null;
+
+    return (
+      <div className="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          Today's Schedule
+        </h2>
+        {stats.todaySchedule.length > 0 ? (
+          <div className="space-y-3">
+            {stats.todaySchedule.map((session, index) => renderSessionCard(session, index))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-8">
+            No classes scheduled for today
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  /**
+   * Render single group card
+   */
+  const renderGroupCard = (group: AssignedGroup) => {
+    return (
+      <div
+        key={group.groupId}
+        className="p-4 border border-gray-200 rounded-lg hover:shadow-md transition"
+      >
+        <h3 className="font-semibold text-lg text-gray-900 mb-2">
+          {group.groupName}
+        </h3>
+        <div className="grid grid-cols-2 gap-2 text-sm">
+          <div>
+            <p className="text-gray-600">Students:</p>
+            <p className="font-semibold text-blue-600">
+              {group.totalStudents}
+            </p>
+          </div>
+          <div>
+            <p className="text-gray-600">Upcoming:</p>
+            <p className="font-semibold text-purple-600">
+              {group.upcomingClasses}
+            </p>
           </div>
         </div>
-      </main>
-    </div>
-  );
+      </div>
+    );
+  };
+
+  /**
+   * Render my groups section
+   */
+  const renderGroupsSection = () => {
+    if (!stats) return null;
+
+    return (
+      <div className="bg-white rounded-lg shadow p-6 mb-8">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">My Groups</h2>
+        {stats.assignedGroups.length > 0 ? (
+          <div className="grid md:grid-cols-2 gap-4">
+            {stats.assignedGroups.map((group) => renderGroupCard(group))}
+          </div>
+        ) : (
+          <p className="text-gray-500 text-center py-8">
+            No groups assigned yet
+          </p>
+        )}
+      </div>
+    );
+  };
+
+  /**
+   * Render pending tasks section
+   */
+  const renderPendingTasks = () => {
+    if (!stats) return null;
+
+    return (
+      <div className="bg-white rounded-lg shadow p-6">
+        <h2 className="text-2xl font-bold text-gray-900 mb-6">
+          Pending Tasks
+        </h2>
+        <div className="grid md:grid-cols-3 gap-4">
+          <div className="p-4 bg-yellow-50 rounded-lg text-center">
+            <p className="text-3xl font-bold text-yellow-600">
+              {stats.pendingTasks.attendanceToMark}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">Attendance to Mark</p>
+          </div>
+          <div className="p-4 bg-green-50 rounded-lg text-center">
+            <p className="text-3xl font-bold text-green-600">
+              {stats.pendingTasks.progressToUpdate}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">Progress to Update</p>
+          </div>
+          <div className="text-center p-4 bg-blue-50 rounded-lg">
+            <p className="text-3xl font-bold text-blue-600">
+              {speakingTestsCount}
+            </p>
+            <p className="text-sm text-gray-600 mt-1">Speaking Tests</p>
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  /**
+   * Render main dashboard page
+   */
+  const renderDashboard = () => {
+    return (
+      <div className="min-h-screen bg-gray-50">
+        {renderHeader()}
+
+        <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          {renderStatsGrid()}
+          {renderTodaySchedule()}
+          {renderGroupsSection()}
+          {renderPendingTasks()}
+        </main>
+      </div>
+    );
+  };
+
+  // ========================================
+  // MAIN RENDER
+  // ========================================
+  
+  if (loading) {
+    return <LoadingState message="Loading dashboard..." />;
+  }
+
+  if (error) {
+    return (
+      <ErrorState 
+        title="Error loading dashboard"
+        message={error}
+        onRetry={fetchDashboard}
+      />
+    );
+  }
+
+  if (!stats) return null;
+
+
+  return renderDashboard();
 }

@@ -318,6 +318,33 @@ export const finalizeTestSession = async (input: FinalizeSessionInput) => {
 // Add this function to testSession_service.ts
 
 /**
+ * Get active test session for a student
+ */
+export const getActiveSessionForStudent = async (studentId: string) => {
+  const session = await prisma.testSession.findFirst({
+    where: {
+      studentId,
+      status: {
+        in: ['IN_PROGRESS', 'MCQ_COMPLETED']
+      }
+    },
+    include: {
+      test: true,
+      student: true
+    },
+    orderBy: {
+      createdAt: 'desc'
+    }
+  });
+
+  if (!session) {
+    throw new Error('No active test session found for this student');
+  }
+
+  return session;
+};
+
+/**
  * Get the most recent test session for a student and test (regardless of status)
  */
 export const getLastTestSession = async (studentId: string, testId: string) => {
@@ -334,3 +361,4 @@ export const getLastTestSession = async (studentId: string, testId: string) => {
     }
   });
 };
+

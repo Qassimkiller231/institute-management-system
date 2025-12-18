@@ -3,23 +3,91 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authAPI } from '@/lib/api';
-import { setToken, redirectByRole } from '@/lib/auth';
+import { getOtpEmail, removeOtpEmail, saveToken, saveUserRole, saveStudentId, saveTeacherId, saveParentId } from '@/lib/authStorage';
+import { AuthHeader } from '@/components/auth/AuthHeader';
+import { AuthLayout } from '@/components/auth/AuthLayout';
+import { ErrorMessage } from '@/components/common/Messages';
 
-export default function VerifyOTPPage() {
+export default function VerifyOtpPage() {
+  // ========================================
+  // STATE & HOOKS
+  // ========================================
   const router = useRouter();
-  const [code, setCode] = useState('');
-  const [email, setEmail] = useState('');
+  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
 
+  // ========================================
+  // EFFECTS
+  // ========================================
   useEffect(() => {
-    const savedEmail = sessionStorage.getItem('otpEmail');
+    // Check if email exists in storage
+    const savedEmail = getOtpEmail();
+    
     if (!savedEmail) {
+      // No email found, redirect to login
       router.push('/login');
-    } else {
-      setEmail(savedEmail);
+      return;
     }
+    
+    setEmail(savedEmail);
   }, [router]);
+
+  // ========================================
+  // HANDLERS
+  // ========================================
+  
+  /**
+   * Handle successful login by:
+   * 1. Saving token and user data
+   * 2. Clearing OTP email
+   * 3. Redirecting to role-specific dashboard
+   */
+  const handleSuccessfulLogin = (result: any) => {
+    // Save authentication data
+    saveToken(result.token);
+    saveUserRole(result.user.role);
+    
+    // Role-specific configuration (ID storage + routing)
+    const roleConfig = {
+      STUDENT: {
+        saveId: () => saveStudentId(result.user.studentId),
+        route: '/student/dashboard',
+      },
+      TEACHER: {
+        saveId: () => saveTeacherId(result.user.teacherId),
+        route: '/teacher/dashboard',
+      },
+      PARENT: {
+        saveId: () => saveParentId(result.user.parentId),
+        route: '/parent/dashboard',
+      },
+      ADMIN: {
+        saveId: () => {}, // Admin doesn't need specific ID
+        route: '/admin/dashboard',
+      },
+    };
+    
+    const config = roleConfig[result.user.role as keyof typeof roleConfig];
+    
+    if (config) {
+      config.saveId(); // Save role-specific ID
+      removeOtpEmail(); // Clean up OTP email
+      router.push(config.route); // Navigate to dashboard
+    } else {
+      // Fallback for unknown roles
+      removeOtpEmail();
+      router.push('/');
+    }
+    
+    // Debug logging (commented out for production)
+    // console.log('🎉 Login successful:', {
+    //   role: result.user.role,
+    //   route: config?.route,
+    //   token: result.token.substring(0, 20) + '...',
+    // });
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,99 +95,106 @@ export default function VerifyOTPPage() {
     setLoading(true);
 
     try {
-      const result = await authAPI.verifyOTP(email, code);
-      
-      console.log('Full auth response:', result);
+      const result = await authAPI.verifyOTP(email, otp);
       
       if (result.success) {
-        // Save token
-        setToken(result.data.token);
-        
-        // Save user data
-        localStorage.setItem('user', JSON.stringify(result.data.user));
-        localStorage.setItem('role', result.data.user.role);
-        
-        // Save role-specific IDs
-        if (result.data.user.studentId) {
-          localStorage.setItem('studentId', result.data.user.studentId);
-        }
-        if (result.data.user.teacherId) {
-          localStorage.setItem('teacherId', result.data.user.teacherId);
-        }
-        if (result.data.user.parentId) {
-          localStorage.setItem('parentId', result.data.user.parentId);
-        }
-        
-        sessionStorage.removeItem('otpEmail');
-        
-        // Check for redirect intent
-        const redirectTo = sessionStorage.getItem('loginRedirect');
-        if (redirectTo) {
-          sessionStorage.removeItem('loginRedirect');
-          router.push(redirectTo);
-          return;
-        }
-        // Redirect students to dashboard
-        if (result.data.user.role === 'STUDENT') {
-          router.push('/student');
-          return;
-        }
-        
-        // Redirect by role for non-students
-        redirectByRole(router, result.data.user.role);
+        handleSuccessfulLogin(result.data);
       } else {
-        setError(result.message || 'Invalid OTP');
+        setError(result.message || 'Invalid OTP code');
       }
     } catch (err) {
-      console.error('Verify OTP error:', err);
       setError('Network error. Please try again.');
+      // console.error('OTP verification error:', err); // Debug only
     } finally {
       setLoading(false);
     }
   };
 
-  return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="max-w-md w-full bg-white rounded-lg shadow-lg p-8">
-        <h1 className="text-3xl font-bold text-center mb-8 text-gray-900">Verify OTP</h1>
+  const handleResendOtp = async () => {
+    try {
+      setError('');
+      await authAPI.requestOTP(email, 'email');
+      
+      
+    } catch (err) {
+      setError('Failed to resend OTP');
+      // console.error('Resend OTP error:', err); // Debug only
+    }
+  };
+
+  // ========================================
+  // RENDER FUNCTIONS
+  // ========================================
+  
+  const renderOtpInput = () => {
+    return (
+      <div>
+        <label className="block text-sm font-semibold mb-2 text-gray-700">
+          Verification Code
+        </label>
+        <input
+          type="text"
+          value={otp}
+          onChange={(e) => setOtp(e.target.value.replace(/\D/g, '').slice(0, 6))}
+          className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900 text-center text-2xl tracking-widest"
+          placeholder="000000"
+          maxLength={6}
+          required
+        />
+        <p className="mt-2 text-sm text-gray-600">
+          Code sent to: <span className="font-medium text-gray-900">{email}</span>
+        </p>
+      </div>
+    );
+  };
+
+  const renderSubmitButton = () => {
+    return (
+      <button
+        type="submit"
+        disabled={loading || otp.length !== 6}
+        className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {loading ? 'Verifying...' : 'Verify OTP'}
+      </button>
+    );
+  };
+
+  const renderResendButton = () => {
+    return (
+      <div className="text-center">
+        <button
+          type="button"
+          onClick={handleResendOtp}
+          className="text-sm text-blue-600 hover:text-blue-700 font-medium"
+        >
+          Didn't receive code? Resend
+        </button>
+      </div>
+    );
+  };
+
+  const renderVerifyOtpForm = () => {
+    return (
+      <AuthLayout>
+        <AuthHeader 
+          title="Verify OTP" 
+          subtitle="Enter the verification code sent to your email"
+        />
         
         <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="block text-sm font-semibold mb-3 text-gray-700">Enter 6-digit code</label>
-            <input
-              type="text"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              className="w-full px-4 py-4 border border-gray-300 rounded-lg text-center text-3xl tracking-widest font-bold text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              placeholder="000000"
-              maxLength={6}
-              required
-            />
-          </div>
-
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm font-medium">
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || code.length !== 6}
-            className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            {loading ? 'Verifying...' : 'Verify & Login'}
-          </button>
-
-          <button
-            type="button"
-            onClick={() => router.push('/login')}
-            className="w-full text-blue-600 font-medium py-2 hover:text-blue-700"
-          >
-            Back to Login
-          </button>
+          {renderOtpInput()}
+          <ErrorMessage message={error} />
+          {renderSubmitButton()}
+          {renderResendButton()}
         </form>
-      </div>
-    </div>
-  );
+      </AuthLayout>
+    );
+  };
+
+  // ========================================
+  // MAIN RETURN (State Logic)
+  // ========================================
+  
+  return renderVerifyOtpForm();
 }
