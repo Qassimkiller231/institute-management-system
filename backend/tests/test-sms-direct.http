@@ -1,0 +1,37 @@
+### Test Direct SMS to Your Phone
+
+@baseUrl = http://localhost:3001/api
+
+### Step 1: Login as Admin
+POST {{baseUrl}}/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@function.bh",
+  "method": "email"
+}
+
+### Step 2: Verify OTP
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@function.bh",
+  "code": "123456"
+}
+
+### Copy token from Step 2 response
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwZTgyYTBhMC1kNDM5LTQ0MDEtOThhYy01ZjJmNjEyYmEzYWIiLCJlbWFpbCI6ImFkbWluQGZ1bmN0aW9uLmJoIiwicm9sZSI6IkFETUlOIiwic3R1ZGVudElkIjpudWxsLCJ0ZWFjaGVySWQiOm51bGwsInBhcmVudElkIjpudWxsLCJpYXQiOjE3NjYwNzQxMzQsImV4cCI6MTc2NjY3ODkzNH0.FAFSAFTPgbxCQMARU6sMyuIpdxOZIAqGbHwNLN6qERU
+
+### Step 3: Send Test SMS to Your Phone! 📱
+POST {{baseUrl}}/sms/send
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "phone": "35140480",
+  "message": "🎉 TEST from Institute System! If you got this, SMS notifications are WORKING! ✅"
+}
+
+### Expected: You should receive SMS on +973 35140480
+### Check console for Twilio response

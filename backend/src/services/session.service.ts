@@ -1,6 +1,6 @@
 // src/services/session.service.ts
 import { PrismaClient } from "@prisma/client";
-import { checkScheduleConflicts } from "../utils/schedule";
+import { checkScheduleConflicts, checkTeacherConflicts } from "../utils/schedule";
 
 const prisma = new PrismaClient();
 
@@ -35,7 +35,26 @@ export const createSession = async (data: {
       throw new Error(
         `Schedule conflict detected: ${conflicts.conflicts
           .map((c) => c.groupName)
-          .join(", ")}`
+          .join(", ")
+        } `
+      );
+    }
+  }
+
+  // Check for teacher conflicts if teacher is assigned
+  if (group.teacherId) {
+    const teacherConflicts = await checkTeacherConflicts(
+      group.teacherId,
+      data.sessionDate,
+      data.startTime,
+      data.endTime
+    );
+
+    if (teacherConflicts.hasConflicts) {
+      throw new Error(
+        `Teacher conflict detected: Already teaching ${teacherConflicts.conflicts
+          .map((c) => c.groupName)
+          .join(", ")} at this time`
       );
     }
   }
@@ -131,8 +150,8 @@ export const bulkCreateSessions = async (data: {
           hallId: session.hallId,
           sessionDate: new Date(session.sessionDate),
           sessionNumber: session.sessionNumber,
-          startTime: new Date(`1970-01-01T${session.startTime}`),
-          endTime: new Date(`1970-01-01T${session.endTime}`),
+          startTime: new Date(`1970-01-01T${session.startTime} `),
+          endTime: new Date(`1970-01-01T${session.endTime} `),
           topic: session.topic,
           status: "SCHEDULED",
         },
@@ -319,8 +338,8 @@ export const updateSession = async (
   if (updates.hallId !== undefined) data.hallId = updates.hallId;
   if (updates.sessionDate) data.sessionDate = new Date(updates.sessionDate);
   if (updates.startTime)
-    data.startTime = new Date(`1970-01-01T${updates.startTime}`);
-  if (updates.endTime) data.endTime = new Date(`1970-01-01T${updates.endTime}`);
+    data.startTime = new Date(`1970-01-01T${updates.startTime} `);
+  if (updates.endTime) data.endTime = new Date(`1970-01-01T${updates.endTime} `);
   if (updates.topic !== undefined) data.topic = updates.topic;
   if (updates.status) data.status = updates.status;
 

@@ -16,9 +16,9 @@ const prisma = new PrismaClient();
 const checkMissedSpeakingAppointments = async () => {
   try {
     const now = new Date();
-    
+
     console.log('🔍 Checking for missed speaking appointments...');
-    
+
     // Find all SPEAKING_SCHEDULED test sessions
     const scheduledSessions = await prisma.testSession.findMany({
       where: {
@@ -37,42 +37,42 @@ const checkMissedSpeakingAppointments = async () => {
 
     for (const session of scheduledSessions) {
       if (!session.speakingSlots || session.speakingSlots.length === 0) continue;
-      
+
       const slot = session.speakingSlots[0];
-      
+
       // Combine date and time to check if appointment has passed
       const appointmentDateTime = new Date(slot.slotDate);
       const [hours, minutes] = slot.slotTime.toString().split(':').map(Number);
       appointmentDateTime.setHours(hours, minutes, 0, 0);
-      
+
       // Add duration + 10 minute buffer
       appointmentDateTime.setMinutes(appointmentDateTime.getMinutes() + slot.durationMinutes + 10);
-      
+
       // If appointment time + buffer has passed
       if (appointmentDateTime < now) {
         console.log(`⚠️ Missed appointment detected for session ${session.id}`);
-        
+
         // Update speaking slot to MISSED
         await prisma.speakingSlot.update({
           where: { id: slot.id },
-          data: { 
+          data: {
             status: 'MISSED',
             studentId: null,
             testSessionId: null
           }
         });
-        
+
         // Revert test session to MCQ_COMPLETED
         await prisma.testSession.update({
           where: { id: session.id },
           data: { status: 'MCQ_COMPLETED' }
         });
-        
+
         console.log(`✅ Session ${session.id} reverted to MCQ_COMPLETED`);
         missedCount++;
       }
     }
-    
+
     if (missedCount > 0) {
       console.log(`✅ Processed ${missedCount} missed appointment(s)`);
     } else {
@@ -84,7 +84,7 @@ const checkMissedSpeakingAppointments = async () => {
 };
 export const startScheduler = () => {
   console.log('🕒 Starting scheduler...');
-  
+
   // Run payment reminders daily at 9:00 AM
   cron.schedule('0 9 * * *', async () => {
     console.log('⏰ Running payment reminder check...');
@@ -95,7 +95,7 @@ export const startScheduler = () => {
       console.error('❌ Payment reminder error:', error);
     }
   });
-  
+
   // Run attendance warnings daily at 10:00 AM
   cron.schedule('0 10 * * *', async () => {
     console.log('⏰ Running attendance warning check...');
@@ -106,29 +106,31 @@ export const startScheduler = () => {
       console.error('❌ Attendance warning error:', error);
     }
   });
-  
-  // Publish scheduled announcements every hour
-  cron.schedule('0 * * * *', async () => {
-    console.log('⏰ Checking for scheduled announcements...');
+
+  // Check for scheduled announcements AND materials every minute
+  cron.schedule('* * * * *', async () => {
+    // console.log('\n⏰ ===== CHECKING SCHEDULED ITEMS =====');
     try {
-      const count = await announcementService.publishScheduledAnnouncements();
-      if (count > 0) {
-        console.log(`✅ Published ${count} scheduled announcement(s)`);
-      }
+      const annCount = await announcementService.publishScheduledAnnouncements();
+      const matCount = await import('../material.service').then(m => m.default.publishScheduledMaterials());
+
+      if (annCount > 0) console.log(`✅ Published ${annCount} scheduled announcement(s)`);
+      if (matCount > 0) console.log(`✅ Published ${matCount} scheduled material(s)`);
+
     } catch (error) {
-      console.error('❌ Scheduled announcement error:', error);
+      console.error('❌ Scheduled item error:', error);
     }
   });
-  // ✅ ADD THIS: Check for missed appointments every hour
-  cron.schedule('0 * * * *', async () => {
-    console.log('⏰ Checking for missed speaking appointments...');
+  // Check for missed appointments every 5 minutes
+  cron.schedule('*/5 * * * *', async () => {
+    console.log('\n⏰ ===== CHECKING MISSED SPEAKING APPOINTMENTS =====');
     try {
       await checkMissedSpeakingAppointments();
     } catch (error) {
       console.error('❌ Missed appointment check error:', error);
     }
   });
-  
+
   console.log('✅ Scheduler started');
   console.log('   - Payment reminders: Daily at 9:00 AM');
   console.log('   - Attendance warnings: Daily at 10:00 AM');

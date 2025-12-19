@@ -34,3 +34,5 @@ export * from './criteria';
 export * from './faqs';
 export * from './chatbot';
 export * from './parents';
+export * from './notifications';
+export * from './backups';

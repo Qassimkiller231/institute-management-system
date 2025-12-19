@@ -316,3 +316,33 @@ export const getTrends = async (req: AuthRequest, res: Response) => {
     });
   }
 };
+
+// 11. Chart Data (Consolidated)
+// 11. Chart Data (Consolidated)
+export const getAnalyticsCharts = async (req: AuthRequest, res: Response) => {
+  try {
+    const [studentDistribution, revenueByProgram, paymentMethods, teacherWorkload] = await Promise.all([
+      dashboardService.getStudentDistribution(),
+      dashboardService.getRevenueByProgram(),
+      dashboardService.getPaymentMethodStats(),
+      dashboardService.getTeacherWorkload()
+    ]);
+
+    res.status(200).json({
+      success: true,
+      data: {
+        studentDistribution,
+        revenueByProgram,
+        paymentMethods,
+        teacherWorkload
+      }
+    });
+
+  } catch (error: any) {
+    console.error('Get analytics charts error:', error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Failed to fetch analytics charts'
+    });
+  }
+};

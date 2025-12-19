@@ -18,6 +18,8 @@ export interface Material {
     firstName: string;
     lastName: string;
   };
+  isPublished?: boolean;
+  scheduledFor?: string;
 }
 
 export interface CreateMaterialDto {
@@ -26,6 +28,8 @@ export interface CreateMaterialDto {
   description?: string;
   materialType: string;
   fileUrl: string;
+  scheduledFor?: string;
+  publishNow?: boolean;
 }
 
 export interface UpdateMaterialDto {
@@ -34,6 +38,8 @@ export interface UpdateMaterialDto {
   description?: string;
   materialType?: string;
   fileUrl?: string;
+  scheduledFor?: string;
+  publishNow?: boolean;
 }
 
 export const materialsAPI = {

@@ -16,6 +16,16 @@ export interface Session {
   };
 }
 
+export interface CreateSessionDto {
+  groupId: string;
+  sessionDate: string;
+  sessionNumber: number;
+  startTime: string;
+  endTime: string;
+  hallId?: string;
+  topic?: string;
+}
+
 export const sessionsAPI = {
   // Get all sessions with optional filters
   getAll: async (params?: { groupId?: string; status?: string }) => {
@@ -48,6 +58,47 @@ export const sessionsAPI = {
       headers: getHeaders(true)
     });
     if (!res.ok) throw new Error('Failed to fetch sessions');
+    return res.json();
+  },
+
+  // Create a new session
+  create: async (data: CreateSessionDto) => {
+    const res = await fetch(`${API_URL}/sessions`, {
+      method: 'POST',
+      headers: getHeaders(true),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to create session');
+    }
+    return res.json();
+  },
+
+  // Update a session
+  update: async (id: string, data: Partial<CreateSessionDto>) => {
+    const res = await fetch(`${API_URL}/sessions/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(true),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to update session');
+    }
+    return res.json();
+  },
+
+  // Delete a session
+  delete: async (id: string) => {
+    const res = await fetch(`${API_URL}/sessions/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(true)
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to delete session');
+    }
     return res.json();
   }
 };

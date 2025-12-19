@@ -1,0 +1,20 @@
+### DEBUG TEST - Check Console Output
+@baseUrl = http://localhost:3001/api
+@adminToken =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwZTgyYTBhMC1kNDM5LTQ0MDEtOThhYy01ZjJmNjEyYmEzYWIiLCJlbWFpbCI6ImFkbWluQGZ1bmN0aW9uLmJoIiwicm9sZSI6IkFETUlOIiwic3R1ZGVudElkIjpudWxsLCJ0ZWFjaGVySWQiOm51bGwsInBhcmVudElkIjpudWxsLCJpYXQiOjE3NjYwNjQ3NDEsImV4cCI6MTc2NjY2OTU0MX0.k2VJpnD2U4obrGHo9EpgFJmbR9A-_BuVUjdfZnnmkoU
+@group2Id =aeb57d06-a371-4f1e-8f56-85060430aa68
+
+### Try to create session that overlaps with existing one
+POST {{baseUrl}}/sessions
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "groupId": "{{group2Id}}",
+  "sessionDate": "2026-01-15",
+  "sessionNumber": 11,
+  "startTime": "10:30:00",
+  "endTime": "11:30:00",
+  "topic": "Debug test - should conflict with 10:00-12:00 session"
+}
+
+### Check backend console for debug output!

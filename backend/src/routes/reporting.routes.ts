@@ -106,4 +106,11 @@ router.get(
   reportingController.getTrends
 );
 
+// Consolidated Charts Data
+router.get(
+  '/charts',
+  requireAdmin,
+  reportingController.getAnalyticsCharts
+);
+
 export default router;

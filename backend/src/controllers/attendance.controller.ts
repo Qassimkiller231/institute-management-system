@@ -1,6 +1,7 @@
 import { Response } from 'express';
 import { AuthRequest } from '../types/auth.types';
 import attendanceService from '../services/attendance.service';
+import { processBulkAttendanceUpload } from '../services/attendanceUpload.service';
 
 export class AttendanceController {
   // Record single attendance
@@ -257,6 +258,35 @@ export class AttendanceController {
       res.status(400).json({
         success: false,
         message: error.message || 'Failed to get low attendance students'
+      });
+    }
+  }
+  // Upload bulk attendance via CSV
+  async uploadBulkAttendance(req: AuthRequest, res: Response): Promise<void> {
+    try {
+      if (!req.file) {
+        res.status(400).json({
+          success: false,
+          message: 'No file uploaded'
+        });
+        return;
+      }
+
+      const result = await processBulkAttendanceUpload(
+        req.file.buffer,
+        req.user!.userId,
+        req.user!.role
+      );
+
+      res.status(result.failed > 0 ? 207 : 201).json({
+        success: true,
+        message: `Processed: ${result.total}, Success: ${result.success}, Failed: ${result.failed}`,
+        data: result
+      });
+    } catch (error: any) {
+      res.status(400).json({
+        success: false,
+        message: error.message || 'Failed to upload bulk attendance'
       });
     }
   }

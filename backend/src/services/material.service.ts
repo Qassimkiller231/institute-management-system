@@ -1,4 +1,6 @@
-import { PrismaClient, Material } from '@prisma/client';
+import { PrismaClient, Material, Prisma } from '@prisma/client';
+import auditService from './audit.service';
+import * as notificationService from './notification.service';
 
 const prisma = new PrismaClient();
 
@@ -11,7 +13,10 @@ interface CreateMaterialInput {
   materialType: MaterialType;
   fileUrl?: string;
   fileSizeKb?: number;
-  uploadedBy?: string; // Made optional for admins
+  uploadedBy?: string;
+  scheduledFor?: Date;
+  publishNow?: boolean;
+  performedBy?: string;
 }
 
 interface UpdateMaterialInput {
@@ -20,6 +25,8 @@ interface UpdateMaterialInput {
   materialType?: MaterialType;
   fileUrl?: string;
   fileSizeKb?: number;
+  scheduledFor?: Date;
+  isPublished?: boolean;
 }
 
 export class MaterialService {
@@ -59,7 +66,10 @@ export class MaterialService {
         fileUrl: data.fileUrl,
         fileSizeKb: data.fileSizeKb,
         uploadedBy: data.uploadedBy,
-        isActive: true
+        isActive: true,
+        scheduledFor: data.scheduledFor ? new Date(data.scheduledFor) : null,
+        isPublished: data.publishNow !== undefined ? data.publishNow : true,
+        publishedAt: (data.publishNow !== false) ? new Date() : null
       },
       include: {
         group: {
@@ -87,7 +97,77 @@ export class MaterialService {
       }
     });
 
+    // ✅ LOG AUDIT EVENT
+    if (data.performedBy) {
+      await auditService.createLog({
+        userId: data.performedBy,
+        action: 'MATERIAL_UPLOAD',
+        tableName: 'Material',
+        recordId: material.id,
+        newValues: { title: material.title, type: material.materialType, group: material.groupId }
+      });
+    }
+
+    // ✅ SEND NOTIFICATIONS TO STUDENTS
+    try {
+      const enrollments = await prisma.enrollment.findMany({
+        where: { groupId: data.groupId, status: 'ACTIVE' },
+        include: { student: true }
+      });
+
+      const notifications = enrollments.map(e => ({
+        userId: e.student.userId,
+        type: 'NEW_MATERIAL',
+        title: `New Material: ${data.title}`,
+        message: `New ${data.materialType} material has been uploaded for ${group.name}.`,
+        linkUrl: `/student/materials`, // Link to materials page
+        sentVia: 'APP'
+      }));
+
+      await notificationService.createBulkNotifications(notifications);
+    } catch (error) {
+      console.error('Failed to send material notifications:', error);
+    }
+
     return material;
+  }
+
+  // Publish scheduled materials (Called by scheduler)
+  async publishScheduledMaterials(): Promise<number> {
+    const now = new Date();
+
+    // Find materials scheduled for now or earlier that aren't published
+    const scheduledMaterials = await prisma.material.findMany({
+      where: {
+        isPublished: false,
+        scheduledFor: { lte: now },
+        isActive: true
+      },
+      include: {
+        group: true
+      }
+    });
+
+    if (scheduledMaterials.length === 0) return 0;
+
+    console.log(`📚 Found ${scheduledMaterials.length} material(s) ready to publish`);
+
+    for (const material of scheduledMaterials) {
+      console.log(`\n📚 Publishing Material: "${material.title}"`);
+
+      // Update to published
+      await prisma.material.update({
+        where: { id: material.id },
+        data: {
+          isPublished: true,
+          publishedAt: new Date()
+        }
+      });
+
+      console.log(`   ✅ Material published: ${material.title}`);
+    }
+
+    return scheduledMaterials.length;
   }
 
   // Get all materials for a group
@@ -96,6 +176,7 @@ export class MaterialService {
     filters?: {
       materialType?: MaterialType;
       isActive?: boolean;
+      isPublished?: boolean;
     }
   ): Promise<Material[]> {
     const where: any = { groupId };
@@ -106,6 +187,10 @@ export class MaterialService {
 
     if (filters?.isActive !== undefined) {
       where.isActive = filters.isActive;
+    }
+
+    if (filters?.isPublished !== undefined) {
+      where.isPublished = filters.isPublished;
     }
 
     const materials = await prisma.material.findMany({
@@ -137,6 +222,7 @@ export class MaterialService {
     materialType?: MaterialType;
     uploadedBy?: string;
     isActive?: boolean;
+    isPublished?: boolean;
     page?: number;
     limit?: number;
   }): Promise<{
@@ -157,7 +243,16 @@ export class MaterialService {
     if (filters.groupId) where.groupId = filters.groupId;
     if (filters.materialType) where.materialType = filters.materialType;
     if (filters.uploadedBy) where.uploadedBy = filters.uploadedBy;
-    if (filters.isActive !== undefined) where.isActive = filters.isActive;
+
+    if (filters.isActive !== undefined) {
+      where.isActive = filters.isActive;
+    } else {
+      where.isActive = true;
+    }
+
+    if (filters.isPublished !== undefined) {
+      where.isPublished = filters.isPublished;
+    }
 
     const [materials, total] = await Promise.all([
       prisma.material.findMany({
@@ -280,7 +375,9 @@ export class MaterialService {
         description: data.description,
         materialType: data.materialType,
         fileUrl: data.fileUrl,
-        fileSizeKb: data.fileSizeKb
+        fileSizeKb: data.fileSizeKb,
+        scheduledFor: data.scheduledFor ? new Date(data.scheduledFor) : undefined,
+        isPublished: data.isPublished
       },
       include: {
         group: {
@@ -302,7 +399,7 @@ export class MaterialService {
   }
 
   // Soft delete material
-  async deleteMaterial(id: string): Promise<void> {
+  async deleteMaterial(id: string, performedBy?: string): Promise<void> {
     const existing = await prisma.material.findUnique({
       where: { id }
     });
@@ -315,10 +412,21 @@ export class MaterialService {
       where: { id },
       data: { isActive: false }
     });
+
+    // ✅ LOG AUDIT EVENT
+    if (performedBy) {
+      await auditService.createLog({
+        userId: performedBy,
+        action: 'MATERIAL_DELETE',
+        tableName: 'Material',
+        recordId: id,
+        oldValues: { title: existing.title, type: existing.materialType }
+      });
+    }
   }
 
   // Hard delete material
-  async permanentlyDeleteMaterial(id: string): Promise<void> {
+  async permanentlyDeleteMaterial(id: string, performedBy?: string): Promise<void> {
     const existing = await prisma.material.findUnique({
       where: { id }
     });
@@ -330,6 +438,17 @@ export class MaterialService {
     await prisma.material.delete({
       where: { id }
     });
+
+    // ✅ LOG AUDIT EVENT
+    if (performedBy) {
+      await auditService.createLog({
+        userId: performedBy,
+        action: 'MATERIAL_DELETE_PERMANENT',
+        tableName: 'Material',
+        recordId: id,
+        oldValues: { title: existing.title, type: existing.materialType }
+      });
+    }
   }
 
   // Get materials by type

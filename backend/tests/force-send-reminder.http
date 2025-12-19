@@ -1,0 +1,39 @@
+### Test Payment Reminder - FORCE SEND (Bypass Deduplication)
+
+@baseUrl = http://localhost:3001/api
+
+### Step 1: Admin Login - Request OTP
+POST {{baseUrl}}/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@function.bh",
+  "method": "email"
+}
+
+### Step 2: Verify OTP
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@function.bh",
+  "code": "123456"
+}
+
+### Save token
+@adminToken = YOUR_TOKEN_HERE
+
+### Step 3: Get list of overdue payments to find an installment ID
+GET {{baseUrl}}/payment-reminders/overdue
+Authorization: Bearer {{adminToken}}
+
+### Copy an installmentId from the response above
+@installmentId = YOUR_INSTALLMENT_ID_HERE
+
+### Step 4: FORCE SEND payment reminder (bypasses deduplication)
+POST {{baseUrl}}/notifications/payment-reminder/{{installmentId}}
+Authorization: Bearer {{adminToken}}
+
+### THIS WILL SEND REAL EMAIL/SMS TO YOUR TEST ADDRESSES!
+### Check your email: qassimahmed231@gmail.com
+### Check your phone: +973 35140480

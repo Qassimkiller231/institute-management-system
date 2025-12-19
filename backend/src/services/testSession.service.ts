@@ -1,5 +1,6 @@
 // src/services/testSession.service.ts
 import { PrismaClient, Prisma } from '@prisma/client';
+import * as notificationService from './notification.service';
 
 const prisma = new PrismaClient();
 
@@ -195,6 +196,28 @@ export const submitMcqAnswers = async (input: SubmitMcqInput) => {
       status: 'MCQ_COMPLETED'
     }
   });
+
+  // ✅ NOTIFY ADMINS (About MCQ Completion)
+  try {
+    // Find all admins
+    const admins = await prisma.user.findMany({ where: { role: 'ADMIN', isActive: true } });
+
+    const student = await prisma.student.findUnique({ where: { id: session.studentId } });
+
+    const notifs = admins.map(admin => ({
+      userId: admin.id,
+      type: 'MCQ_COMPLETION',
+      title: 'MCQ Test Completed',
+      message: `${student?.firstName} has completed the MCQ part with score ${scorePercent.toFixed(1)}%.`,
+      linkUrl: `/admin/students`,
+      sentVia: 'APP'
+    }));
+
+    await notificationService.createBulkNotifications(notifs);
+
+  } catch (err) {
+    console.error('Failed to notify admins:', err);
+  }
 
   return {
     sessionId: updated.id,

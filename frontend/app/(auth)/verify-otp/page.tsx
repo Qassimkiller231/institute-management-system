@@ -24,20 +24,20 @@ export default function VerifyOtpPage() {
   useEffect(() => {
     // Check if email exists in storage
     const savedEmail = getOtpEmail();
-    
+
     if (!savedEmail) {
       // No email found, redirect to login
       router.push('/login');
       return;
     }
-    
+
     setEmail(savedEmail);
   }, [router]);
 
   // ========================================
   // HANDLERS
   // ========================================
-  
+
   /**
    * Handle successful login by:
    * 1. Saving token and user data
@@ -48,29 +48,29 @@ export default function VerifyOtpPage() {
     // Save authentication data
     saveToken(result.token);
     saveUserRole(result.user.role);
-    
+
     // Role-specific configuration (ID storage + routing)
     const roleConfig = {
       STUDENT: {
         saveId: () => saveStudentId(result.user.studentId),
-        route: '/student/dashboard',
+        route: '/student',
       },
       TEACHER: {
         saveId: () => saveTeacherId(result.user.teacherId),
-        route: '/teacher/dashboard',
+        route: '/teacher',
       },
       PARENT: {
         saveId: () => saveParentId(result.user.parentId),
-        route: '/parent/dashboard',
+        route: '/parent',
       },
       ADMIN: {
-        saveId: () => {}, // Admin doesn't need specific ID
-        route: '/admin/dashboard',
+        saveId: () => { }, // Admin doesn't need specific ID
+        route: '/admin',
       },
     };
-    
+
     const config = roleConfig[result.user.role as keyof typeof roleConfig];
-    
+
     if (config) {
       config.saveId(); // Save role-specific ID
       removeOtpEmail(); // Clean up OTP email
@@ -80,7 +80,7 @@ export default function VerifyOtpPage() {
       removeOtpEmail();
       router.push('/');
     }
-    
+
     // Debug logging (commented out for production)
     // console.log('🎉 Login successful:', {
     //   role: result.user.role,
@@ -96,7 +96,7 @@ export default function VerifyOtpPage() {
 
     try {
       const result = await authAPI.verifyOTP(email, otp);
-      
+
       if (result.success) {
         handleSuccessfulLogin(result.data);
       } else {
@@ -114,8 +114,8 @@ export default function VerifyOtpPage() {
     try {
       setError('');
       await authAPI.requestOTP(email, 'email');
-      
-      
+
+
     } catch (err) {
       setError('Failed to resend OTP');
       // console.error('Resend OTP error:', err); // Debug only
@@ -125,7 +125,7 @@ export default function VerifyOtpPage() {
   // ========================================
   // RENDER FUNCTIONS
   // ========================================
-  
+
   const renderOtpInput = () => {
     return (
       <div>
@@ -177,11 +177,11 @@ export default function VerifyOtpPage() {
   const renderVerifyOtpForm = () => {
     return (
       <AuthLayout>
-        <AuthHeader 
-          title="Verify OTP" 
+        <AuthHeader
+          title="Verify OTP"
           subtitle="Enter the verification code sent to your email"
         />
-        
+
         <form onSubmit={handleSubmit} className="space-y-6">
           {renderOtpInput()}
           <ErrorMessage message={error} />
@@ -195,6 +195,6 @@ export default function VerifyOtpPage() {
   // ========================================
   // MAIN RETURN (State Logic)
   // ========================================
-  
+
   return renderVerifyOtpForm();
 }

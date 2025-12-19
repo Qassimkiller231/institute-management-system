@@ -34,7 +34,7 @@ export default function GroupSelector({ onSelect, selectedGroupId }: GroupSelect
       const data = await res.json();
       setGroups(data.data || []);
     } catch (err) {
-      console.error('Error fetching groups:', err);
+      // console.error('Error fetching groups:', err);
     } finally {
       setLoading(false);
     }

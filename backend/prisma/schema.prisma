@@ -695,6 +695,9 @@ model Material {
   uploadedBy   String?   // Made nullable for admins
   uploadedAt   DateTime @default(now())
   isActive     Boolean  @default(true)
+  scheduledFor DateTime?
+  isPublished  Boolean   @default(true)
+  publishedAt  DateTime? @default(now())
 
   group   Group    @relation(fields: [groupId], references: [id], onDelete: Cascade)
   teacher Teacher? @relation(fields: [uploadedBy], references: [id], onDelete: SetNull)

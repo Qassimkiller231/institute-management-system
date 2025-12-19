@@ -9,6 +9,7 @@ import {
 import { normalizePhoneNumber, validatePhoneNumber } from "../utils/phone.utils";
 import * as smsService from "./sms.service";
 import * as emailService from "./email.service";
+import auditService from "./audit.service";
 /**
  * Request OTP code for login
  */
@@ -219,9 +220,15 @@ export const verifyOTP = async (identifier: string, code: string) => {
       userId: user.id,
       token,
       expiresAt,
-      ipAddress: null,
       userAgent: null,
     },
+  });
+
+  // ✅ LOG AUDIT EVENT
+  await auditService.createLog({
+    userId: user.id,
+    action: 'LOGIN',
+    newValues: { method: isEmail ? 'EMAIL' : 'SMS', role: user.role }
   });
 
   return {
@@ -246,6 +253,21 @@ export const verifyOTP = async (identifier: string, code: string) => {
  * Logout user
  */
 export const logout = async (token: string) => {
+  // Find session first to get userId
+  const session = await prisma.session.findUnique({
+    where: { token },
+    select: { userId: true }
+  });
+
+  if (session) {
+    // ✅ LOG AUDIT EVENT
+    await auditService.createLog({
+      userId: session.userId,
+      action: 'LOGOUT',
+      newValues: { token: token.substring(0, 10) + '...' }
+    });
+  }
+
   // Delete session
   await prisma.session.deleteMany({
     where: { token },

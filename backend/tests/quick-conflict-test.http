@@ -1,0 +1,39 @@
+### QUICK CONFLICT TEST
+### First clear existing test sessions, then create two conflicting ones
+
+@baseUrl = http://localhost:3001/api
+@adminToken =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwZTgyYTBhMC1kNDM5LTQ0MDEtOThhYy01ZjJmNjEyYmEzYWIiLCJlbWFpbCI6ImFkbWluQGZ1bmN0aW9uLmJoIiwicm9sZSI6IkFETUlOIiwic3R1ZGVudElkIjpudWxsLCJ0ZWFjaGVySWQiOm51bGwsInBhcmVudElkIjpudWxsLCJpYXQiOjE3NjYwNjQ3NDEsImV4cCI6MTc2NjY2OTU0MX0.k2VJpnD2U4obrGHo9EpgFJmbR9A-_BuVUjdfZnnmkoU
+@group1Id =19ebecfd-44b1-40b1-a8ba-612f39cc1a8d
+@group2Id =aeb57d06-a371-4f1e-8f56-85060430aa68
+
+### Step 1: Create First Session - Group 1 at 10:00-12:00 on Jan 15
+POST {{baseUrl}}/sessions
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "groupId": "{{group1Id}}",
+  "sessionDate": "2026-01-15",
+  "sessionNumber": 10,
+  "startTime": "10:00:00",
+  "endTime": "12:00:00",
+  "topic": "Conflict Test Session 1"
+}
+
+### Expected: ✅ SUCCESS
+
+### Step 2: Try to Create Overlapping Session - Group 2 at 11:00-13:00 on SAME DATE
+POST {{baseUrl}}/sessions
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "groupId": "{{group2Id}}",
+  "sessionDate": "2026-01-15",
+  "sessionNumber": 10,
+  "startTime": "11:00:00",
+  "endTime": "13:00:00",
+  "topic": "Conflict Test Session 2 - SHOULD FAIL"
+}
+
+### Expected: ❌ ERROR "Teacher conflict detected: Already teaching Test Group 1"

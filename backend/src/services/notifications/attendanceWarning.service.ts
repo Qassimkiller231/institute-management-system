@@ -1,12 +1,13 @@
 import { PrismaClient } from '@prisma/client';
-import * as emailService from './email.service';
-import * as smsService from './sms.service';
+import * as emailService from '../email.service';
+import * as smsService from '../sms.service';
 
 const prisma = new PrismaClient();
 
 const ATTENDANCE_THRESHOLD = 75;
 
 export const checkAndSendWarnings = async () => {
+  console.log('\n⚠️  ===== ATTENDANCE WARNING CHECK START =====');
   const enrollments = await prisma.enrollment.findMany({
     where: { status: 'ACTIVE' },
     include: {
@@ -25,7 +26,17 @@ export const checkAndSendWarnings = async () => {
     },
   });
 
+  console.log(`📊 Found ${enrollments.length} active enrollments`);
+
+  let sentCount = 0;
+  const TEST_LIMIT = 1; // **TESTING: Only send 1 warning**
+
   for (const enrollment of enrollments) {
+    if (sentCount >= TEST_LIMIT) {
+      console.log(`⚠️  TEST MODE: Reached limit of ${TEST_LIMIT} warning(s), stopping.`);
+      break;
+    }
+
     const totalClasses = enrollment.attendance.length;
     if (totalClasses === 0) continue;
 
@@ -36,9 +47,13 @@ export const checkAndSendWarnings = async () => {
     const attendancePercentage = (attendedClasses / totalClasses) * 100;
 
     if (attendancePercentage < ATTENDANCE_THRESHOLD) {
+      console.log(`\n📉 Student ${enrollment.student.firstName}: ${attendancePercentage.toFixed(1)}% attendance (below ${ATTENDANCE_THRESHOLD}%)`);
       await sendWarning(enrollment, attendancePercentage, attendedClasses, totalClasses);
+      sentCount++;
     }
   }
+  console.log(`\n✅ Sent ${sentCount} attendance warning(s)`);
+  console.log('⚠️  ===== ATTENDANCE WARNING CHECK END =====\n');
 };
 
 async function sendWarning(
@@ -51,6 +66,8 @@ async function sendWarning(
   const studentEmail = student.user.email;
   const studentPhone = student.user.phone;
 
+  // ⚠️ TEMPORARILY DISABLED FOR TESTING - REMOVE AFTER TESTING
+  /*
   const oneWeekAgo = new Date();
   oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
 
@@ -66,6 +83,9 @@ async function sendWarning(
     console.log(`Warning already sent for student ${student.id}`);
     return;
   }
+  */
+  console.log(`   🚀 SENDING WARNING (deduplication disabled for testing)`);
+
 
   const groupName = enrollment.group?.name || 'Unknown Group';
 

@@ -28,7 +28,9 @@ export default function AdminAnnouncementsPage() {
     priority: 'MEDIUM' as 'LOW' | 'MEDIUM' | 'HIGH',
     targetAudience: 'PROGRAM' as 'PROGRAM' | 'GROUP' | 'ALL',
     programId: '',
-    groupId: ''
+    groupId: '',
+    scheduledFor: '',
+    publishNow: true
   });
 
   useEffect(() => {
@@ -76,7 +78,9 @@ export default function AdminAnnouncementsPage() {
       priority: announcement.priority,
       targetAudience: 'PROGRAM',
       programId: '',
-      groupId: ''
+      groupId: '',
+      scheduledFor: announcement.scheduledFor || '',
+      publishNow: announcement.isPublished !== false
     });
     setShowModal(true);
   };
@@ -89,7 +93,9 @@ export default function AdminAnnouncementsPage() {
       priority: 'MEDIUM',
       targetAudience: 'PROGRAM',
       programId: '',
-      groupId: ''
+      groupId: '',
+      scheduledFor: '',
+      publishNow: true
     });
     setShowModal(true);
   };
@@ -112,7 +118,7 @@ export default function AdminAnnouncementsPage() {
 
     try {
       setSubmitting(true);
-      
+
       if (editingAnnouncement) {
         // Update existing
         await announcementsAPI.update(editingAnnouncement.id, {
@@ -128,7 +134,8 @@ export default function AdminAnnouncementsPage() {
           content: formData.content,
           priority: formData.priority,
           targetAudience: formData.targetAudience,
-          publishNow: true
+          publishNow: formData.publishNow,
+          scheduledFor: !formData.publishNow && formData.scheduledFor ? new Date(formData.scheduledFor) : undefined
         };
 
         // Add appropriate ID based on target
@@ -142,9 +149,9 @@ export default function AdminAnnouncementsPage() {
         // For 'ALL' - no extra IDs needed
 
         await announcementsAPI.create(payload);
-        alert('Announcement created successfully!');
+        alert(formData.publishNow ? 'Announcement created successfully!' : 'Announcement scheduled successfully!');
       }
-      
+
       setShowModal(false);
       resetForm();
       fetchData();
@@ -162,7 +169,9 @@ export default function AdminAnnouncementsPage() {
       priority: 'MEDIUM',
       targetAudience: 'PROGRAM',
       programId: '',
-      groupId: ''
+      groupId: '',
+      scheduledFor: '',
+      publishNow: true
     });
     setEditingAnnouncement(null);
   };
@@ -173,13 +182,18 @@ export default function AdminAnnouncementsPage() {
   };
 
   const filteredAnnouncements = announcements.filter((announcement) => {
-    const matchesSearch = 
+    const matchesSearch =
       announcement.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       announcement.content.toLowerCase().includes(searchTerm.toLowerCase()) ||
       announcement.group?.groupCode?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesPriority = filterPriority === 'all' || announcement.priority === filterPriority;
-    
+
+    let matchesPriority = true;
+    if (filterPriority === 'SCHEDULED') {
+      matchesPriority = announcement.isPublished === false;
+    } else if (filterPriority !== 'all') {
+      matchesPriority = announcement.priority === filterPriority;
+    }
+
     return matchesSearch && matchesPriority;
   });
 
@@ -279,6 +293,7 @@ export default function AdminAnnouncementsPage() {
             className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 text-gray-900"
           >
             <option value="all">All Priorities</option>
+            <option value="SCHEDULED">⏰ Scheduled</option>
             <option value="HIGH">High Priority</option>
             <option value="MEDIUM">Medium Priority</option>
             <option value="LOW">Low Priority</option>
@@ -331,8 +346,8 @@ export default function AdminAnnouncementsPage() {
           {searchTerm || filterPriority !== 'all' ? 'No announcements match your filters' : 'No announcements yet'}
         </h3>
         <p className="text-gray-600">
-          {searchTerm || filterPriority !== 'all' 
-            ? 'Try adjusting your search or filters' 
+          {searchTerm || filterPriority !== 'all'
+            ? 'Try adjusting your search or filters'
             : 'Announcements will appear here once teachers create them'}
         </p>
       </div>
@@ -480,6 +495,45 @@ export default function AdminAnnouncementsPage() {
             <option value="HIGH">🔴 High Priority</option>
           </select>
         </div>
+
+        {!editingAnnouncement && (
+          <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+            <div className="flex items-center mb-3">
+              <input
+                type="checkbox"
+                id="publishNow"
+                checked={!formData.publishNow}
+                onChange={(e) => setFormData({
+                  ...formData,
+                  publishNow: !e.target.checked
+                })}
+                className="h-4 w-4 text-orange-600 focus:ring-orange-500 border-gray-300 rounded"
+              />
+              <label htmlFor="publishNow" className="ml-2 block text-sm font-medium text-gray-900">
+                Schedule for later?
+              </label>
+            </div>
+
+            {!formData.publishNow && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Schedule Date & Time *
+                </label>
+                <input
+                  type="datetime-local"
+                  value={formData.scheduledFor}
+                  onChange={(e) => setFormData({ ...formData, scheduledFor: e.target.value })}
+                  min={new Date().toISOString().slice(0, 16)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 text-gray-900"
+                  required={!formData.publishNow}
+                />
+                <p className="mt-1 text-xs text-gray-500">
+                  Announcement will be automatically published at this time.
+                </p>
+              </div>
+            )}
+          </div>
+        )}
       </>
     );
   };
@@ -557,7 +611,7 @@ export default function AdminAnnouncementsPage() {
   // ========================================
   // MAIN RENDER
   // ========================================
-  
+
   if (loading) {
     return renderLoadingState();
   }

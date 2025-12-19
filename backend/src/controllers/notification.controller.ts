@@ -1,127 +1,59 @@
 import { Response } from 'express';
 import { AuthRequest } from '../types/auth.types';
-import * as paymentReminderService from '../services/notifications/paymentReminder.service';
-import * as attendanceWarningService from '../services/notifications/attendanceWarning.service';
+import * as notificationService from '../services/notification.service';
 
 /**
- * POST /api/notifications/payment-reminder/:installmentId
- * Manually trigger payment reminder (Admin only)
+ * GET /api/notifications
+ * Get current user's notifications
  */
-export const sendPaymentReminder = async (req: AuthRequest, res: Response) => {
+export const getMyNotifications = async (req: AuthRequest, res: Response) => {
   try {
-    const { installmentId } = req.params;
-    
-    if (!installmentId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Installment ID is required'
-      });
-    }
-    
-    await paymentReminderService.sendManualReminder(installmentId);
-    
-    res.status(200).json({
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
+    const limit = parseInt(req.query.limit as string) || 50;
+    const result = await notificationService.getUserNotifications(userId, limit);
+
+    res.json({
       success: true,
-      message: 'Payment reminder sent successfully'
+      data: result
     });
   } catch (error: any) {
-    console.error('Send payment reminder error:', error);
-    
-    if (error.message === 'Installment not found') {
-      return res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to send payment reminder'
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 /**
- * POST /api/notifications/attendance-warning/:studentId
- * Manually trigger attendance warning (Admin only)
+ * PUT /api/notifications/:id/read
+ * Mark a single notification as read
  */
-export const sendAttendanceWarning = async (req: AuthRequest, res: Response) => {
+export const markAsRead = async (req: AuthRequest, res: Response) => {
   try {
-    const { studentId } = req.params;
-    
-    if (!studentId) {
-      return res.status(400).json({
-        success: false,
-        message: 'Student ID is required'
-      });
-    }
-    
-    await attendanceWarningService.sendManualWarning(studentId);
-    
-    res.status(200).json({
-      success: true,
-      message: 'Attendance warning sent successfully'
-    });
+    const userId = req.user?.userId;
+    const notificationId = req.params.id;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
+
+    await notificationService.markAsRead(notificationId, userId);
+
+    res.json({ success: true, message: 'Marked as read' });
   } catch (error: any) {
-    console.error('Send attendance warning error:', error);
-    
-    if (error.message === 'Student not found') {
-      return res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-    
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to send attendance warning'
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };
 
 /**
- * GET /api/notifications/at-risk-students
- * Get list of students with low attendance (Admin only)
+ * PUT /api/notifications/read-all
+ * Mark ALL notifications as read
  */
-export const getAtRiskStudents = async (req: AuthRequest, res: Response) => {
+export const markAllAsRead = async (req: AuthRequest, res: Response) => {
   try {
-    const students = await attendanceWarningService.getStudentsAtRisk();
-    
-    res.status(200).json({
-      success: true,
-      data: students,
-      total: students.length
-    });
-  } catch (error: any) {
-    console.error('Get at-risk students error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to fetch at-risk students'
-    });
-  }
-};
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ message: 'Unauthorized' });
 
-/**
- * POST /api/notifications/test-scheduler
- * Test notification scheduler (Admin only)
- */
-export const testScheduler = async (req: AuthRequest, res: Response) => {
-  try {
-    console.log('Testing payment reminders...');
-    await paymentReminderService.checkAndSendReminders();
-    
-    console.log('Testing attendance warnings...');
-    await attendanceWarningService.checkAndSendWarnings();
-    
-    res.status(200).json({
-      success: true,
-      message: 'Scheduler test completed - check console for sent notifications'
-    });
+    await notificationService.markAllAsRead(userId);
+
+    res.json({ success: true, message: 'All marked as read' });
   } catch (error: any) {
-    console.error('Test scheduler error:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to test scheduler'
-    });
+    res.status(500).json({ success: false, message: error.message });
   }
 };

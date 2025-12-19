@@ -13,6 +13,8 @@ const sesClient = new SESClient({
 });
 
 const FROM_EMAIL = process.env.FROM_EMAIL || 'noreply@institute.com';
+const TEST_MODE = process.env.NOTIFICATION_TEST_MODE === 'true';
+const TEST_EMAIL = process.env.NOTIFICATION_TEST_EMAIL || '';
 
 export const sendEmail = async (data: {
   to: string;
@@ -21,9 +23,15 @@ export const sendEmail = async (data: {
   textBody?: string;
 }) => {
   try {
+    // Override recipient in test mode
+    const recipient = TEST_MODE && TEST_EMAIL ? TEST_EMAIL : data.to;
+
+    console.log(`📧 Sending email to: ${recipient}${TEST_MODE ? ' (TEST MODE)' : ''}`);
+    console.log(`   Subject: ${data.subject}`);
+
     const command = new SendEmailCommand({
       Source: FROM_EMAIL,
-      Destination: { ToAddresses: [data.to] },
+      Destination: { ToAddresses: [recipient] },
       Message: {
         Subject: { Data: data.subject, Charset: 'UTF-8' },
         Body: {

@@ -14,17 +14,17 @@ const prisma = new PrismaClient();
 export const sendMessage = async (req: AuthRequest, res: Response) => {
   try {
     const { message, conversationHistory } = req.body;
-    
+
     if (!message) {
       return res.status(400).json({
         success: false,
         message: 'Message is required'
       });
     }
-    
+
     const userId = req.user!.userId;
     const userRole = req.user!.role;
-    
+
     // Process query
     const result = await queryService.processQuery({
       userId,
@@ -32,7 +32,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       message,
       conversationHistory
     });
-    
+
     // Save to database
     await queryService.saveChatMessage({
       userId,
@@ -42,7 +42,7 @@ export const sendMessage = async (req: AuthRequest, res: Response) => {
       queryType: result.queryType,
       context: { usedAI: result.usedAI }
     });
-    
+
     res.status(200).json({
       success: true,
       data: {
@@ -68,13 +68,13 @@ export const getChatHistory = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
-    
+
     const messages = await prisma.chatMessage.findMany({
       where: { userId },
       orderBy: { createdAt: 'desc' },
       take: limit
     });
-    
+
     res.status(200).json({
       success: true,
       data: messages.reverse() // Return in chronological order
@@ -95,7 +95,7 @@ export const getChatHistory = async (req: AuthRequest, res: Response) => {
 export const getWeeklySummary = async (req: AuthRequest, res: Response) => {
   try {
     const summary = await summaryService.getAdminWeeklySummary();
-    
+
     res.status(200).json({
       success: true,
       data: { summary }
@@ -115,8 +115,8 @@ export const getWeeklySummary = async (req: AuthRequest, res: Response) => {
  */
 export const getFAQs = async (req: AuthRequest, res: Response) => {
   try {
-    const faqs = faqService.getAllFAQs();
-    
+    const faqs = await faqService.getAllFAQs();
+
     res.status(200).json({
       success: true,
       data: faqs
@@ -137,11 +137,11 @@ export const getFAQs = async (req: AuthRequest, res: Response) => {
 export const clearHistory = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
-    
+
     await prisma.chatMessage.deleteMany({
       where: { userId }
     });
-    
+
     res.status(200).json({
       success: true,
       message: 'Chat history cleared successfully'

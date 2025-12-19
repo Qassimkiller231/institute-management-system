@@ -6,6 +6,7 @@ import { logout, getTeacherId } from "@/lib/authStorage";
 import { reportsAPI, speakingSlotAPI, type DashboardStats } from "@/lib/api";
 import { LoadingState } from "@/components/common/LoadingState";
 import { ErrorState } from "@/components/common/ErrorState";
+import DashboardNotificationWidget from "@/components/dashboard/DashboardNotificationWidget";
 
 interface AssignedGroup {
   groupId: string;
@@ -37,15 +38,15 @@ export default function TeacherDashboard() {
   const [error, setError] = useState("");
   const [selectedTerm, setSelectedTerm] = useState<string>("");
   const [speakingTestsCount, setSpeakingTestsCount] = useState(0);
-  
+
   useEffect(() => {
     loadSpeakingTestsCount();
   }, []);
-  
+
   const loadSpeakingTestsCount = async () => {
     const teacherId = getTeacherId();
     if (!teacherId) return;
-    
+
     try {
       const result = await speakingSlotAPI.getByTeacher(teacherId);
       const booked = result.data.filter(
@@ -56,7 +57,7 @@ export default function TeacherDashboard() {
       // console.error('Error loading speaking tests:', err);
     }
   };
-  
+
   useEffect(() => {
     fetchDashboard();
   }, [selectedTerm]);
@@ -323,6 +324,7 @@ export default function TeacherDashboard() {
         {renderHeader()}
 
         <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+          <DashboardNotificationWidget portal="teacher" />
           {renderStatsGrid()}
           {renderTodaySchedule()}
           {renderGroupsSection()}
@@ -335,14 +337,14 @@ export default function TeacherDashboard() {
   // ========================================
   // MAIN RENDER
   // ========================================
-  
+
   if (loading) {
     return <LoadingState message="Loading dashboard..." />;
   }
 
   if (error) {
     return (
-      <ErrorState 
+      <ErrorState
         title="Error loading dashboard"
         message={error}
         onRetry={fetchDashboard}

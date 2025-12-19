@@ -8,6 +8,8 @@ const router = Router();
 // All routes require authentication
 router.use(authenticate);
 
+import { uploadCsv } from '../config/csvUpload.config';
+
 // Record single attendance (Teacher or Admin only)
 router.post(
   '/',
@@ -15,7 +17,15 @@ router.post(
   attendanceController.recordAttendance
 );
 
-// Bulk record attendance for a class session (Teacher or Admin only)
+// Bulk record attendance (CSV Upload)
+router.post(
+  '/bulk-upload',
+  requireTeacherOrAdmin,
+  uploadCsv.single('file'),
+  attendanceController.uploadBulkAttendance
+);
+
+// Bulk record attendance (Manual JSON array - existing)
 router.post(
   '/bulk',
   requireTeacherOrAdmin,

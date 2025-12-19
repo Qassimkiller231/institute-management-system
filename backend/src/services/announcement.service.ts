@@ -120,10 +120,7 @@ export const getAnnouncements = async (filters: {
       where,
       skip,
       take: limit,
-      orderBy: [
-        { publishedAt: 'desc' },
-        { createdAt: 'desc' }
-      ],
+      orderBy: { createdAt: 'desc' },
       include: {
         group: {
           include: {
@@ -252,7 +249,9 @@ export const deleteAnnouncement = async (id: string) => {
  * Publish scheduled announcements
  */
 export const publishScheduledAnnouncements = async () => {
+  console.log('\n📅 ===== PUBLISHING SCHEDULED ANNOUNCEMENTS =====');
   const now = new Date();
+  console.log(`📅 Current time: ${now.toISOString()}`);
 
   // Find announcements scheduled for now or earlier
   const scheduledAnnouncements = await prisma.announcement.findMany({
@@ -271,7 +270,11 @@ export const publishScheduledAnnouncements = async () => {
     }
   });
 
+  console.log(`📅 Found ${scheduledAnnouncements.length} announcement(s) ready to publish`);
+
   for (const announcement of scheduledAnnouncements) {
+    console.log(`\n📢 Publishing: "${announcement.title}"`);
+
     // Publish it
     await prisma.announcement.update({
       where: { id: announcement.id },
@@ -285,6 +288,9 @@ export const publishScheduledAnnouncements = async () => {
     await sendAnnouncementNotifications(announcement);
   }
 
+  console.log(`\n✅ Published ${scheduledAnnouncements.length} announcement(s)`);
+  console.log('📅 ===== SCHEDULED ANNOUNCEMENTS COMPLETE =====\n');
+
   return scheduledAnnouncements.length;
 };
 
@@ -292,6 +298,10 @@ export const publishScheduledAnnouncements = async () => {
  * Send announcement notifications to recipients
  */
 async function sendAnnouncementNotifications(announcement: any) {
+  console.log('\n📢 ===== SENDING ANNOUNCEMENT NOTIFICATIONS =====');
+  console.log(`📢 Title: ${announcement.title}`);
+  console.log(`📢 Target: ${announcement.targetAudience}`);
+
   let recipients: Array<{
     userId: string;
     email: string | null;
@@ -366,6 +376,15 @@ async function sendAnnouncementNotifications(announcement: any) {
     }));
   }
 
+  console.log(`📢 Found ${recipients.length} potential recipient(s)`);
+
+  // **TEST MODE: Limit to 1 recipient**
+  const TEST_LIMIT = 1;
+  if (recipients.length > TEST_LIMIT) {
+    console.log(`⚠️  TEST MODE: Limiting to ${TEST_LIMIT} recipient(s)`);
+    recipients = recipients.slice(0, TEST_LIMIT);
+  }
+
   // Send notifications
   const emailMessage = `
 ${announcement.title}
@@ -379,9 +398,12 @@ Best regards,
 The Function Institute
   `.trim();
 
-  const smsMessage = `${announcement.title}: ${announcement.content.substring(0, 100)}... -Function Institute`;
+  const smsMessage = `🆕 NEW ANNOUNCEMENT: ${announcement.title} - ${announcement.content.substring(0, 80)}... View in app. -Function Institute`;
+
+  let sentCount = 0;
 
   for (const recipient of recipients) {
+    console.log(`\n📤 Sending to recipient ${sentCount + 1}/${recipients.length}`);
     // Create system notification
     try {
       await prisma.notification.create({
@@ -404,25 +426,33 @@ The Function Institute
       try {
         await emailService.sendEmail({
           to: recipient.email,
-          subject: `📢 ${announcement.title} - Function Institute`,
+          subject: `🆕 New Announcement: ${announcement.title} - Function Institute`,
           htmlBody: emailMessage,
           textBody: announcement.content
         });
+        console.log(`   ✅ Email sent to ${recipient.email}`);
       } catch (error) {
-        console.error('Failed to send email:', error);
+        console.error(`   ❌ Email failed:`, error);
       }
     }
 
-    // Send SMS (only for group-specific announcements to avoid spam)
-    if (recipient.phone && announcement.targetAudience === 'GROUP_SPECIFIC') {
+    // Send SMS (for all announcements in dev mode, GROUP_SPECIFIC in production)
+    const isDev = process.env.NODE_ENV !== 'production';
+    if (recipient.phone && (announcement.targetAudience === 'GROUP_SPECIFIC' || isDev)) {
       try {
         await smsService.sendSMS({
           to: recipient.phone,
           message: smsMessage
         });
+        console.log(`   ✅ SMS sent to ${recipient.phone}`);
       } catch (error) {
-        console.error('Failed to send SMS:', error);
+        console.error(`   ❌ SMS failed:`, error);
       }
     }
+
+    sentCount++;
   }
+
+  console.log(`\n✅ Sent notifications to ${sentCount} recipient(s)`);
+  console.log('📢 ===== ANNOUNCEMENT NOTIFICATIONS COMPLETE =====\n');
 }

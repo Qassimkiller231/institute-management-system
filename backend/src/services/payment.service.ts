@@ -1,6 +1,7 @@
 // src/services/payment.service.ts
 import { PrismaClient } from '@prisma/client';
 import { calculateInstallmentStatus } from '../utils/paymentHelpers';
+import auditService from './audit.service';
 
 const prisma = new PrismaClient();
 
@@ -269,6 +270,22 @@ export const recordPayment = async (
     // Continue execution, don't block payment recording
   }
 
+  // ✅ LOG AUDIT EVENT
+  if (data.receiptMakerId) {
+    await auditService.createLog({
+      userId: data.receiptMakerId,
+      action: 'PAYMENT_RECEIVED',
+      tableName: 'Installment',
+      recordId: installmentId,
+      newValues: {
+        amount: installment.amount,
+        paymentMethod: data.paymentMethod,
+        receiptNumber: data.receiptNumber,
+        studentName: updated.paymentPlan.enrollment.student.firstName + ' ' + updated.paymentPlan.enrollment.student.secondName
+      }
+    });
+  }
+
   return updated;
 };
 
@@ -444,7 +461,7 @@ export const processRefund = async (
     throw new Error('Refund must be approved first');
   }
 
-  return await prisma.refund.update({
+  const updatedRefund = await prisma.refund.update({
     where: { id: refundId },
     data: {
       status: 'COMPLETED',
@@ -453,6 +470,21 @@ export const processRefund = async (
       receiptUrl,
     },
   });
+
+  // ✅ LOG AUDIT EVENT
+  await auditService.createLog({
+    userId: processedBy,
+    action: 'REFUND_PROCESSED',
+    tableName: 'Refund',
+    recordId: refundId,
+    newValues: {
+      amount: refund.refundAmount,
+      reason: refund.refundReason,
+      method: refund.refundMethod
+    }
+  });
+
+  return updatedRefund;
 };
 
 /**

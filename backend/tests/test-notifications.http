@@ -1,0 +1,41 @@
+### Test Automatic Notifications
+### This will immediately trigger payment reminders and attendance warnings
+
+@baseUrl = http://localhost:3001/api
+
+### Step 1: Admin Login - Request OTP
+POST {{baseUrl}}/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@function.bh",
+  "method": "email"
+}
+
+### Step 2: Verify OTP (Use the OTP from email or use default: 123456)
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@function.bh",
+  "code": "123456"
+}
+
+### Save the token from Step 2 response
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwZTgyYTBhMC1kNDM5LTQ0MDEtOThhYy01ZjJmNjEyYmEzYWIiLCJlbWFpbCI6ImFkbWluQGZ1bmN0aW9uLmJoIiwicm9sZSI6IkFETUlOIiwic3R1ZGVudElkIjpudWxsLCJ0ZWFjaGVySWQiOm51bGwsInBhcmVudElkIjpudWxsLCJpYXQiOjE3NjYwNzE1NDQsImV4cCI6MTc2NjY3NjM0NH0.kxUi264qK3AcNdighT1VUrjNr_IRMACADfz47Nym4FQ
+
+### Step 3: Test Scheduler - Trigger All Notifications NOW
+POST {{baseUrl}}/notifications/test-scheduler
+Authorization: Bearer {{adminToken}}
+u
+### Expected Result:
+### ✅ Console will show:
+###    - "⏰ Running payment reminder check..."
+###    - "⏰ Running attendance warning check..."
+###    - Emails/SMS sent to qassimahmed231@gmail.com / 35140480
+###    - All notifications redirected to your test email/phone
+
+### Step 4: Get At-Risk Students (optional)
+GET {{baseUrl}}/notifications/at-risk-students
+Authorization: Bearer {{adminToken}}
+

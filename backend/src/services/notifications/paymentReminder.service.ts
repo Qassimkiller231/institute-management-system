@@ -1,12 +1,15 @@
 import { PrismaClient } from '@prisma/client';
-import * as emailService from './email.service';
-import * as smsService from './sms.service';
+import * as emailService from '../email.service';
+import * as smsService from '../sms.service';
 
 const prisma = new PrismaClient();
 
 export const checkAndSendReminders = async () => {
+  console.log('\n🔔 ===== PAYMENT REMINDER CHECK START =====');
   const now = new Date();
-  
+  console.log(`⏰ Time: ${now.toISOString()}`);
+
+
   const installments = await prisma.installment.findMany({
     where: {
       paymentDate: null,
@@ -33,16 +36,26 @@ export const checkAndSendReminders = async () => {
       }
     }
   });
-  
+
+  console.log(`📊 Found ${installments.length} unpaid installments`);
+
+  let sentCount = 0;
+  const TEST_LIMIT = 1; // **TESTING: Only send 1 reminder**
+
   for (const installment of installments) {
+    if (sentCount >= TEST_LIMIT) {
+      console.log(`⚠️  TEST MODE: Reached limit of ${TEST_LIMIT} reminder(s), stopping.`);
+      break;
+    }
+
     if (!installment.dueDate) continue;
-    
+
     const daysUntilDue = Math.ceil(
       (installment.dueDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
     );
-    
+
     let reminderType: string | null = null;
-    
+
     if (daysUntilDue === 3) {
       reminderType = '3_DAYS_BEFORE';
     } else if (daysUntilDue === 1) {
@@ -52,21 +65,27 @@ export const checkAndSendReminders = async () => {
     } else if (daysUntilDue < 0) {
       reminderType = 'OVERDUE';
     }
-    
+
     if (reminderType) {
+      console.log(`\n💰 Installment ${installment.id.substring(0, 8)}: ${daysUntilDue} days (${reminderType})`);
       await sendPaymentReminder(installment, reminderType);
+      sentCount++;
     }
   }
+  console.log(`\n✅ Sent ${sentCount} payment reminder(s)`);
+  console.log('🔔 ===== PAYMENT REMINDER CHECK END =====\n');
 };
 
 async function sendPaymentReminder(installment: any, reminderType: string) {
   const student = installment.paymentPlan.enrollment.student;
   const studentEmail = student.user.email;
   const studentPhone = student.user.phone;
-  
+
+  // ⚠️ TEMPORARILY DISABLED FOR TESTING - REMOVE AFTER TESTING
+  /*
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  
+
   const existingReminder = await prisma.paymentReminder.findFirst({
     where: {
       installmentId: installment.id,
@@ -74,25 +93,29 @@ async function sendPaymentReminder(installment: any, reminderType: string) {
       sentAt: { gte: today }
     }
   });
-  
+
   if (existingReminder) {
-    console.log(`Reminder already sent for installment ${installment.id}`);
+    console.log(`   ⏭️  Already sent ${reminderType} reminder today`);
     return;
   }
-  
+  */
+  console.log(`   🚀 SENDING REMINDER (deduplication disabled for testing)`);
+
+
   const smsMessage = generateSMSMessage(
     installment.amount || 0,
     installment.dueDate,
     reminderType
   );
-  
+
   // Send email to student
   if (studentEmail) {
     try {
       const emailType = reminderType === '3_DAYS_BEFORE' ? 'THREE_DAYS' :
-                        reminderType === '1_DAY_BEFORE' ? 'ONE_DAY' :
-                        reminderType === 'DUE_DATE' ? 'DUE_DATE' : 'OVERDUE';
-      
+        reminderType === '1_DAY_BEFORE' ? 'ONE_DAY' :
+          reminderType === 'DUE_DATE' ? 'DUE_DATE' : 'OVERDUE';
+
+      console.log(`   📧 Sending email to: ${studentEmail}`);
       await emailService.sendPaymentReminderEmail({
         to: studentEmail,
         studentName: `${student.firstName} ${student.secondName || ''}`.trim(),
@@ -102,38 +125,41 @@ async function sendPaymentReminder(installment: any, reminderType: string) {
         installmentNumber: installment.installmentNumber,
         reminderType: emailType as any
       });
-      
+
       await logReminder(installment.id, reminderType, 'EMAIL');
+      console.log(`   ✅ Email sent successfully!`);
     } catch (error) {
-      console.error('Email send error:', error);
+      console.error('   ❌ Email send error:', error);
     }
   }
-  
+
   // Send SMS to student
   if (studentPhone) {
     try {
+      console.log(`   📱 Sending SMS to: ${studentPhone}`);
       await smsService.sendSMS({
         to: studentPhone,
         message: smsMessage
       });
-      
+
       await logReminder(installment.id, reminderType, 'SMS');
+      console.log(`   ✅ SMS sent successfully!`);
     } catch (error) {
-      console.error('SMS send error:', error);
+      console.error('   ❌ SMS send error:', error);
     }
   }
-  
+
   // Send to parents
   for (const link of student.parentStudentLinks || []) {
     const parentEmail = link.parent.user.email;
     const parentPhone = link.parent.user.phone;
-    
+
     if (parentEmail) {
       try {
         const emailType = reminderType === '3_DAYS_BEFORE' ? 'THREE_DAYS' :
-                          reminderType === '1_DAY_BEFORE' ? 'ONE_DAY' :
-                          reminderType === 'DUE_DATE' ? 'DUE_DATE' : 'OVERDUE';
-        
+          reminderType === '1_DAY_BEFORE' ? 'ONE_DAY' :
+            reminderType === 'DUE_DATE' ? 'DUE_DATE' : 'OVERDUE';
+
         await emailService.sendPaymentReminderEmail({
           to: parentEmail,
           studentName: `${student.firstName} ${student.secondName || ''}`.trim(),
@@ -147,7 +173,7 @@ async function sendPaymentReminder(installment: any, reminderType: string) {
         console.error('Parent email send error:', error);
       }
     }
-    
+
     if (parentPhone) {
       try {
         await smsService.sendSMS({
@@ -168,7 +194,7 @@ function generateSMSMessage(
 ): string {
   const amt = `BHD ${Number(amount).toFixed(2)}`;
   const date = dueDate.toLocaleDateString('en-GB');
-  
+
   switch (reminderType) {
     case '3_DAYS_BEFORE':
       return `Payment ${amt} due in 3 days (${date}). Please pay on time. -Function Institute`;
@@ -222,17 +248,17 @@ export const sendManualReminder = async (installmentId: string) => {
       }
     }
   });
-  
+
   if (!installment) {
     throw new Error('Installment not found');
   }
-  
+
   await sendPaymentReminder(installment, 'DUE_DATE');
 };
 
 export const getOverduePayments = async () => {
   const now = new Date();
-  
+
   const installments = await prisma.installment.findMany({
     where: {
       paymentDate: null,
@@ -252,7 +278,7 @@ export const getOverduePayments = async () => {
     },
     orderBy: { dueDate: 'asc' }
   });
-  
+
   return installments.map(inst => ({
     installmentId: inst.id,
     studentName: `${inst.paymentPlan.enrollment.student.firstName} ${inst.paymentPlan.enrollment.student.secondName || ''}`.trim(),

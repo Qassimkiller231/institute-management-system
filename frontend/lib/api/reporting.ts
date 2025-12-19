@@ -13,6 +13,22 @@ export const reportingAPI = {
     return res.json();
   },
 
+  getTrends: async (monthsBack: number = 6) => {
+    const res = await fetch(`${API_URL}/reports/trends?monthsBack=${monthsBack}`, {
+      headers: getHeaders(true)
+    });
+    if (!res.ok) throw new Error('Failed to fetch trends');
+    return res.json();
+  },
+
+  getAnalyticsCharts: async () => {
+    const res = await fetch(`${API_URL}/reports/charts`, {
+      headers: getHeaders(true)
+    });
+    if (!res.ok) throw new Error('Failed to fetch analytics charts');
+    return res.json();
+  },
+
   // Financial Analytics
   getFinancialAnalytics: async (termId?: string) => {
     // Use overall endpoint for all terms, specific term endpoint otherwise

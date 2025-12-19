@@ -18,17 +18,17 @@ export default function AuthGuard({ children }: { children: React.ReactNode }) {
 
     // Validate and auto-recover from corruption
     const isValid = validateAndRecoverAuth();
-    
+
     if (!isValid) {
       // Corruption detected and cleared, redirect to login
-      console.log('Auth validation failed, redirecting to login');
+      // console.log('Auth validation failed, redirecting to login');
       router.push('/login');
       return;
     }
 
     // Double-check authentication
     if (!isAuthenticated()) {
-      console.log('Not authenticated, redirecting to login');
+      // console.log('Not authenticated, redirecting to login');
       router.push('/login');
     }
   }, [pathname, router]);

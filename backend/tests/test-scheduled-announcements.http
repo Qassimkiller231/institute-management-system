@@ -1,0 +1,58 @@
+### Test Scheduled Announcements
+
+@baseUrl = http://localhost:3001/api
+
+### Step 1: Admin Login - Request OTP
+POST {{baseUrl}}/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@function.bh",
+  "method": "email"
+}
+
+### Step 2: Verify OTP
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "admin@function.bh",
+  "code": "123456"
+}
+
+### Copy token and userId from Step 2 response
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwZTgyYTBhMC1kNDM5LTQ0MDEtOThhYy01ZjJmNjEyYmEzYWIiLCJlbWFpbCI6ImFkbWluQGZ1bmN0aW9uLmJoIiwicm9sZSI6IkFETUlOIiwic3R1ZGVudElkIjpudWxsLCJ0ZWFjaGVySWQiOm51bGwsInBhcmVudElkIjpudWxsLCJpYXQiOjE3NjYwNzc4NTgsImV4cCI6MTc2NjY4MjY1OH0.GaT42uIdoXfTcNjeYxPcREFcS_3r-kXkILpzVlhoQNc
+@adminUserId = 0e82a0a0-d439-4401-98ac-5f2f612ba3ab
+
+### Step 3: Create Scheduled Announcement (scheduled for 1 minute from now)
+### IMPORTANT: Update scheduledFor to current time + 1 minute
+POST {{baseUrl}}/announcements
+Authorization: Bearer {{adminToken}}
+Content-Type: application/json
+
+{
+  "title": "🎉 Test Scheduled Announcement",
+  "content": "This is a test announcement scheduled for automatic publication. If you received this notification via email and SMS, the scheduled announcement system is working perfectly!",
+  "targetAudience": "STUDENTS",
+  "publishedBy": "{{adminUserId}}",
+  "scheduledFor": "2025-12-18T17:10:00.000Z",
+  "publishNow": false
+}
+
+### Step 4: Wait 1 minute, then manually trigger scheduler to test
+POST {{baseUrl}}/notifications/test-scheduler
+Authorization: Bearer {{adminToken}}
+
+### Expected Result:
+### - Console shows: "📅 Found 1 announcement(s) ready to publish"
+### - Console shows: "📢 Publishing: 🎉 Test Scheduled Announcement"
+### - Console shows: "📢 Found X potential recipient(s)"
+### - Console shows: "⚠️ TEST MODE: Limiting to 1 recipient(s)"
+### - 1 email sent to qassimahmed231@gmail.com with subject "🆕 New Announcement: ..."
+### - 1 SMS sent to +973 35140480 with "🆕 NEW ANNOUNCEMENT: ..."
+
+### Step 5: Verify announcement was published
+GET {{baseUrl}}/announcements
+Authorization: Bearer {{adminToken}}
+
+### The announcement should now have isPublished: true

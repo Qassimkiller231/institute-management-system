@@ -1,7 +1,7 @@
 @baseUrl = http://localhost:3001
 @studentEmail = ahmed.student@example.com
 @teacherEmail = sarah.teacher@institute.com
-@adminEmail = admin@institute.com
+@adminEmail = admin@function.bh
 @token=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJlMjA1MTBlNi03M2UwLTRiNzYtOWZlOS1mYmNhNjk2NTAxM2UiLCJlbWFpbCI6ImFobWVkLnN0dWRlbnRAZXhhbXBsZS5jb20iLCJyb2xlIjoiU1RVREVOVCIsImlhdCI6MTc2MzQ3NDk5NiwiZXhwIjoxNzY0MDc5Nzk2fQ.269GYKIz9erH1oNlvfYuHVtOKWny2DXCZxGxCvE1GNs
 ### ============================================
 ### HEALTH CHECK
@@ -340,7 +340,7 @@ Content-Type: application/json
 
 {
   "identifier": "{{adminEmail}}",
-  "code": "875085"
+  "code": "123456"
 }
 
 

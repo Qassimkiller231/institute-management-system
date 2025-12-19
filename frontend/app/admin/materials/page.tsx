@@ -16,16 +16,18 @@ export default function AdminMaterialsPage() {
   const [filterType, setFilterType] = useState<string>("all");
   const [showModal, setShowModal] = useState(false);
   const [editingMaterial, setEditingMaterial] = useState<MaterialCardData | null>(null);
-  
+
   // ✅ Separate states for create and edit
-  const [formData, setFormData] = useState<CreateMaterialDto>({
+  const [formData, setFormData] = useState<CreateMaterialDto | any>({
     title: "",
     description: "",
     materialType: "PDF" as "PDF" | "VIDEO" | "LINK" | "IMAGE" | "OTHER",
     fileUrl: "",
     groupId: "",
+    scheduledFor: "",
+    publishNow: true,
   });
-  
+
   const [editData, setEditData] = useState<UpdateMaterialDto>({});
   const [groups, setGroups] = useState<any[]>([]);
   const [programs, setPrograms] = useState<any[]>([]);
@@ -48,7 +50,8 @@ export default function AdminMaterialsPage() {
 
   const fetchPrograms = async () => {
     try {
-      const response = await programsAPI.getAll();
+      // ✅ Filter for active programs only
+      const response = await programsAPI.getAll(true);
       const data = response.data || [];
       setPrograms(Array.isArray(data) ? data : data.data || []);
     } catch (err) {
@@ -158,7 +161,11 @@ export default function AdminMaterialsPage() {
       material.group.groupCode.toLowerCase().includes(searchTerm.toLowerCase()) ||
       material.description?.toLowerCase().includes(searchTerm.toLowerCase());
 
-    const matchesType = filterType === "all" || material.materialType === filterType;
+    const matchesType = filterType === "all"
+      ? true // Show everything including scheduled
+      : filterType === "SCHEDULED"
+        ? material.isPublished === false
+        : material.materialType === filterType && material.isPublished !== false;
 
     return matchesSearch && matchesType;
   });
@@ -180,7 +187,10 @@ export default function AdminMaterialsPage() {
   );
 
   const renderFilters = () => (
-    <div className="bg-white rounded-lg shadow p-4 mb-6"><div className="flex justify-between items-center mb-4"><h3 className="text-sm font-semibold text-gray-700">Search & Filter</h3><button onClick={resetFilters} className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Reset</button></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><input type="text" placeholder="Search by title, group, or description..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900" /><select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900"><option value="all">All Types</option><option value="PDF">PDF Only</option><option value="VIDEO">Video Only</option><option value="LINK">Link Only</option><option value="IMAGE">Image Only</option><option value="OTHER">Other</option></select></div></div>
+    <div className="bg-white rounded-lg shadow p-4 mb-6"><div className="flex justify-between items-center mb-4"><h3 className="text-sm font-semibold text-gray-700">Search & Filter</h3><button onClick={resetFilters} className="px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded hover:bg-gray-200">Reset</button></div><div className="grid grid-cols-1 md:grid-cols-2 gap-4"><input type="text" placeholder="Search by title, group, or description..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900" /><select value={filterType} onChange={(e) => setFilterType(e.target.value)} className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900"><option value="all">All Types</option>
+      <option value="SCHEDULED">⏰ Scheduled</option>
+      <option value="PDF">PDF Only</option>
+      <option value="VIDEO">Video Only</option><option value="LINK">Link Only</option><option value="IMAGE">Image Only</option><option value="OTHER">Other</option></select></div></div>
   );
 
   const renderStats = () => (
@@ -196,7 +206,134 @@ export default function AdminMaterialsPage() {
   );
 
   const renderModalForm = () => (
-    <div className="space-y-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">Title *</label><input type="text" value={editingMaterial ? editData.title : formData.title} onChange={(e) => editingMaterial ? setEditData({ ...editData, title: e.target.value }) : setFormData({ ...formData, title: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900" placeholder="e.g., Unit 5 Vocabulary List" required /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={editingMaterial ? editData.description : formData.description} onChange={(e) => editingMaterial ? setEditData({ ...editData, description: e.target.value }) : setFormData({ ...formData, description: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900" rows={3} placeholder="Brief description of the material..." /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Material Type *</label><select value={editingMaterial ? editData.materialType : formData.materialType} onChange={(e) => { const val = e.target.value as "PDF" | "VIDEO" | "LINK" | "IMAGE" | "OTHER"; editingMaterial ? setEditData({ ...editData, materialType: val }) : setFormData({ ...formData, materialType: val }); }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900"><option value="PDF">PDF Document</option><option value="VIDEO">Video</option><option value="LINK">External Link</option><option value="IMAGE">Image</option><option value="OTHER">Other</option></select></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Program *</label><select value={selectedProgramId} onChange={(e) => { setSelectedProgramId(e.target.value); if (editingMaterial) { setEditData({ ...editData, groupId: '' }); } else { setFormData({ ...formData, groupId: '' }); } }} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900" required><option value="">Select Program</option>{programs.map((program) => <option key={program.id} value={program.id}>{program.name}</option>)}</select></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Group *</label><select value={editingMaterial ? editData.groupId : formData.groupId} onChange={(e) => editingMaterial ? setEditData({ ...editData, groupId: e.target.value }) : setFormData({ ...formData, groupId: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900" required disabled={!selectedProgramId}><option value="">Select Group</option>{groups.filter(group => !selectedProgramId || group.term?.program?.id === selectedProgramId).map((group) => <option key={group.id} value={group.id}>{group.groupCode} - {group.name}</option>)}</select></div><div><label className="block text-sm font-medium text-gray-700 mb-1">File URL *</label><input type="url" value={editingMaterial ? editData.fileUrl : formData.fileUrl} onChange={(e) => editingMaterial ? setEditData({ ...editData, fileUrl: e.target.value }) : setFormData({ ...formData, fileUrl: e.target.value })} className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900" placeholder="https://..." required /></div></div>
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Title *</label>
+        <input
+          type="text"
+          value={editingMaterial ? editData.title : formData.title}
+          onChange={(e) => editingMaterial ? setEditData({ ...editData, title: e.target.value }) : setFormData({ ...formData, title: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900"
+          placeholder="e.g., Unit 5 Vocabulary List"
+          required
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <textarea
+          value={editingMaterial ? editData.description : formData.description}
+          onChange={(e) => editingMaterial ? setEditData({ ...editData, description: e.target.value }) : setFormData({ ...formData, description: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900"
+          rows={3}
+          placeholder="Brief description of the material..."
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Material Type *</label>
+        <select
+          value={editingMaterial ? editData.materialType : formData.materialType}
+          onChange={(e) => {
+            const val = e.target.value as "PDF" | "VIDEO" | "LINK" | "IMAGE" | "OTHER";
+            editingMaterial ? setEditData({ ...editData, materialType: val }) : setFormData({ ...formData, materialType: val });
+          }}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900"
+        >
+          <option value="PDF">PDF Document</option>
+          <option value="VIDEO">Video</option>
+          <option value="LINK">External Link</option>
+          <option value="IMAGE">Image</option>
+          <option value="OTHER">Other</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Program *</label>
+        <select
+          value={selectedProgramId}
+          onChange={(e) => {
+            setSelectedProgramId(e.target.value);
+            if (editingMaterial) {
+              setEditData({ ...editData, groupId: '' });
+            } else {
+              setFormData({ ...formData, groupId: '' });
+            }
+          }}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900"
+          required
+        >
+          <option value="">Select Program</option>
+          {programs.map((program) => (
+            <option key={program.id} value={program.id}>{program.name}</option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Group *</label>
+        <select
+          value={editingMaterial ? editData.groupId : formData.groupId}
+          onChange={(e) => editingMaterial ? setEditData({ ...editData, groupId: e.target.value }) : setFormData({ ...formData, groupId: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900"
+          required
+          disabled={!selectedProgramId}
+        >
+          <option value="">Select Group</option>
+          {groups
+            .filter(group => !selectedProgramId || group.term?.program?.id === selectedProgramId)
+            .map((group) => (
+              <option key={group.id} value={group.id}>{group.groupCode} - {group.name}</option>
+            ))}
+        </select>
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">File URL *</label>
+        <input
+          type="url"
+          value={editingMaterial ? editData.fileUrl : formData.fileUrl}
+          onChange={(e) => editingMaterial ? setEditData({ ...editData, fileUrl: e.target.value }) : setFormData({ ...formData, fileUrl: e.target.value })}
+          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900"
+          placeholder="https://..."
+          required
+        />
+      </div>
+
+      {!editingMaterial && (
+        <div className="bg-gray-50 p-4 rounded-lg border border-gray-200">
+          <div className="flex items-center mb-3">
+            <input
+              type="checkbox"
+              id="publishNow"
+              checked={!(formData as any).publishNow}
+              onChange={(e) => setFormData({
+                ...formData,
+                publishNow: !e.target.checked
+              } as any)}
+              className="h-4 w-4 text-purple-600 focus:ring-purple-500 border-gray-300 rounded"
+            />
+            <label htmlFor="publishNow" className="ml-2 block text-sm font-medium text-gray-900">
+              Schedule for later?
+            </label>
+          </div>
+
+          {!(formData as any).publishNow && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Schedule Date & Time *
+              </label>
+              <input
+                type="datetime-local"
+                value={(formData as any).scheduledFor || ''}
+                onChange={(e) => setFormData({ ...formData, scheduledFor: e.target.value } as any)}
+                min={new Date().toISOString().slice(0, 16)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 text-gray-900"
+                required={!(formData as any).publishNow}
+              />
+              <p className="mt-1 text-xs text-gray-500">
+                Material will be automatically published at this time.
+              </p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
   );
 
   const renderModal = () => !showModal ? null : (

@@ -39,6 +39,8 @@ import emailRoutes from './routes/email.routes';
 import reportRoutes from './routes/report.routes';
 import uploadsRoutes from './routes/uploads.routes';
 import faqRoutes from './routes/faq.routes';
+import auditRoutes from './routes/audit.routes';
+import backupRoutes from './routes/backup.routes';
 
 // Load environment variables
 dotenv.config();
@@ -96,9 +98,14 @@ app.use('/api/attendance-warnings', attendanceWarningRoutes);
 app.use('/api/email', emailRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/uploads', uploadsRoutes);  // Serve uploaded files
+app.use('/api/reports', reportRoutes);
+app.use('/uploads', uploadsRoutes);  // Serve uploaded files
 app.use('/api/faqs', faqRoutes);
+app.use('/api/audit', auditRoutes);
+app.use('/api/backups', backupRoutes);
 
-// scheduler.startScheduler(); // Disabled for testing - uncomment to enable automated reminders
+// ✅ AUTOMATIC NOTIFICATIONS ENABLED
+scheduler.startScheduler();
 
 
 

@@ -4,6 +4,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { logout } from '@/lib/authStorage';
 import { useState } from 'react';
 import ChatBot from '@/components/chatbot/ChatBot';
+import Link from 'next/link';
+import { Bell } from 'lucide-react';
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -14,43 +16,47 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     | { divider: true; label: string }
     | { icon: string; label: string; path: string; badge?: string }
   > = [
-    { icon: '📊', label: 'Dashboard', path: '/admin' },
-    { 
-      icon: '🎓', 
-      label: 'Students', 
-      path: '/admin/students',
-      badge: 'Management'
-    },
-    { icon: '👪', label: 'Parents', path: '/admin/parents' },
-    { icon: '👨‍🏫', label: 'Teachers', path: '/admin/teachers' },
-    { icon: '👥', label: 'Groups', path: '/admin/groups' },
-    { icon: '📝', label: 'Enrollments', path: '/admin/enrollments' },
-    { icon: '📚', label: 'Materials', path: '/admin/materials' },
-    { icon: '📢', label: 'Announcements', path: '/admin/announcements' },
-    
-    { divider: true, label: 'Configuration' },
-    { icon: '📖', label: 'Programs', path: '/admin/programs' },
-    { icon: '📅', label: 'Terms', path: '/admin/terms' },
-    { icon: '🎯', label: 'Levels', path: '/admin/levels' },
-    { icon: '🏢', label: 'Venues', path: '/admin/venues' },
-    { icon: '🚪', label: 'Halls', path: '/admin/halls' },
-    
-    { divider: true, label: 'Reports & Analytics' },
-    { icon: '📈', label: 'Attendance Reports', path: '/admin/reports/attendance' },
-    { icon: '📊', label: 'Progress Reports', path: '/admin/reports/progress' },
-    { icon: '💰', label: 'Financial Reports', path: '/admin/reports/financial' },
-    { icon: '💳', label: 'Payments', path: '/admin/payments' },
-    { icon: '📋', label: 'Payment Plans', path: '/admin/payment-plans' },
-    
-    { divider: true, label: 'Testing & Progress' },
-    { icon: '🎤', label: 'Speaking Tests', path: '/admin/speaking-tests' },
-    { icon: '📋', label: 'Placement Tests', path: '/admin/placement-tests' },
-    { icon: '✅', label: 'Progress Criteria', path: '/admin/criteria' },
-    
-    { divider: true, label: 'System' },
-    { icon: '❓', label: 'FAQs', path: '/admin/faqs' },
-    { icon: '⚙️', label: 'Settings', path: '/admin/settings' },
-  ];
+      { icon: '📊', label: 'Dashboard', path: '/admin' },
+      {
+        icon: '🎓',
+        label: 'Students',
+        path: '/admin/students',
+        badge: 'Management'
+      },
+      { icon: '👪', label: 'Parents', path: '/admin/parents' },
+      { icon: '👨‍🏫', label: 'Teachers', path: '/admin/teachers' },
+      { icon: '👥', label: 'Groups', path: '/admin/groups' },
+      { icon: '📝', label: 'Enrollments', path: '/admin/enrollments' },
+      { icon: '📚', label: 'Materials', path: '/admin/materials' },
+      { icon: '📢', label: 'Announcements', path: '/admin/announcements' },
+      { icon: '🗓️', label: 'Sessions', path: '/admin/sessions' },
+      { icon: '📤', label: 'Bulk Attendance', path: '/admin/attendance/bulk' },
+
+      { divider: true, label: 'Configuration' },
+      { icon: '📖', label: 'Programs', path: '/admin/programs' },
+      { icon: '📅', label: 'Terms', path: '/admin/terms' },
+      { icon: '🎯', label: 'Levels', path: '/admin/levels' },
+      { icon: '🏢', label: 'Venues', path: '/admin/venues' },
+      { icon: '🚪', label: 'Halls', path: '/admin/halls' },
+
+      { divider: true, label: 'Reports & Analytics' },
+      { icon: '📈', label: 'Attendance Reports', path: '/admin/reports/attendance' },
+      { icon: '📊', label: 'Progress Reports', path: '/admin/reports/progress' },
+      { icon: '💰', label: 'Financial Reports', path: '/admin/reports/financial' },
+      { icon: '💳', label: 'Payments', path: '/admin/payments' },
+      { icon: '📋', label: 'Payment Plans', path: '/admin/payment-plans' },
+
+      { divider: true, label: 'Testing & Progress' },
+      { icon: '🎤', label: 'Speaking Tests', path: '/admin/speaking-tests' },
+      { icon: '📋', label: 'Placement Tests', path: '/admin/placement-tests' },
+      { icon: '✅', label: 'Progress Criteria', path: '/admin/criteria' },
+
+      { divider: true, label: 'System' },
+      { icon: '❓', label: 'FAQs', path: '/admin/faqs' },
+      { icon: '🛡️', label: 'Audit Logs', path: '/admin/audit-logs' },
+      { icon: '💾', label: 'Backup & Restore', path: '/admin/settings/backup' },
+      { icon: '⚙️', label: 'Settings', path: '/admin/settings' },
+    ];
 
   const isActive = (path: string) => {
     if (path === '/admin') {
@@ -101,16 +107,15 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             }
 
             const active = isActive(item.path);
-            
+
             return (
               <button
                 key={item.path}
                 onClick={() => router.push(item.path)}
-                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
-                  active
-                    ? 'bg-blue-50 text-blue-600 font-medium'
-                    : 'text-gray-700 hover:bg-gray-100'
-                }`}
+                className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${active
+                  ? 'bg-blue-50 text-blue-600 font-medium'
+                  : 'text-gray-700 hover:bg-gray-100'
+                  }`}
                 title={!sidebarOpen ? item.label : ''}
               >
                 <span className="text-xl">{item.icon}</span>
@@ -152,6 +157,9 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               </h1>
             </div>
             <div className="flex items-center gap-4">
+              <Link href="/admin/notifications" className="text-gray-500 hover:text-blue-600 transition-colors">
+                <Bell className="w-5 h-5" />
+              </Link>
               <span className="text-sm text-gray-600">Admin</span>
             </div>
           </div>

@@ -9,7 +9,7 @@ export class MaterialController {
   // Create new material
   async createMaterial(req: AuthRequest, res: Response): Promise<void> {
     try {
-      const { groupId, title, description, materialType, fileUrl, fileSizeKb } = req.body;
+      const { groupId, title, description, materialType, fileUrl, fileSizeKb, scheduledFor, publishNow } = req.body;
 
       if (!groupId || !title || !materialType) {
         res.status(400).json({
@@ -29,41 +29,44 @@ export class MaterialController {
       }
 
       // Get teacher ID
-    let uploadedBy: string | undefined;
-    
-    if (req.user!.role === 'TEACHER') {
-      const teacher = await prisma.teacher.findUnique({
-        where: { userId: req.user!.userId }
-      });
-      
-      if (!teacher) {
+      let uploadedBy: string | undefined;
+
+      if (req.user!.role === 'TEACHER') {
+        const teacher = await prisma.teacher.findUnique({
+          where: { userId: req.user!.userId }
+        });
+
+        if (!teacher) {
+          res.status(403).json({
+            success: false,
+            message: 'Teacher record not found'
+          });
+          return;
+        }
+        uploadedBy = teacher.id;
+      } else if (req.user!.role === 'ADMIN') {
+        // Admin can optionally provide teacherId, otherwise uploadedBy is undefined
+        uploadedBy = req.body.teacherId;
+      } else {
         res.status(403).json({
           success: false,
-          message: 'Teacher record not found'
+          message: 'Only teachers and admins can upload materials'
         });
         return;
       }
-      uploadedBy = teacher.id;
-    } else if (req.user!.role === 'ADMIN') {
-      // Admin can optionally provide teacherId, otherwise uploadedBy is undefined
-      uploadedBy = req.body.teacherId;
-    } else {
-      res.status(403).json({
-        success: false,
-        message: 'Only teachers and admins can upload materials'
-      });
-      return;
-    }
 
-    const material = await materialService.createMaterial({
-      groupId,
-      title,
-      description,
-      materialType,
-      fileUrl,
-      fileSizeKb,
-      uploadedBy
-    });
+      const material = await materialService.createMaterial({
+        groupId,
+        title,
+        description,
+        materialType,
+        fileUrl,
+        fileSizeKb,
+        uploadedBy,
+        scheduledFor,
+        publishNow,
+        performedBy: req.user!.userId
+      });
 
       res.status(201).json({
         success: true,
@@ -227,7 +230,7 @@ export class MaterialController {
     try {
       const { id } = req.params;
 
-      await materialService.deleteMaterial(id);
+      await materialService.deleteMaterial(id, req.user!.userId);
 
       res.status(200).json({
         success: true,
@@ -246,7 +249,7 @@ export class MaterialController {
     try {
       const { id } = req.params;
 
-      await materialService.permanentlyDeleteMaterial(id);
+      await materialService.permanentlyDeleteMaterial(id, req.user!.userId);
 
       res.status(200).json({
         success: true,

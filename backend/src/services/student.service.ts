@@ -2,6 +2,8 @@
 import { PrismaClient } from '@prisma/client';
 import { normalizePhoneNumber, validatePhoneNumber } from '../utils/phone.utils';
 
+import auditService from './audit.service';
+
 const prisma = new PrismaClient();
 
 /**
@@ -30,6 +32,7 @@ export const createStudent = async (data: {
   howHeardAbout?: string;
   referralPerson?: string;
   notes?: string;
+  performedBy?: string;
 }) => {
   // Check if CPR already exists
   const existingStudent = await prisma.student.findUnique({
@@ -118,6 +121,21 @@ export const createStudent = async (data: {
 
     return student;
   });
+
+  // ✅ LOG AUDIT EVENT
+  if (data.performedBy) {
+    await auditService.createLog({
+      userId: data.performedBy,
+      action: 'STUDENT_CREATED',
+      tableName: 'Student',
+      recordId: result.id,
+      newValues: {
+        firstName: result.firstName,
+        lastName: result.secondName, // Assuming secondName acts as last name for simplicity or just use full name construction
+        cpr: result.cpr
+      }
+    });
+  }
 
   return result;
 };
@@ -346,7 +364,7 @@ export const updateStudent = async (id: string, updates: {
   referralPerson?: string;
   notes?: string;
   isActive?: boolean;
-}) => {
+}, performedBy?: string) => {
   const existing = await prisma.student.findUnique({
     where: { id },
     include: { user: true }
@@ -463,6 +481,32 @@ export const updateStudent = async (id: string, updates: {
 
     return student;
   });
+
+  // ✅ LOG AUDIT EVENT
+  if (performedBy) {
+    const changes: any = {};
+    if (updates.firstName && updates.firstName !== existing.firstName) changes.firstName = updates.firstName;
+    if (updates.cpr && updates.cpr !== existing.cpr) changes.cpr = updates.cpr;
+    if (updates.email && updates.email !== existing.email) changes.email = updates.email;
+    if (updates.isActive !== undefined && updates.isActive !== existing.isActive) changes.isActive = updates.isActive;
+
+    // Only log if meaningful changes occurred
+    if (Object.keys(changes).length > 0) {
+      await auditService.createLog({
+        userId: performedBy,
+        action: 'STUDENT_UPDATED',
+        tableName: 'Student',
+        recordId: id,
+        oldValues: {
+          firstName: existing.firstName,
+          cpr: existing.cpr,
+          email: existing.email,
+          isActive: existing.isActive
+        },
+        newValues: changes
+      });
+    }
+  }
 
   return result;
 };

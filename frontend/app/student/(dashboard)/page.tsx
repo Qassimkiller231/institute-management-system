@@ -6,6 +6,7 @@ import { getToken, getStudentId, logout } from '@/lib/authStorage';
 import { announcementsAPI, studentsAPI, speakingSlotAPI } from '@/lib/api';
 import type { Announcement } from '@/lib/api/announcements';
 import { LoadingState } from '@/components/common/LoadingState';
+import DashboardNotificationWidget from '@/components/dashboard/DashboardNotificationWidget';
 
 interface StudentData {
   id: string;
@@ -73,15 +74,15 @@ export default function StudentDashboard() {
 
       // Use students API
       const result = await studentsAPI.getById(studentId);
-      
+
       if (result.success) {
         setStudent(result.data);
-        
+
         // DEBUG: Log the student data
         // console.log('===== STUDENT DATA DEBUG =====');
         // console.log('Full student object:', JSON.stringify(result.data, null, 2));
         // console.log('Enrollments:', result.data.enrollments);
-        
+
         // if (result.data.enrollments) {
         //   result.data.enrollments.forEach((e: any, index: number) => {
         //     console.log(`Enrollment ${index}:`, {
@@ -97,7 +98,7 @@ export default function StudentDashboard() {
         //   });
         // }
         // console.log('=============================');
-        
+
         // Fetch announcements for student (includes their groups + institute-wide)
         if (result.data.enrollments) {
           const activeGroups = result.data.enrollments
@@ -106,10 +107,10 @@ export default function StudentDashboard() {
 
           // Fetch all announcements (backend will filter for student's groups + ALL)
           try {
-            const announcementsResponse = await announcementsAPI.getAll({ 
-              isPublished: true 
+            const announcementsResponse = await announcementsAPI.getAll({
+              isPublished: true
             });
-            
+
             const allAnnouncements = announcementsResponse.data || [];
 
             // Sort: HIGH priority first, then by date (newest first)
@@ -150,16 +151,16 @@ export default function StudentDashboard() {
   };
 
   // Check student test and enrollment status
-  const hasCompletedWrittenTest = student?.testSessions?.some((ts: any) => 
+  const hasCompletedWrittenTest = student?.testSessions?.some((ts: any) =>
     ts.status === 'COMPLETED' || ts.status === 'SPEAKING_SCHEDULED' || ts.status === 'MCQ_COMPLETED'
   );
-  
+
   // Check if speaking is scheduled (they booked a slot)
   const hasSpeakingSlot = student?.testSessions?.some((ts: any) => ts.status === 'SPEAKING_SCHEDULED');
-  
+
   const speakingSlotCompleted = student?.testSessions?.some((ts: any) => ts.status === 'SPEAKING_COMPLETED');
   const hasCurrentLevel = !!student?.currentLevel;
-  
+
   const hasCurrentTermEnrollment = student?.enrollments?.some(
     (e: any) => e.status === 'ACTIVE' && e.group?.term?.isCurrent
   );
@@ -209,8 +210,8 @@ export default function StudentDashboard() {
     };
 
     return (
-      <div 
-        key={announcement.id} 
+      <div
+        key={announcement.id}
         className={`border-l-4 rounded-r-lg p-4 ${priorityColors[announcement.priority as keyof typeof priorityColors] || priorityColors.LOW}`}
       >
         <div className="flex justify-between items-start">
@@ -325,7 +326,7 @@ export default function StudentDashboard() {
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Not Enrolled in Current Term
             </h2>
-            
+
             <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-6 mb-8">
               <div className="flex items-start gap-4">
                 <div className="text-4xl">⚠️</div>
@@ -334,7 +335,7 @@ export default function StudentDashboard() {
                     You were previously enrolled
                   </h3>
                   <p className="text-gray-700">
-                    Our records show you were a student in a previous term, but you are not 
+                    Our records show you were a student in a previous term, but you are not
                     currently enrolled in the active term.
                   </p>
                 </div>
@@ -419,7 +420,7 @@ export default function StudentDashboard() {
             <h2 className="text-3xl font-bold text-gray-900 mb-4">
               Test Completed Successfully!
             </h2>
-            
+
             <div className="mb-8">
               <p className="text-gray-600 mb-4">Your assessed level:</p>
               <div className="inline-block px-6 py-3 bg-blue-100 text-blue-800 rounded-lg text-2xl font-bold border-2 border-blue-300">
@@ -435,7 +436,7 @@ export default function StudentDashboard() {
                     Processing Your Results
                   </h3>
                   <p className="text-gray-700">
-                    Thank you for completing the placement test! Our team is currently 
+                    Thank you for completing the placement test! Our team is currently
                     reviewing your results and preparing your detailed report.
                   </p>
                 </div>
@@ -450,7 +451,7 @@ export default function StudentDashboard() {
                     Next Steps
                   </h3>
                   <p className="text-gray-700 mb-4">
-                    We will send you a detailed report shortly via email and you will be 
+                    We will send you a detailed report shortly via email and you will be
                     enrolled in the appropriate class level. You will receive:
                   </p>
                   <ul className="space-y-2 text-gray-700">
@@ -492,13 +493,13 @@ export default function StudentDashboard() {
 
     const handleCancelAppointment = async () => {
       if (!bookedSlot || !confirm('Are you sure you want to cancel your speaking test appointment?')) return;
-      
+
       const session = student?.testSessions?.find((ts: any) => ts.status === 'SPEAKING_SCHEDULED');
       if (!session) {
         alert('Could not find test session');
         return;
       }
-      
+
       try {
         await speakingSlotAPI.cancel(bookedSlot.id, session.id);
         alert('Appointment cancelled successfully');
@@ -510,13 +511,13 @@ export default function StudentDashboard() {
 
     const handleReschedule = async () => {
       if (!bookedSlot || !confirm('Cancel current appointment and book a new slot?')) return;
-      
+
       const session = student?.testSessions?.find((ts: any) => ts.status === 'SPEAKING_SCHEDULED');
       if (!session) {
         alert('Could not find test session');
         return;
       }
-      
+
       try {
         await speakingSlotAPI.cancel(bookedSlot.id, session.id);
         loadStudentData();
@@ -550,10 +551,10 @@ export default function StudentDashboard() {
                   <div>
                     <p className="text-sm text-gray-600 mb-1">Time</p>
                     <p className="text-lg font-semibold text-gray-900">
-                      {new Date(bookedSlot.slotTime).toLocaleTimeString('en-US', { 
-                        hour: 'numeric', 
+                      {new Date(bookedSlot.slotTime).toLocaleTimeString('en-US', {
+                        hour: 'numeric',
                         minute: '2-digit',
-                        hour12: true 
+                        hour12: true
                       })}
                     </p>
                   </div>
@@ -576,7 +577,7 @@ export default function StudentDashboard() {
               >
                 Cancel Appointment
               </button>
-              
+
               <button
                 onClick={handleReschedule}
                 className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition font-medium"
@@ -613,6 +614,8 @@ export default function StudentDashboard() {
               </div>
             </div>
           </div>
+
+          <DashboardNotificationWidget portal="student" />
 
           {renderAnnouncements()}
           {renderEnrollments()}

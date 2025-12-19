@@ -19,7 +19,10 @@ export const createStudent = async (req: AuthRequest, res: Response) => {
       });
     }
 
-    const result = await studentService.createStudent(data);
+    const result = await studentService.createStudent({
+      ...data,
+      performedBy: req.user?.userId
+    });
 
     res.status(201).json({
       success: true,
@@ -135,7 +138,7 @@ export const updateStudent = async (req: AuthRequest, res: Response) => {
 
     // Allow updating isActive for reactivation
     // Allow updating email, phone, cpr, and other student fields
-    const result = await studentService.updateStudent(id, updates);
+    const result = await studentService.updateStudent(id, updates, req.user?.userId);
 
     res.status(200).json({
       success: true,

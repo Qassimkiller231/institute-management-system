@@ -1,6 +1,7 @@
 // src/services/sms.service.ts
 import { PrismaClient } from '@prisma/client';
 import twilio from 'twilio';
+import { normalizePhoneNumber } from '../utils/phone.utils';
 
 const prisma = new PrismaClient();
 const accountSid = process.env.TWILIO_ACCOUNT_SID || '';
@@ -28,8 +29,20 @@ export const sendSMS = async (data: {
   type?: string;
 }) => {
   try {
-    // Format phone number (ensure +973 country code for Bahrain)
-    const formattedPhone = data.to.startsWith('+') ? data.to : `+973${data.to}`;
+    // DEV OVERRIDE - redirect all SMS to test phone in development
+    let phoneToUse = data.to;
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`⚠️ DEV MODE: Redirecting SMS from ${data.to} to 35140480`);
+      phoneToUse = '35140480';
+    }
+
+    // Twilio REQUIRES international format: +[country code][number]
+    // If phone doesn't start with +, add +973 (Bahrain)
+    const formattedPhone = phoneToUse.startsWith('+') ? phoneToUse : `+973${phoneToUse}`;
+
+    console.log(`📱 Original: ${data.to}`);
+    console.log(`📱 Final (for Twilio): ${formattedPhone}`);
+    console.log(`📱 Twilio client: ${!!twilioClient ? 'YES' : 'NO'}`);
 
     // Send SMS via Twilio
     const result = await twilioClient.messages.create({
@@ -37,6 +50,8 @@ export const sendSMS = async (data: {
       from: TWILIO_PHONE_NUMBER,
       to: formattedPhone,
     });
+
+    console.log(`✅ Twilio response: SID=${result.sid}, Status=${result.status}`);
 
     // Log SMS in notifications table
     if (data.userId) {
@@ -60,7 +75,9 @@ export const sendSMS = async (data: {
       message: data.message,
     };
   } catch (error: any) {
-    console.error('Twilio SMS error:', error);
+    console.error('❌ Twilio SMS error:', error.message);
+    console.error('❌ Error code:', error.code);
+    console.error('❌ Error status:', error.status);
     throw new Error(error.message || 'Failed to send SMS');
   }
 };
@@ -74,7 +91,7 @@ export const sendOTP = async (data: {
   userId?: string;
 }) => {
   const message = `Your OTP code is: ${data.code}. Valid for 5 minutes. Do not share this code.`;
-
+  console.log(data.phone);
   return await sendSMS({
     to: data.phone,
     message,
@@ -266,7 +283,7 @@ export const verifyTwilioConfig = async () => {
   try {
     // Test Twilio credentials by fetching account info
     const account = await twilioClient.api.accounts(process.env.TWILIO_ACCOUNT_SID!).fetch();
-    
+
     return {
       success: true,
       accountSid: account.sid,

@@ -155,19 +155,17 @@ async function getScheduleOverview(): Promise<string> {
 
 /**
  * Get comprehensive database context for Claude AI (ADMIN ONLY)
- * This provides real-time statistics so Claude can answer questions accurately
+ * This provides real-time statistics AND specific actionable lists so Claude can answer "Who?" questions.
  */
 export const getDatabaseContext = async (): Promise<string> => {
   try {
-    // Get counts
+    // 1. Basic Counts
     const [
       totalStudents,
       activeStudents,
       totalTeachers,
       totalGroups,
       activeGroups,
-      totalTerms,
-      totalPrograms,
       programs,
       levels
     ] = await Promise.all([
@@ -176,20 +174,24 @@ export const getDatabaseContext = async (): Promise<string> => {
       prisma.teacher.count(),
       prisma.group.count(),
       prisma.group.count({ where: { isActive: true } }),
-      prisma.term.count(),
-      prisma.program.count(),
       prisma.program.findMany({ select: { name: true, code: true } }),
       prisma.level.findMany({ select: { name: true, displayName: true } })
     ]);
 
-    // Get payment summary
+    // 2. Financial Context & Overdue List
     const allPlans = await prisma.studentPaymentPlan.findMany({
-      include: { installments: true }
+      include: {
+        installments: true,
+        enrollment: {
+          include: { student: { select: { firstName: true, secondName: true, thirdName: true, cpr: true } } }
+        }
+      }
     });
 
     let totalExpected = 0;
     let totalPaid = 0;
     let overdueCount = 0;
+    const overdueList: string[] = [];
     const today = new Date();
 
     for (const plan of allPlans) {
@@ -201,42 +203,53 @@ export const getDatabaseContext = async (): Promise<string> => {
       totalPaid += paid;
 
       // Check for overdue installments
-      const overdueInstallments = plan.installments.filter(i =>
+      const overdueItems = plan.installments.filter(i =>
         !i.paymentDate && i.dueDate && new Date(i.dueDate) < today
       );
-      if (overdueInstallments.length > 0) {
+
+      if (overdueItems.length > 0) {
         overdueCount++;
+        const amountOverdue = overdueItems.reduce((sum, i) => sum + Number(i.amount), 0);
+        const name = `${plan.enrollment.student.firstName} ${plan.enrollment.student.secondName || ''} ${plan.enrollment.student.thirdName || ''}`.trim();
+        overdueList.push(`- ${name} (CPR: ${plan.enrollment.student.cpr}): BHD ${amountOverdue.toFixed(2)} overdue`);
       }
     }
 
-    // Get attendance overview
-    const allAttendance = await prisma.attendance.findMany();
-    const attended = allAttendance.filter(a => ATTENDED_STATUSES.includes(a.status)).length;
-    const avgAttendance = allAttendance.length > 0
-      ? ((attended / allAttendance.length) * 100).toFixed(1)
-      : '0';
+    // Limit overdue list to top 20 to save tokens
+    const overdueListStr = overdueList.slice(0, 20).join('\n');
+    const overdueMore = overdueList.length > 20 ? `\n...and ${overdueList.length - 20} more.` : '';
 
-    // Get today's sessions
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date();
-    todayEnd.setHours(23, 59, 59, 999);
-
-    const todaysSessions = await prisma.classSession.count({
-      where: {
-        sessionDate: {
-          gte: todayStart,
-          lte: todayEnd
-        }
-      }
+    // 3. Attendance Context & At-Risk List
+    const students = await prisma.student.findMany({
+      where: { isActive: true },
+      select: { id: true, firstName: true, secondName: true, thirdName: true, cpr: true }
     });
 
-    // Format programs list
-    const programsList = programs.map(p => `${p.name} (${p.code})`).join(', ');
+    let lowAttendanceCount = 0;
+    const lowAttendanceList: string[] = [];
 
-    // Format levels list
-    const levelsList = levels.map(l => `${l.name} (${l.displayName})`).join(', ');
+    for (const student of students) {
+      const attendance = await prisma.attendance.findMany({
+        where: { studentId: student.id }
+      });
 
+      if (attendance.length > 0) {
+        const attended = attendance.filter(a => ['PRESENT', 'LATE'].includes(a.status)).length;
+        const pct = (attended / attendance.length) * 100;
+
+        if (pct < 75) {
+          lowAttendanceCount++;
+          const name = `${student.firstName} ${student.secondName || ''} ${student.thirdName || ''}`.trim();
+          lowAttendanceList.push(`- ${name}: ${pct.toFixed(1)}%`);
+        }
+      }
+    }
+
+    const lowAttendanceListStr = lowAttendanceList.slice(0, 20).join('\n');
+    const lowAttendanceMore = lowAttendanceList.length > 20 ? `\n...and ${lowAttendanceList.length - 20} more.` : '';
+
+
+    // Format output
     return `
 📊 **CURRENT INSTITUTE DATABASE CONTEXT:**
 
@@ -247,14 +260,10 @@ export const getDatabaseContext = async (): Promise<string> => {
 
 **Staff & Classes:**
 - Teachers: ${totalTeachers}
-- Total Groups: ${totalGroups}
 - Active Groups: ${activeGroups}
-- Today's Classes: ${todaysSessions}
 
-**Academic:**
-- Programs (${totalPrograms}): ${programsList}
-- Levels (${levels.length}): ${levelsList}
-- Terms: ${totalTerms}
+**Academic Structure:**
+- Programs: ${programs.map(p => p.name).join(', ')}
 
 **Finances:**
 - Total Expected: BHD ${totalExpected.toFixed(2)}
@@ -262,11 +271,18 @@ export const getDatabaseContext = async (): Promise<string> => {
 - Outstanding: BHD ${(totalExpected - totalPaid).toFixed(2)}
 - Students with Overdue Payments: ${overdueCount}
 
-**Attendance:**
-- Overall Attendance Rate: ${avgAttendance}%
-- Total Attendance Records: ${allAttendance.length}
+**🚨 OVERDUE PAYMENTS (Top 20):**
+${overdueListStr || 'None'}
+${overdueMore}
 
-Use this data to answer the admin's questions accurately.
+**Attendance:**
+- Students with Low Attendance (<75%): ${lowAttendanceCount}
+
+**⚠️ AT-RISK STUDENTS (Low Attendance):**
+${lowAttendanceListStr || 'None'}
+${lowAttendanceMore}
+
+Use this specific data to answer the admin's questions. if they ask "Who has matched criteria?", use the lists above.
 `;
   } catch (error) {
     console.error('Error getting database context:', error);

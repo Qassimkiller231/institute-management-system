@@ -19,6 +19,8 @@ export interface AnnouncementCardData {
     firstName: string;
     lastName: string;
   };
+  isPublished?: boolean;
+  scheduledFor?: string;
 }
 
 interface AnnouncementCardProps {
@@ -56,58 +58,47 @@ export default function AnnouncementCard({
     }
   };
 
+  // ========================================
+  // RENDER FUNCTIONS
+  // ========================================
+
+  const renderHeader = () => (
+    <div className="flex items-center space-x-3 mb-2">
+      <span className="text-2xl">{getPriorityIcon(announcement.priority)}</span>
+      <h3 className="text-xl font-bold text-gray-900">{announcement.title}</h3>
+      <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getPriorityColor(announcement.priority)}`}>
+        {announcement.priority}
+      </span>
+      {announcement.isPublished === false && announcement.scheduledFor && (
+        <span className="px-3 py-1 text-xs font-medium rounded-full border bg-blue-100 text-blue-800 border-blue-300 flex items-center gap-1">
+          <span>⏰</span>
+          Scheduled: {new Date(announcement.scheduledFor).toLocaleString()}
+        </span>
+      )}
+    </div>
+  );
+
+  const renderContent = () => (
+    <p className="text-gray-700 mb-3 whitespace-pre-wrap">{announcement.content}</p>
+  );
+
+  const renderMetadata = () => (
+    <div className="flex items-center space-x-4 text-sm text-gray-500"><span className="flex items-center gap-1"><span>📚</span><span>{announcement.group?.groupCode || announcement.term?.name || 'General'}</span></span>{showTeacher && announcement.teacher && <span className="flex items-center gap-1"><span>👨‍🏫</span><span>{announcement.teacher.firstName} {announcement.teacher.lastName}</span></span>}<span className="flex items-center gap-1"><span>📅</span><span>{new Date(announcement.createdAt).toLocaleDateString()}</span></span></div>
+  );
+
+  const renderActions = () => !canDelete && !canEdit ? null : (
+    <div className="ml-4 flex gap-2">{canEdit && onEdit && <button onClick={() => onEdit(announcement)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">Edit</button>}{canDelete && onDelete && <button onClick={() => onDelete(announcement.id, announcement.title)} className="text-red-600 hover:text-red-800 text-sm font-medium">Delete</button>}</div>
+  );
+
   return (
     <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
       <div className="flex items-start justify-between">
         <div className="flex-1">
-          <div className="flex items-center space-x-3 mb-2">
-            <span className="text-2xl">{getPriorityIcon(announcement.priority)}</span>
-            <h3 className="text-xl font-bold text-gray-900">{announcement.title}</h3>
-            <span className={`px-3 py-1 text-xs font-medium rounded-full border ${getPriorityColor(announcement.priority)}`}>
-              {announcement.priority}
-            </span>
-          </div>
-          
-          <p className="text-gray-700 mb-3 whitespace-pre-wrap">{announcement.content}</p>
-          
-          <div className="flex items-center space-x-4 text-sm text-gray-500">
-            <span className="flex items-center gap-1">
-              <span>📚</span>
-              <span>{announcement.group?.groupCode || announcement.term?.name || 'General'}</span>
-            </span>
-            {showTeacher && announcement.teacher && (
-              <span className="flex items-center gap-1">
-                <span>👨‍🏫</span>
-                <span>{announcement.teacher.firstName} {announcement.teacher.lastName}</span>
-              </span>
-            )}
-            <span className="flex items-center gap-1">
-              <span>📅</span>
-              <span>{new Date(announcement.createdAt).toLocaleDateString()}</span>
-            </span>
-          </div>
+          {renderHeader()}
+          {renderContent()}
+          {renderMetadata()}
         </div>
-        
-        {(canDelete || canEdit) && (
-          <div className="ml-4 flex gap-2">
-            {canEdit && onEdit && (
-              <button
-                onClick={() => onEdit(announcement)}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-              >
-                Edit
-              </button>
-            )}
-            {canDelete && onDelete && (
-              <button
-                onClick={() => onDelete(announcement.id, announcement.title)}
-                className="text-red-600 hover:text-red-800 text-sm font-medium"
-              >
-                Delete
-              </button>
-            )}
-          </div>
-        )}
+        {renderActions()}
       </div>
     </div>
   );

@@ -1,0 +1,243 @@
+### ============================================
+### TEACHER SCHEDULE CONFLICT DETECTION - FULL TEST
+### ============================================
+### This test demonstrates that the system prevents teachers from being double-booked
+### Run each request in order (top to bottom)
+
+@baseUrl = http://localhost:3001/api
+@adminEmail = admin@function.bh
+@adminOtp = 123456
+
+# ==================== STEP 1: GET ADMIN TOKEN ====================
+
+### 1.1 Request OTP for Admin
+POST {{baseUrl}}/auth/request-otp
+Content-Type: application/json
+
+{
+  "identifier": "{{adminEmail}}",
+  "method": "email"
+}
+
+### 1.2 Verify OTP and Get Token
+# @name loginAdmin
+POST {{baseUrl}}/auth/verify-otp
+Content-Type: application/json
+
+{
+  "identifier": "{{adminEmail}}",
+  "code": "{{adminOtp}}"
+}
+
+### Extract token from response
+@adminToken =eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIwZTgyYTBhMC1kNDM5LTQ0MDEtOThhYy01ZjJmNjEyYmEzYWIiLCJlbWFpbCI6ImFkbWluQGZ1bmN0aW9uLmJoIiwicm9sZSI6IkFETUlOIiwic3R1ZGVudElkIjpudWxsLCJ0ZWFjaGVySWQiOm51bGwsInBhcmVudElkIjpudWxsLCJpYXQiOjE3NjYwNjQ3NDEsImV4cCI6MTc2NjY2OTU0MX0.k2VJpnD2U4obrGHo9EpgFJmbR9A-_BuVUjdfZnnmkoU
+
+# ==================== STEP 2: GET EXISTING TEACHER ====================
+
+### 2.1 Get All Teachers
+# @name getTeachers
+GET {{baseUrl}}/teachers
+Authorization: Bearer {{adminToken}}
+
+### Extract first teacher ID (or create one if none exist)
+@teacherId =dd791e3a-1682-4bce-a5ca-26e2291c8e52
+@teacherName =Fatima
+
+# ==================== STEP 3: GET REQUIRED IDs FOR GROUP CREATION ====================
+
+### 3.1 Get Active Term
+# @name getTerms
+GET {{baseUrl}}/terms?status=ACTIVE
+Authorization: Bearer {{adminToken}}
+
+@termId =5b552771-c4e9-4eb7-aff9-8838b1444c0b
+
+### 3.2 Get First Level
+# @name getLevels
+GET {{baseUrl}}/levels
+Authorization: Bearer {{adminToken}}
+
+@levelId =6be96096-8c5c-42f2-8f54-97391d9588bc
+
+### 3.3 Get First Venue
+# @name getVenues
+GET {{baseUrl}}/venues
+Authorization: Bearer {{adminToken}}
+
+@venueId =efb63abe-1336-4ecc-abe9-303bb1ca2e0b
+
+# ==================== CLEANUP: DELETE OLD TEST GROUPS IF THEY EXIST ====================
+
+### Delete old test group 1 (if exists - will fail if not found, which is OK)
+DELETE {{baseUrl}}/groups?groupCode=CONFLICT-TEST-G1
+Authorization: Bearer {{adminToken}}
+
+### Delete old test group 2 (if exists - will fail if not found, which is OK)
+DELETE {{baseUrl}}/groups?groupCode=CONFLICT-TEST-G2
+Authorization: Bearer {{adminToken}}
+
+# ==================== STEP 4: CREATE GROUP 1 ====================
+
+### 4.1 Create First Group with Teacher
+# @name createGroup1
+POST {{baseUrl}}/groups
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "termId": "{{termId}}",
+  "levelId": "{{levelId}}",
+  "teacherId": "{{teacherId}}",
+  "venueId": "{{venueId}}",
+  "groupCode": "CONFLICT-TEST-G1",
+  "name": "Test Group 1 - Conflict Demo",
+  "capacity": 15
+}
+
+@group1Id =19ebecfd-44b1-40b1-a8ba-612f39cc1a8d
+
+# ==================== STEP 5: CREATE GROUP 2 (SAME TEACHER) ====================
+
+### 5.1 Create Second Group with SAME Teacher
+# @name createGroup2
+POST {{baseUrl}}/groups
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "termId": "{{termId}}",
+  "levelId": "{{levelId}}",
+  "teacherId": "{{teacherId}}",
+  "venueId": "{{venueId}}",
+  "groupCode": "CONFLICT-TEST-G2",
+  "name": "Test Group 2 - Conflict Demo",
+  "capacity": 15
+}
+
+@group2Id =aeb57d06-a371-4f1e-8f56-85060430aa68
+
+# ==================== TEST SCENARIO 1: CREATE FIRST SESSION (SHOULD SUCCEED) ====================
+
+### Test 1: Create Session for Group 1 at 10:00-12:00
+# @name createSession1
+POST {{baseUrl}}/sessions
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "groupId": "{{group1Id}}",
+  "sessionDate": "2025-12-30",
+  "sessionNumber": 1,
+  "startTime": "10:00:00",
+  "endTime": "12:00:00",
+  "topic": "Introduction to English"
+}
+
+# ✅ EXPECTED: SUCCESS
+# Teacher {{teacherName}} is now teaching Group 1 from 10:00-12:00 on Dec 25
+
+# ==================== TEST SCENARIO 2: TRY OVERLAPPING SESSION (SHOULD FAIL) ====================
+
+### Test 2: Try to Create Overlapping Session for Group 2 
+# @name createSessionConflict
+POST {{baseUrl}}/sessions
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "groupId": "{{group2Id}}",
+  "sessionDate": "2025-12-25",
+  "sessionNumber": 1,
+  "startTime": "11:00:00",
+  "endTime": "13:00:00",
+  "topic": "Grammar Basics"
+}
+
+# ❌ EXPECTED: ERROR
+# "Teacher conflict detected: Already teaching Test Group 1 - Conflict Demo at this time"
+# Because: 11:00-13:00 overlaps with 10:00-12:00
+
+# ==================== TEST SCENARIO 3: DIFFERENT TIME (SHOULD SUCCEED) ====================
+
+### Test 3: Create Session at Different Time
+# @name createSession2
+POST {{baseUrl}}/sessions
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "groupId": "{{group2Id}}",
+  "sessionDate": "2025-12-25",
+  "sessionNumber": 1,
+  "startTime": "14:00:00",
+  "endTime": "16:00:00",
+  "topic": "Grammar Basics"
+}
+
+# ✅ EXPECTED: SUCCESS
+# Different time (14:00-16:00) doesn't overlap with first session (10:00-12:00)
+
+# ==================== TEST SCENARIO 4: DIFFERENT DATE (SHOULD SUCCEED) ====================
+
+### Test 4: Create Session on Different Date
+# @name createSession3
+POST {{baseUrl}}/sessions
+Content-Type: application/json
+Authorization: Bearer {{adminToken}}
+
+{
+  "groupId": "{{group2Id}}",
+  "sessionDate": "2025-12-26",
+  "sessionNumber": 2,
+  "startTime": "10:00:00",
+  "endTime": "12:00:00",
+  "topic": "Vocabulary Building"
+}
+
+# ✅ EXPECTED: SUCCESS
+# Different date (Dec 26) - same teacher can teach at same time on different days
+
+# ==================== CLEANUP (OPTIONAL) ====================
+
+### Delete Test Session 1
+DELETE {{baseUrl}}/sessions/{{createSession1.response.body.$.data.id}}
+Authorization: Bearer {{adminToken}}
+
+### Delete Test Session 2
+DELETE {{baseUrl}}/sessions/{{createSession2.response.body.$.data.id}}
+Authorization: Bearer {{adminToken}}
+
+### Delete Test Session 3
+DELETE {{baseUrl}}/sessions/{{createSession3.response.body.$.data.id}}
+Authorization: Bearer {{adminToken}}
+
+### Delete Test Group 1
+DELETE {{baseUrl}}/groups/{{group1Id}}
+Authorization: Bearer {{adminToken}}
+
+### Delete Test Group 2
+DELETE {{baseUrl}}/groups/{{group2Id}}
+Authorization: Bearer {{adminToken}}
+
+# ==================== TEST RESULTS CHECKLIST ====================
+#
+# [ ] Step 1: Admin logged in successfully
+# [ ] Step 2: Teacher ID retrieved
+# [ ] Step 3: Term, Level, Venue IDs retrieved
+# [ ] Step 4: Group 1 created with teacher
+# [ ] Step 5: Group 2 created with SAME teacher
+# [ ] Test 1: ✅ First session created (10:00-12:00)
+# [ ] Test 2: ❌ Overlapping session blocked (11:00-13:00)
+#             Error: "Teacher conflict detected: Already teaching [Group Name] at this time"
+# [ ] Test 3: ✅ Different time allowed (14:00-16:00)
+# [ ] Test 4: ✅ Different date allowed (Dec 26)
+#
+# ==================== KEY VALIDATION POINTS ====================
+#
+# ✅ Teacher cannot be double-booked at the same time
+# ✅ Same teacher can teach different groups at different times
+# ✅ Same teacher can teach on different dates
+# ✅ Error message clearly identifies the conflicting group
+# ✅ Both room AND teacher conflicts are now validated
+#
+# 🎉 REQUIREMENT #1: SCHEDULE CONFLICT PREVENTION - COMPLETE!

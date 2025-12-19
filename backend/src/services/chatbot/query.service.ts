@@ -99,7 +99,7 @@ IMPORTANT: You have access to the above REAL DATA from the institute's database.
     }
 
     // Try FAQ for non-admin (faster, free)
-    const faqResponse = faqService.getFAQResponse(query.message, query.userRole);
+    const faqResponse = await faqService.getFAQResponse(query.message, query.userRole);
     if (faqResponse) {
       return {
         response: faqResponse,

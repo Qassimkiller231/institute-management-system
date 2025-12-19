@@ -38,24 +38,24 @@ export const getAdminDashboard = async (termId?: string) => {
     totalRevenue += Number(inst.amount);
   });
 
- const enrollmentStats = {
-  pendingTests: testSessions.filter(t => 
-    t.status === 'IN_PROGRESS'  // ← Show tests currently being taken
-  ).length,
-  testCompleted: testSessions.filter(t => 
-    t.status === 'SPEAKING_COMPLETED' ||  // ← Only fully completed tests
-    t.status === 'COMPLETED'
-  ).length,
-  awaitingSpeaking: testSessions.filter(t => 
-    t.status === 'SPEAKING_SCHEDULED'
-  ).length,
-  enrolled: activeEnrollments,
-  withdrew: enrollments.filter((e) => e.status === 'WITHDRAWN').length
-};
+  const enrollmentStats = {
+    pendingTests: testSessions.filter(t =>
+      t.status === 'IN_PROGRESS'  // ← Show tests currently being taken
+    ).length,
+    testCompleted: testSessions.filter(t =>
+      t.status === 'SPEAKING_COMPLETED' ||  // ← Only fully completed tests
+      t.status === 'COMPLETED'
+    ).length,
+    awaitingSpeaking: testSessions.filter(t =>
+      t.status === 'SPEAKING_SCHEDULED'
+    ).length,
+    enrolled: activeEnrollments,
+    withdrew: enrollments.filter((e) => e.status === 'WITHDRAWN').length
+  };
 
   // Calculate attendance overview
   const studentAttendance: Record<string, { attended: number; total: number }> = {};
-  
+
   attendanceRecords.forEach(record => {
     if (!studentAttendance[record.studentId]) {
       studentAttendance[record.studentId] = { attended: 0, total: 0 };
@@ -66,7 +66,7 @@ export const getAdminDashboard = async (termId?: string) => {
     }
   });
 
-  const attendancePercentages = Object.values(studentAttendance).map(s => 
+  const attendancePercentages = Object.values(studentAttendance).map(s =>
     safePercent(s.attended, s.total)
   );
 
@@ -93,20 +93,20 @@ export const getAdminDashboard = async (termId?: string) => {
 
   installments.forEach(inst => {
     const amount = Number(inst.amount);
-    
+
     // Total paid (all time)
     totalPaid += amount;
-    
+
     // Collected this month (payment_date in current month)
-    if (inst.paymentDate &&inst.paymentDate >= firstDayOfMonth && 
-        inst.paymentDate <= lastDayOfMonth) {
+    if (inst.paymentDate && inst.paymentDate >= firstDayOfMonth &&
+      inst.paymentDate <= lastDayOfMonth) {
       collectedThisMonth += amount;
     }
   });
 
   // Get total expected from payment plans
   const paymentPlans = await prisma.studentPaymentPlan.findMany({
-    where: termId 
+    where: termId
       ? { enrollment: { group: { termId } } }
       : {}
   });
@@ -317,4 +317,132 @@ export const getTrends = async (monthsBack = 6) => {
       })
     )
   };
+};
+
+// 10. Student Distribution by Program
+export const getStudentDistribution = async () => {
+  // Count active enrollments per program by traversing Program -> Term -> Group
+  const programs = await prisma.program.findMany({
+    include: {
+      terms: {
+        include: {
+          groups: {
+            include: {
+              _count: {
+                select: { enrollments: true }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  return programs.map(p => {
+    // Sum enrollments across all terms and groups
+    const count = p.terms.reduce((accTerm, term) => {
+      return accTerm + term.groups.reduce((accGroup, group) => {
+        return accGroup + group._count.enrollments;
+      }, 0);
+    }, 0);
+
+    return {
+      name: p.name,
+      code: p.code,
+      count
+    };
+  }).sort((a, b) => b.count - a.count);
+};
+
+// 11. Revenue by Program (All time)
+export const getRevenueByProgram = async () => {
+  // Traverse: Program -> Term -> Group -> Enrollment -> PaymentPlan -> Installments
+  const programs = await prisma.program.findMany({
+    include: {
+      terms: {
+        include: {
+          groups: {
+            include: {
+              enrollments: {
+                include: {
+                  paymentPlan: {
+                    include: {
+                      installments: true
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const result = programs.map(prog => {
+    let total = 0;
+    prog.terms.forEach(term => {
+      term.groups.forEach(group => {
+        group.enrollments.forEach(enrollment => {
+          enrollment.paymentPlan?.installments.forEach(inst => {
+            total += Number(inst.amount);
+          });
+        });
+      });
+    });
+
+    return {
+      name: prog.name,
+      value: total
+    };
+  }).sort((a, b) => b.value - a.value);
+
+  return result;
+};
+
+// 12. Payment Method Stats
+export const getPaymentMethodStats = async () => {
+  const stats = await prisma.installment.groupBy({
+    by: ['paymentMethod'],
+    _sum: {
+      amount: true
+    },
+    _count: {
+      id: true
+    }
+  });
+
+  return stats
+    .filter(s => s.paymentMethod) // Filter out nulls
+    .map(s => ({
+      name: s.paymentMethod?.replace('_', ' ') || 'Unknown',
+      value: Number(s._sum.amount),
+      count: s._count.id
+    }))
+    .sort((a, b) => b.value - a.value);
+};
+
+// 13. Teacher Workload (Active Groups)
+export const getTeacherWorkload = async () => {
+  const teachers = await prisma.teacher.findMany({
+    where: { isActive: true },
+    include: {
+      _count: {
+        select: {
+          groups: {
+            where: { isActive: true }
+          }
+        }
+      }
+    }
+  });
+
+  return teachers
+    .map(t => ({
+      name: `${t.firstName} ${t.lastName}`,
+      activeGroups: t._count.groups
+    }))
+    .filter(t => t.activeGroups > 0) // Only show teachers with active groups
+    .sort((a, b) => b.activeGroups - a.activeGroups)
+    .slice(0, 10); // Top 10 busiest teachers
 };

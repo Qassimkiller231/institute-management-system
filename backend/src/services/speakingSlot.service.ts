@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from '@prisma/client';
+import * as notificationService from './notification.service';
 
 const prisma = new PrismaClient();
 
@@ -156,6 +157,23 @@ export const bookSpeakingSlot = async (input: BookSpeakingSlotInput) => {
     data: { status: 'SPEAKING_SCHEDULED' }
   });
 
+  // ✅ NOTIFY TEACHER
+  try {
+    const teacher = await prisma.teacher.findUnique({ where: { id: slot.teacherId } });
+    if (teacher) {
+      await notificationService.createNotification({
+        userId: teacher.userId,
+        type: 'SPEAKING_SLOT_ASSIGNMENT',
+        title: 'Speaking Test Booked',
+        message: `${student.firstName} ${student.secondName || ''} booked a speaking test on ${slot.slotDate.toISOString().split('T')[0]} at ${slot.slotTime.toISOString().split('T')[1].substring(0, 5)}.`,
+        linkUrl: '/teacher/speaking',
+        sentVia: 'APP'
+      });
+    }
+  } catch (err) {
+    console.error('Failed to notify teacher:', err);
+  }
+
   return updatedSlot;
 };
 
@@ -218,6 +236,29 @@ export const submitSpeakingResult = async (
 
     return updatedSlot;
   });
+
+  // ✅ NOTIFY ADMINS (About Completion)
+  try {
+    // Find all admins
+    const admins = await prisma.user.findMany({ where: { role: 'ADMIN', isActive: true } });
+
+    // We need student name
+    const student = await prisma.student.findUnique({ where: { id: slot.studentId! } });
+
+    const notifs = admins.map(admin => ({
+      userId: admin.id,
+      type: 'SPEAKING_TEST_COMPLETION',
+      title: 'Speaking Test Completed',
+      message: `${student?.firstName} has completed the Speaking Test with level ${input.finalLevel}.`, // student might be null technically but unlikely at this stage
+      linkUrl: '/admin/students',
+      sentVia: 'APP'
+    }));
+
+    await notificationService.createBulkNotifications(notifs);
+
+  } catch (err) {
+    console.error('Failed to notify admins:', err);
+  }
 
   return result;
 };
