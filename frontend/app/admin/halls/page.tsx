@@ -38,14 +38,14 @@ export default function HallsManagement() {
 
   const [editData, setEditData] = useState<UpdateHallDto>({});
 
-  useEffect(() => { 
+  useEffect(() => {
     fetchVenues();
-    fetchHalls(); 
+    fetchHalls();
   }, [filterStatus]);
 
   const fetchVenues = async () => {
     try {
-      const data = await venuesAPI.getAll();
+      const data = await venuesAPI.getAll(true); // Only fetch active venues
       setVenues(data.data || []);
     } catch (err: any) {
       alert('Error fetching venues: ' + err.message);
@@ -58,7 +58,7 @@ export default function HallsManagement() {
       let isActiveParam: boolean | undefined = undefined;
       if (filterStatus === 'active') isActiveParam = true;
       else if (filterStatus === 'inactive') isActiveParam = false;
-      
+
       const data = await hallsAPI.getAll(venueFilter || undefined, isActiveParam);
       setHalls(data.data || []);
     } catch (err: any) {

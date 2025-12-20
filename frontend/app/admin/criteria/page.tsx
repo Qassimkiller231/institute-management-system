@@ -12,6 +12,7 @@ export default function ProgressCriteriaPage() {
   const [modalMode, setModalMode] = useState<'create' | 'edit'>('create');
   const [selectedCriterion, setSelectedCriterion] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState<'active' | 'all' | 'inactive'>('active');
 
   const [formData, setFormData] = useState({
     name: '',
@@ -24,17 +25,23 @@ export default function ProgressCriteriaPage() {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [filterStatus]);
 
   const loadData = async () => {
     try {
       setLoading(true);
+
+      // Determine isActive filter
+      let isActiveParam: boolean | undefined = undefined;
+      if (filterStatus === 'active') isActiveParam = true;
+      else if (filterStatus === 'inactive') isActiveParam = false;
+
       const [levelsData, groupsData, criteriaData] = await Promise.all([
         levelsAPI.getAll(),
         groupsAPI.getAll({ isActive: true }),
-        criteriaAPI.getAll()
+        criteriaAPI.getAll({ isActive: isActiveParam })
       ]);
-      
+
       setLevels(levelsData.data || []);
       setGroups(groupsData.data || []);
       setCriteria(criteriaData.data || []);
@@ -81,8 +88,24 @@ export default function ProgressCriteriaPage() {
 
     try {
       if (modalMode === 'create') {
+        await criteriaAPI.create({
+          name: formData.name,
+          description: formData.description || undefined,
+          levelId: formData.levelId || undefined,
+          groupId: formData.groupId || undefined,
+          orderNumber: formData.orderNumber
+        });
         alert('Criterion created!');
       } else {
+        if (!selectedCriterion) return;
+        await criteriaAPI.update(selectedCriterion.id, {
+          name: formData.name,
+          description: formData.description || undefined,
+          levelId: formData.levelId || undefined,
+          groupId: formData.groupId || undefined,
+          orderNumber: formData.orderNumber,
+          isActive: formData.isActive
+        });
         alert('Criterion updated!');
       }
       setShowModal(false);
@@ -95,6 +118,7 @@ export default function ProgressCriteriaPage() {
   const handleDelete = async (id: string, name: string) => {
     if (!confirm(`Delete "${name}"?`)) return;
     try {
+      await criteriaAPI.delete(id);
       alert('Criterion deleted!');
       loadData();
     } catch (err: any) {
@@ -128,12 +152,23 @@ export default function ProgressCriteriaPage() {
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Progress Criteria</h1>
           <p className="text-gray-700">Define learning objectives and track student progress</p>
         </div>
-        <button
-          onClick={openCreateModal}
-          className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
-        >
-          + Add Criterion
-        </button>
+        <div className="flex gap-3">
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as any)}
+            className="px-4 py-2 border rounded-lg text-gray-900"
+          >
+            <option value="active">Active Only</option>
+            <option value="all">All Items</option>
+            <option value="inactive">Inactive Only</option>
+          </select>
+          <button
+            onClick={openCreateModal}
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+          >
+            + Add Criterion
+          </button>
+        </div>
       </div>
     );
   };
@@ -171,15 +206,19 @@ export default function ProgressCriteriaPage() {
               <span className="inline-flex px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-semibold">
                 {criterion.levelName}
               </span>
-              {criterion.isActive && (
+              {criterion.isActive ? (
                 <span className="inline-flex px-3 py-1 bg-green-100 text-green-800 rounded-full text-xs font-semibold">
                   Active
+                </span>
+              ) : (
+                <span className="inline-flex px-3 py-1 bg-red-100 text-red-800 rounded-full text-xs font-semibold">
+                  Inactive
                 </span>
               )}
             </div>
             <p className="text-gray-700 ml-11">{criterion.description}</p>
           </div>
-          
+
           <div className="flex gap-2">
             <button
               onClick={() => openEditModal(criterion)}
@@ -372,7 +411,7 @@ export default function ProgressCriteriaPage() {
   // ========================================
   // MAIN RENDER
   // ========================================
-  
+
   if (loading) {
     return renderLoadingState();
   }

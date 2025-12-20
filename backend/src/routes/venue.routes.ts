@@ -9,9 +9,10 @@ const router = express.Router();
 // All routes require authentication
 router.use(authenticate);
 
-// Admin only for create/update
+// Admin only for create/update/delete
 router.post('/', requireAdmin, venueController.createVenue);
 router.put('/:id', requireAdmin, venueController.updateVenue);
+router.delete('/:id', requireAdmin, venueController.deleteVenue);
 
 // Anyone can view
 router.get('/', venueController.getAllVenues);

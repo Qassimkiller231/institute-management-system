@@ -386,6 +386,200 @@ export const sendAnnouncementEmail = async (data: {
     subject: `Announcement: ${data.title}`,
     htmlBody,
     textBody,
+  });;
+};
+
+export const sendSpeakingBookingConfirmation = async (data: {
+  to: string;
+  studentName: string;
+  teacherEmail: string;
+  slotDate: Date;
+  slotTime: string;
+}) => {
+  const formattedDate = data.slotDate.toLocaleDateString('en-US', {
+    weekday: 'long',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric'
+  });
+
+  const formattedTime = new Date(`2000-01-01T${data.slotTime}`).toLocaleTimeString('en-US', {
+    hour: 'numeric',
+    minute: '2-digit',
+    hour12: true
+  });
+
+  const htmlBody = `
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial; max-width: 600px; margin: 0 auto;">
+      <div style="background: #27ae60; color: white; padding: 20px; text-align: center;">
+        <h1>✓ Speaking Test Booked!</h1>
+      </div>
+      <div style="padding: 30px; background: #f9f9f9;">
+        <p>Dear ${data.studentName},</p>
+        <p>Your speaking test appointment has been successfully scheduled.</p>
+        
+        <div style="background: white; padding: 20px; border-radius: 8px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #333;">Appointment Details</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Date:</strong></td>
+              <td style="padding: 8px 0;">${formattedDate}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Time:</strong></td>
+              <td style="padding: 8px 0;">${formattedTime}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; color: #666;"><strong>Teacher:</strong></td>
+              <td style="padding: 8px 0;">${data.teacherEmail}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div style="background: #e8f5e9; padding: 15px; border-left: 4px solid #27ae60; margin: 20px 0;">
+          <p style="margin: 0;"><strong>📝 What to bring:</strong></p>
+          <ul style="margin: 10px 0;">
+            <li>Student ID</li>
+            <li>Confidence and a positive attitude!</li>
+          </ul>
+        </div>
+
+        <p>If you need to reschedule, please log in to your account.</p>
+        <p>Good luck with your speaking test!</p>
+        
+        <p style="color: #666; font-size: 12px; margin-top: 30px;">
+          - Function Institute Team
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const textBody = `Speaking Test Booked!
+
+Dear ${data.studentName},
+
+Your speaking test has been scheduled:
+- Date: ${formattedDate}
+- Time: ${formattedTime}
+- Teacher: ${data.teacherEmail}
+
+What to bring:
+- Student ID
+- Confidence and a positive attitude!
+
+Good luck!
+- Function Institute`;
+
+  return await sendEmail({
+    to: data.to,
+    subject: 'Speaking Test Confirmation - Function Institute',
+    htmlBody,
+    textBody,
+  });
+};
+
+export const sendPlacementTestCompletionEmail = async (data: {
+  to: string;
+  studentName: string;
+  assessedLevel: string;
+  scorePercent: number;
+  totalPoints: number;
+  earnedPoints: number;
+}) => {
+  const levelColors: Record<string, string> = {
+    'A1': '#e74c3c',
+    'A2': '#e67e22',
+    'B1': '#f39c12',
+    'B2': '#2ecc71',
+    'C1': '#3498db',
+    'C2': '#9b59b6'
+  };
+
+  const levelColor = levelColors[data.assessedLevel] || '#3498db';
+
+  const htmlBody = `
+    <!DOCTYPE html>
+    <html>
+    <body style="font-family: Arial; max-width: 600px; margin: 0 auto;">
+      <div style="background: #3e445b; color: white; padding: 30px 20px; text-align: center;">
+        <div style="font-size: 48px; margin-bottom: 10px;">🎉</div>
+        <h1 style="margin: 0;">Test Completed Successfully!</h1>
+      </div>
+      
+      <div style="padding: 30px; background: #f9f9f9;">
+        <p>Dear ${data.studentName},</p>
+        <p>Congratulations on completing your placement test! Here are your results:</p>
+        
+        <div style="background: white; padding: 25px; border-radius: 8px; margin: 25px 0; text-align: center;">
+          <div style="color: #666; font-size: 14px; margin-bottom: 10px;">YOUR ASSESSED LEVEL</div>
+          <div style="background: ${levelColor}; color: white; font-size: 48px; font-weight: bold; border-radius: 12px; padding: 20px; display: inline-block; min-width: 100px;">
+            ${data.assessedLevel}
+          </div>
+          <div style="margin-top: 15px; color: #666;">
+            Score: ${data.earnedPoints}/${data.totalPoints} (${data.scorePercent.toFixed(1)}%)
+          </div>
+        </div>
+
+        <div style="background: #fff3cd; border-left: 4px solid #f39c12; padding: 15px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #856404;">📋 Processing Your Results</h3>
+          <p style="margin: 0; color: #856404;">Thank you for completing the placement test! Our team is currently reviewing your results and preparing your detailed report.</p>
+        </div>
+
+        <div style="background: #d1ecf1; border-left: 4px solid #17a2b8; padding: 15px; margin: 20px 0;">
+          <h3 style="margin-top: 0; color: #0c5460;">📧 Next Steps</h3>
+          <p style="color: #0c5460; margin: 5px 0;">You will receive a detailed report shortly via email which includes:</p>
+          <ul style="color: #0c5460; margin: 10px 0;">
+            <li>✓ Detailed performance report</li>
+            <li>✓ Class schedule and enrollment details</li>
+            <li>✓ Payment information</li>
+            <li>✓ Access to learning materials</li>
+          </ul>
+        </div>
+
+        <div style="text-align: center; margin-top: 30px; padding: 20px; background: white; border-radius: 8px;">
+          <p style="margin: 0 0 15px 0; color: #666;">Need help? Contact us at</p>
+          <a href="mailto:info@functioninstitute.com" style="color: #3498db; text-decoration: none; font-weight: bold;">info@functioninstitute.com</a>
+        </div>
+
+        <p style="color: #666; font-size: 12px; margin-top: 30px; text-align: center;">
+          - Function Institute Team
+        </p>
+      </div>
+    </body>
+    </html>
+  `;
+
+  const textBody = `Test Completed Successfully!
+
+Dear ${data.studentName},
+
+Congratulations on completing your placement test!
+
+YOUR ASSESSED LEVEL: ${data.assessedLevel}
+Score: ${data.earnedPoints}/${data.totalPoints} (${data.scorePercent.toFixed(1)}%)
+
+PROCESSING YOUR RESULTS
+Thank you for completing the placement test! Our team is currently reviewing your results and preparing your detailed report.
+
+NEXT STEPS
+You will receive a detailed report shortly via email which includes:
+- Detailed performance report
+- Class schedule and enrollment details
+- Payment information
+- Access to learning materials
+
+Need help? Contact us at info@functioninstitute.com
+
+- Function Institute Team`;
+
+  return await sendEmail({
+    to: data.to,
+    subject: `🎉 Test Completed! Your Assessed Level: ${data.assessedLevel}`,
+    htmlBody,
+    textBody,
   });
 };
 

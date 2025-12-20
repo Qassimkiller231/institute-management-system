@@ -1,10 +1,13 @@
-// src/controllers/progressCriteria.controller.ts
+// src/controllers/progressCriteria controller.ts
 import { Request, Response, NextFunction } from 'express';
 import prisma from '../utils/db';
 import {
   setStudentCriteriaCompletion,
   getStudentCriteriaProgress,
   listProgressCriteria,
+  createProgressCriteria,
+  updateProgressCriteria,
+  setProgressCriteriaActive,
 } from '../services/progressCriteria.service';
 
 /**
@@ -240,6 +243,102 @@ export const bulkSetCriteriaCompletionController = async (
     res.status(400).json({
       success: false,
       message: error.message || 'Failed to set bulk criteria completions',
+    });
+  }
+};
+
+/**
+ * POST /api/progress-criteria
+ * Body: { name, description?, levelId?, groupId?, orderNumber? }
+ */
+export const createProgressCriteriaController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { name, description, levelId, groupId, orderNumber } = req.body;
+
+    if (!name) {
+      return res.status(400).json({
+        success: false,
+        message: 'Name is required',
+      });
+    }
+
+    const criteria = await createProgressCriteria({
+      name,
+      description,
+      levelId,
+      groupId,
+      orderNumber,
+    });
+
+    res.status(201).json({
+      success: true,
+      message: 'Progress criteria created successfully',
+      data: criteria,
+    });
+  } catch (error: any) {
+    console.error('Create progress criteria error:', error);
+    res.status(400).json({
+      success: false,
+      message: error.message || 'Failed to create progress criteria',
+    });
+  }
+};
+
+/**
+ * PUT /api/progress-criteria/:id
+ * Body: { name?, description?, levelId?, groupId?, orderNumber?, isActive? }
+ */
+export const updateProgressCriteriaController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { id } = req.params;
+    const updates = req.body;
+
+    const criteria = await updateProgressCriteria(id, updates);
+
+    res.status(200).json({
+      success: true,
+      message: 'Progress criteria updated successfully',
+      data: criteria,
+    });
+  } catch (error: any) {
+    console.error('Update progress criteria error:', error);
+    const status = error.message === 'Progress criteria not found' ? 404 : 400;
+    res.status(status).json({
+      success: false,
+      message: error.message || 'Failed to update progress criteria',
+    });
+  }
+};
+
+/**
+ * DELETE /api/progress-criteria/:id
+ * Soft delete (deactivate) progress criteria
+ */
+export const deleteProgressCriteriaController = async (
+  req: Request,
+  res: Response
+) => {
+  try {
+    const { id } = req.params;
+
+    await setProgressCriteriaActive(id, false);
+
+    res.status(200).json({
+      success: true,
+      message: 'Progress criteria deleted successfully',
+    });
+  } catch (error: any) {
+    console.error('Delete progress criteria error:', error);
+    const status = error.message === 'Progress criteria not found' ? 404 : 400;
+    res.status(status).json({
+      success: false,
+      message: error.message || 'Failed to delete progress criteria',
     });
   }
 };

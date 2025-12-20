@@ -4,7 +4,10 @@ import {
   setStudentCriteriaCompletionController,
   getStudentProgressController,
   listProgressCriteriaController,
-  bulkSetCriteriaCompletionController
+  bulkSetCriteriaCompletionController,
+  createProgressCriteriaController,
+  updateProgressCriteriaController,
+  deleteProgressCriteriaController
 } from '../controllers/progressCriteria.controller';
 import { authenticate } from '../middleware/auth.middleware';
 import { requireAdmin, requireTeacherOrAdmin, requireAnyRole } from '../middleware/role.middleware';
@@ -39,6 +42,28 @@ router.post(
   authenticate,
   requireTeacherOrAdmin,
   bulkSetCriteriaCompletionController
+);
+
+// CRUD operations - Admin only
+router.post(
+  '/',
+  authenticate,
+  requireAdmin,
+  createProgressCriteriaController
+);
+
+router.put(
+  '/:id',
+  authenticate,
+  requireAdmin,
+  updateProgressCriteriaController
+);
+
+router.delete(
+  '/:id',
+  authenticate,
+  requireAdmin,
+  deleteProgressCriteriaController
 );
 
 export default router;

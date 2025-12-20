@@ -40,24 +40,24 @@ export default function BookSpeakingPage() {
   // STATE & HOOKS
   // ========================================
   const router = useRouter();
-  
+
   // UI State
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [step, setStep] = useState<BookingStep>('teacher');
   const [booking, setBooking] = useState(false);
   const [booked, setBooked] = useState(false);
-  
+
   // Data State
   const [allSlots, setAllSlots] = useState<SpeakingSlot[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [studentData, setStudentData] = useState<any>(null);
-  
+
   // Selection State
   const [selectedTeacher, setSelectedTeacher] = useState('');
   const [selectedDate, setSelectedDate] = useState('');
   const [selectedSlot, setSelectedSlot] = useState('');
-  
+
   // Filtered Data State
   const [availableDates, setAvailableDates] = useState<string[]>([]);
   const [availableTimeSlots, setAvailableTimeSlots] = useState<SpeakingSlot[]>([]);
@@ -65,7 +65,7 @@ export default function BookSpeakingPage() {
   // ========================================
   // EFFECTS
   // ========================================
-  
+
   /**
    * Effect 1: Initial Load
    * Runs once on mount to load student data and available slots
@@ -106,7 +106,7 @@ export default function BookSpeakingPage() {
   // ========================================
   // DATA LOADING FUNCTIONS
   // ========================================
-  
+
   /**
    * Load student data and find their completed test session
    * This validates that the student has completed MCQ before booking
@@ -114,7 +114,7 @@ export default function BookSpeakingPage() {
   const loadStudentAndSession = async () => {
     try {
       const studentId = getStudentId();
-      
+
       if (!studentId) {
         setError('Please login first');
         setLoading(false);
@@ -126,12 +126,12 @@ export default function BookSpeakingPage() {
 
       if (result.success && result.data) {
         setStudentData(result.data);
-        
+
         // Find the latest test session with MCQ completed status
         const mcqCompletedSession = result.data.testSessions?.find(
           (session: any) => session.status === 'MCQ_COMPLETED'
         );
-        
+
         if (mcqCompletedSession) {
           // Save session ID for booking (using utility function)
           saveTestSessionId(mcqCompletedSession.id);
@@ -158,10 +158,10 @@ export default function BookSpeakingPage() {
   const loadAvailableSlots = async () => {
     try {
       const result = await speakingSlotAPI.getAvailable();
-      
+
       if (result.success && result.data) {
         setAllSlots(result.data);
-        
+
         // Extract unique teachers from slots
         const uniqueTeachers = result.data.reduce((acc: any[], slot: SpeakingSlot) => {
           if (!acc.find(t => t.id === slot.teacherId)) {
@@ -174,7 +174,7 @@ export default function BookSpeakingPage() {
           }
           return acc;
         }, []);
-        
+
         setTeachers(uniqueTeachers);
       } else {
         setError('Failed to load available slots');
@@ -189,7 +189,7 @@ export default function BookSpeakingPage() {
   // ========================================
   // HANDLERS
   // ========================================
-  
+
   /**
    * Handle booking the selected speaking slot
    * Validates test session and student ID before booking
@@ -199,12 +199,12 @@ export default function BookSpeakingPage() {
 
     const sessionId = getTestSessionId(); // Using utility
     const studentId = getStudentId();     // Using utility
-    
+
     if (!sessionId) {
       setError('Test session not found. Please complete the test first.');
       return;
     }
-    
+
     if (!studentId) {
       setError('Student ID not found. Please login again.');
       return;
@@ -215,7 +215,7 @@ export default function BookSpeakingPage() {
 
     try {
       const result = await speakingSlotAPI.book(selectedSlot, sessionId, studentId);
-      
+
       if (result.success) {
         setBooked(true);
         removeTestSessionId(); // Clear session ID (using utility)
@@ -246,7 +246,7 @@ export default function BookSpeakingPage() {
   // ========================================
   // UTILITY FUNCTIONS
   // ========================================
-  
+
   /**
    * Format date as: "Monday, January 15, 2025"
    */
@@ -285,7 +285,7 @@ export default function BookSpeakingPage() {
   // ========================================
   // RENDER FUNCTIONS
   // ========================================
-  
+
   /**
    * Success state - shown after successful booking
    */
@@ -330,9 +330,8 @@ export default function BookSpeakingPage() {
               className={`flex items-center ${step === s.key ? 'text-blue-600' : 'text-gray-400'}`}
             >
               <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${
-                  step === s.key ? 'bg-blue-600 text-white' : 'bg-gray-300'
-                }`}
+                className={`w-8 h-8 rounded-full flex items-center justify-center font-bold ${step === s.key ? 'bg-blue-600 text-white' : 'bg-gray-300'
+                  }`}
               >
                 {s.number}
               </div>
@@ -354,7 +353,7 @@ export default function BookSpeakingPage() {
     return (
       <div>
         <h2 className="text-xl font-bold text-gray-900 mb-4">Select a Teacher</h2>
-        
+
         {teachers.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600">No teachers available</p>
@@ -405,7 +404,7 @@ export default function BookSpeakingPage() {
         </button>
 
         <h2 className="text-xl font-bold text-gray-900 mb-4">Select a Date</h2>
-        
+
         {availableDates.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600">No dates available for this teacher</p>
@@ -454,7 +453,7 @@ export default function BookSpeakingPage() {
           Select a Time Slot
         </h2>
         <p className="text-gray-600 mb-6">{formatDate(selectedDate)}</p>
-        
+
         {availableTimeSlots.length === 0 ? (
           <div className="text-center py-12">
             <p className="text-gray-600">No time slots available</p>
@@ -466,11 +465,10 @@ export default function BookSpeakingPage() {
                 <button
                   key={slot.id}
                   onClick={() => setSelectedSlot(slot.id)}
-                  className={`p-6 rounded-lg border-2 transition text-left ${
-                    selectedSlot === slot.id
-                      ? 'border-blue-600 bg-blue-50'
-                      : 'border-gray-300 hover:border-blue-400'
-                  }`}
+                  className={`p-6 rounded-lg border-2 transition text-left ${selectedSlot === slot.id
+                    ? 'border-blue-600 bg-blue-50'
+                    : 'border-gray-300 hover:border-blue-400'
+                    }`}
                 >
                   <div className="flex items-center justify-between">
                     <div>
@@ -482,11 +480,10 @@ export default function BookSpeakingPage() {
                       </div>
                     </div>
                     <div
-                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                        selectedSlot === slot.id
-                          ? 'border-blue-600 bg-blue-600'
-                          : 'border-gray-300'
-                      }`}
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center ${selectedSlot === slot.id
+                        ? 'border-blue-600 bg-blue-600'
+                        : 'border-gray-300'
+                        }`}
                     >
                       {selectedSlot === slot.id && (
                         <svg className="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 20 20">
@@ -544,7 +541,7 @@ export default function BookSpeakingPage() {
   // ========================================
   // MAIN RETURN (State Logic)
   // ========================================
-  
+
   if (loading) return <LoadingState message="Loading Available Slots..." submessage="Please wait" />;
   if (booked) return renderSuccessState();
   return renderBookingForm();

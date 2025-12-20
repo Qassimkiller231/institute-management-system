@@ -97,6 +97,7 @@ export const getHallById = async (id: string) => {
 
 export const updateHall = async (id: string, updates: {
   name?: string;
+  venueId?: string;
   capacity?: number;
   floor?: string;
   isActive?: boolean;
@@ -108,6 +109,7 @@ export const updateHall = async (id: string, updates: {
 
   const data: any = {};
   if (updates.name) data.name = updates.name;
+  if (updates.venueId) data.venueId = updates.venueId;
   if (updates.capacity !== undefined) data.capacity = updates.capacity;
   if (updates.floor !== undefined) data.floor = updates.floor;
   if (updates.isActive !== undefined) data.isActive = updates.isActive;

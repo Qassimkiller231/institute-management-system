@@ -493,3 +493,21 @@ export const getAvailableTeachers = async () => {
 
   return teachers;
 };
+
+/**
+ * Get teacher by user ID
+ * Used to verify teacher ownership for profile updates
+ */
+export const getTeacherByUserId = async (userId: string) => {
+  const teacher = await prisma.teacher.findUnique({
+    where: { userId },
+    select: {
+      id: true,
+      userId: true,
+      firstName: true,
+      lastName: true
+    }
+  });
+
+  return teacher;
+};

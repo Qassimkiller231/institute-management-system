@@ -47,3 +47,14 @@ export const updateVenue = async (req: AuthRequest, res: Response) => {
     res.status(status).json({ success: false, message: error.message });
   }
 };
+
+export const deleteVenue = async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params;
+    await venueService.deleteVenue(id);
+    res.status(200).json({ success: true, message: 'Venue deleted successfully' });
+  } catch (error: any) {
+    const status = error.message === 'Venue not found' ? 404 : 400;
+    res.status(status).json({ success: false, message: error.message });
+  }
+};

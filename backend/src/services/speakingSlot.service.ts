@@ -1,5 +1,6 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import * as notificationService from './notification.service';
+import * as emailService from './email.service';
 
 const prisma = new PrismaClient();
 
@@ -121,7 +122,16 @@ export const getAllSpeakingSlots = async () => {
 
 export const bookSpeakingSlot = async (input: BookSpeakingSlotInput) => {
   const [slot, session, student] = await Promise.all([
-    prisma.speakingSlot.findUnique({ where: { id: input.slotId } }),
+    prisma.speakingSlot.findUnique({
+      where: { id: input.slotId },
+      include: {
+        teacher: {
+          include: {
+            user: { select: { email: true } }
+          }
+        }
+      }
+    }),
     prisma.testSession.findUnique({ where: { id: input.sessionId } }),
     prisma.student.findUnique({ where: { id: input.studentId } })
   ]);
@@ -166,12 +176,34 @@ export const bookSpeakingSlot = async (input: BookSpeakingSlotInput) => {
         type: 'SPEAKING_SLOT_ASSIGNMENT',
         title: 'Speaking Test Booked',
         message: `${student.firstName} ${student.secondName || ''} booked a speaking test on ${slot.slotDate.toISOString().split('T')[0]} at ${slot.slotTime.toISOString().split('T')[1].substring(0, 5)}.`,
-        linkUrl: '/teacher/speaking',
+        linkUrl: '/teacher/speaking-tests',
         sentVia: 'APP'
       });
     }
   } catch (err) {
     console.error('Failed to notify teacher:', err);
+  }
+
+  // ✅ EMAIL STUDENT CONFIRMATION
+  try {
+    const studentUser = await prisma.student.findUnique({
+      where: { id: input.studentId },
+      include: { user: { select: { email: true } } }
+    });
+
+    if (studentUser?.user?.email) {
+      await emailService.sendSpeakingBookingConfirmation({
+        to: studentUser.user.email,
+        studentName: `${student.firstName} ${student.secondName || ''}`.trim(),
+        teacherEmail: slot.teacher?.user?.email || 'TBA',
+        slotDate: slot.slotDate,
+        slotTime: slot.slotTime.toISOString().split('T')[1].substring(0, 5)
+      });
+      console.log('✅ Speaking booking confirmation email sent to student');
+    }
+  } catch (err) {
+    console.error('Failed to send booking confirmation email:', err);
+    // Don't throw - booking should succeed even if email fails
   }
 
   return updatedSlot;

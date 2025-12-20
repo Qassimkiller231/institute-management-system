@@ -27,7 +27,7 @@ export default function BrowseProgramsPage() {
   // STATE & HOOKS
   // ========================================
   const router = useRouter();
-  
+
   const [programs, setPrograms] = useState<Program[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -35,7 +35,7 @@ export default function BrowseProgramsPage() {
   // ========================================
   // EFFECTS
   // ========================================
-  
+
   /**
    * Effect: Initial Load
    * Fetch all available programs when component mounts
@@ -47,15 +47,15 @@ export default function BrowseProgramsPage() {
   // ========================================
   // DATA LOADING FUNCTIONS
   // ========================================
-  
+
   /**
    * Load all available programs from the API
    */
   const loadPrograms = async () => {
     try {
-      const result = await programsAPI.getAll();
+      const result = await programsAPI.getAll(true); // Only show active programs
       // console.log('Programs API response:', result); // Debug
-      
+
       if (result.success) {
         setPrograms(result.data || []);
       } else {
@@ -72,7 +72,7 @@ export default function BrowseProgramsPage() {
   // ========================================
   // HANDLERS
   // ========================================
-  
+
   /**
    * Handle Take Placement Test action
    * Routes to test if logged in, otherwise to registration
@@ -80,7 +80,7 @@ export default function BrowseProgramsPage() {
   const handleTakePlacementTest = () => {
     if (typeof window !== 'undefined') {
       const token = getToken();
-      
+
       if (token) {
         // Already logged in, go straight to test
         router.push('/take-test');
@@ -95,7 +95,7 @@ export default function BrowseProgramsPage() {
   // ========================================
   // RENDER FUNCTIONS
   // ========================================
-  
+
   /**
    * Individual program card
    */
@@ -110,15 +110,15 @@ export default function BrowseProgramsPage() {
             {program.code}
           </span>
         </div>
-        
+
         <h2 className="text-2xl font-bold text-gray-900 mb-3">
           {program.name}
         </h2>
-        
+
         <p className="text-gray-700 mb-4 leading-relaxed">
           {program.description || 'English language program designed for your success'}
         </p>
-        
+
         <div className="flex items-center text-gray-600 mb-6">
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -241,7 +241,7 @@ export default function BrowseProgramsPage() {
   // ========================================
   // MAIN RETURN (State Logic)
   // ========================================
-  
+
   if (loading) {
     return <LoadingState message="Loading Programs..." submessage="Please wait" />;
   }

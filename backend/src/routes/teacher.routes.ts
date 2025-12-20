@@ -11,11 +11,13 @@ router.use(authenticate);
 
 // ==================== TEACHERS ====================
 
-// Admin only for create/update/delete
+// Admin only for create/delete
 router.post('/', requireAdmin, teacherController.createTeacher);
-router.put('/:id', requireAdmin, teacherController.updateTeacher);
 router.delete('/:id', requireAdmin, teacherController.deleteTeacher);
 router.put('/:id/availability', requireAdmin, teacherController.toggleAvailability);
+
+// Teachers can update their own profile OR admin can update any teacher
+router.put('/:id', requireTeacherOrAdmin, teacherController.updateTeacher);
 
 // Admin or Teacher can view teachers
 router.get('/search', requireTeacherOrAdmin, teacherController.searchTeachers);
@@ -24,3 +26,4 @@ router.get('/', requireTeacherOrAdmin, teacherController.getAllTeachers);
 router.get('/:id', requireTeacherOrAdmin, teacherController.getTeacherById);
 
 export default router;
+

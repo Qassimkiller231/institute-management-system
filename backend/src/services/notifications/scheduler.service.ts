@@ -3,6 +3,7 @@ import cron from 'node-cron';
 import * as paymentReminderService from './paymentReminder.service';
 import * as attendanceWarningService from './attendanceWarning.service';
 import * as announcementService from '../announcement.service';
+import * as autoGenerateSpeakingSlots from './autoGenerateSpeakingSlots.service';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -131,10 +132,22 @@ export const startScheduler = () => {
     }
   });
 
+  // Auto-generate speaking slots daily at midnight
+  cron.schedule('0 0 * * *', async () => {
+    console.log('\n⏰ ===== AUTO-GENERATING SPEAKING SLOTS =====');
+    try {
+      await autoGenerateSpeakingSlots.autoGenerateSpeakingSlots();
+    } catch (error) {
+      console.error('❌ Auto-generate speaking slots error:', error);
+    }
+  });
+
   console.log('✅ Scheduler started');
   console.log('   - Payment reminders: Daily at 9:00 AM');
   console.log('   - Attendance warnings: Daily at 10:00 AM');
-  console.log('   - Scheduled announcements: Every hour');
+  console.log('   - Scheduled announcements: Every minute');
+  console.log('   - Missed appointments check: Every 5 minutes');
+  console.log('   - Auto-generate speaking slots: Daily at midnight');
 };
 
 /**

@@ -1,6 +1,7 @@
 // src/services/testSession.service.ts
 import { PrismaClient, Prisma } from '@prisma/client';
 import * as notificationService from './notification.service';
+import * as emailService from './email.service';
 
 const prisma = new PrismaClient();
 
@@ -217,6 +218,32 @@ export const submitMcqAnswers = async (input: SubmitMcqInput) => {
 
   } catch (err) {
     console.error('Failed to notify admins:', err);
+  }
+
+  // ✅ EMAIL STUDENT PLACEMENT TEST RESULTS
+  try {
+    const studentWithUser = await prisma.student.findUnique({
+      where: { id: session.studentId },
+      include: { user: { select: { email: true } } }
+    });
+
+    if (studentWithUser?.user?.email) {
+      // Calculate assessed level based on score
+      const assessedLevel = calculateLevel(earnedPoints, totalPoints);
+
+      await emailService.sendPlacementTestCompletionEmail({
+        to: studentWithUser.user.email,
+        studentName: `${studentWithUser.firstName} ${studentWithUser.secondName || ''}`.trim(),
+        assessedLevel,
+        scorePercent,
+        totalPoints,
+        earnedPoints
+      });
+      console.log('✅ Placement test completion email sent to student');
+    }
+  } catch (err) {
+    console.error('Failed to send placement test completion email:', err);
+    // Don't throw - test submission should succeed even if email fails
   }
 
   return {

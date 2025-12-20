@@ -3,10 +3,11 @@ import { API_URL, getHeaders } from './client';
 
 export const criteriaAPI = {
   // Get all criteria (optionally filtered by level or group)
-  getAll: async (filters?: { levelId?: string; groupId?: string }) => {
+  getAll: async (filters?: { levelId?: string; groupId?: string; isActive?: boolean }) => {
     const params = new URLSearchParams();
     if (filters?.levelId) params.append('levelId', filters.levelId);
     if (filters?.groupId) params.append('groupId', filters.groupId);
+    if (filters?.isActive !== undefined) params.append('isActive', String(filters.isActive));
 
     const url = params.toString()
       ? `${API_URL}/progress-criteria?${params}`
@@ -34,6 +35,60 @@ export const criteriaAPI = {
       headers: getHeaders(true)
     });
     if (!res.ok) throw new Error('Failed to fetch student progress');
+    return res.json();
+  },
+
+  // Create criterion
+  create: async (data: {
+    name: string;
+    description?: string;
+    levelId?: string;
+    groupId?: string;
+    orderNumber?: number;
+  }) => {
+    const res = await fetch(`${API_URL}/progress-criteria`, {
+      method: 'POST',
+      headers: getHeaders(true),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to create criterion');
+    }
+    return res.json();
+  },
+
+  // Update criterion
+  update: async (id: string, data: {
+    name?: string;
+    description?: string;
+    levelId?: string;
+    groupId?: string;
+    orderNumber?: number;
+    isActive?: boolean;
+  }) => {
+    const res = await fetch(`${API_URL}/progress-criteria/${id}`, {
+      method: 'PUT',
+      headers: getHeaders(true),
+      body: JSON.stringify(data)
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to update criterion');
+    }
+    return res.json();
+  },
+
+  // Delete criterion (soft delete)
+  delete: async (id: string) => {
+    const res = await fetch(`${API_URL}/progress-criteria/${id}`, {
+      method: 'DELETE',
+      headers: getHeaders(true)
+    });
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to delete criterion');
+    }
     return res.json();
   },
 

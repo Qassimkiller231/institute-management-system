@@ -42,10 +42,10 @@ export const createTeacher = async (req: AuthRequest, res: Response) => {
 export const getAllTeachers = async (req: AuthRequest, res: Response) => {
   try {
     const filters = {
-      isActive: req.query.isActive === 'true' ? true : 
-                req.query.isActive === 'false' ? false : undefined,
+      isActive: req.query.isActive === 'true' ? true :
+        req.query.isActive === 'false' ? false : undefined,
       availableForSpeakingTests: req.query.availableForSpeakingTests === 'true' ? true :
-                                 req.query.availableForSpeakingTests === 'false' ? false : undefined,
+        req.query.availableForSpeakingTests === 'false' ? false : undefined,
       specialization: req.query.specialization as string,
       search: req.query.search as string,
       page: req.query.page ? parseInt(req.query.page as string) : 1,
@@ -83,7 +83,7 @@ export const getTeacherById = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Get teacher by ID error:', error);
-    
+
     if (error.message === 'Teacher not found') {
       return res.status(404).json({
         success: false,
@@ -101,11 +101,26 @@ export const getTeacherById = async (req: AuthRequest, res: Response) => {
 /**
  * PUT /api/teachers/:id
  * Update teacher information
+ * - Teachers can only update their own profile
+ * - Admins can update any teacher
  */
 export const updateTeacher = async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params;
     const updates = req.body;
+
+    // Check if teacher is trying to update their own profile
+    if (req.user?.role === 'TEACHER') {
+      // Get the teacher ID from the user's teacher record
+      const teacher = await teacherService.getTeacherByUserId(req.user.userId);
+
+      if (!teacher || teacher.id !== id) {
+        return res.status(403).json({
+          success: false,
+          message: 'Teachers can only update their own profile'
+        });
+      }
+    }
 
     const result = await teacherService.updateTeacher(id, updates);
 
@@ -116,7 +131,7 @@ export const updateTeacher = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Update teacher error:', error);
-    
+
     if (error.message === 'Teacher not found') {
       return res.status(404).json({
         success: false,
@@ -147,7 +162,7 @@ export const deleteTeacher = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Delete teacher error:', error);
-    
+
     if (error.message === 'Teacher not found') {
       return res.status(404).json({
         success: false,
@@ -187,7 +202,7 @@ export const toggleAvailability = async (req: AuthRequest, res: Response) => {
     });
   } catch (error: any) {
     console.error('Toggle availability error:', error);
-    
+
     if (error.message === 'Teacher not found') {
       return res.status(404).json({
         success: false,
