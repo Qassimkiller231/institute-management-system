@@ -65,7 +65,7 @@ export default function SubmitSpeakingResult() {
       const answers = slot.testSession.answers as any;
       const earnedPoints = answers.earnedPoints || 0;
       const totalPoints = answers.totalPoints || 50;
-      
+
       const calculatedLevel = getMCQLevel(earnedPoints, totalPoints);
       setMcqLevel(calculatedLevel);
 
@@ -92,7 +92,7 @@ export default function SubmitSpeakingResult() {
       }
 
       const result = await speakingSlotAPI.getByTeacher(teacherId);
-      
+
       if (result.success) {
         const foundSlot = result.data.find((s: SlotData) => s.id === slotId);
         if (foundSlot) {
@@ -360,7 +360,7 @@ export default function SubmitSpeakingResult() {
             ))}
           </select>
           <p className="text-sm text-gray-500 mt-2">
-            Select the CEFR level based on the student's speaking
+            Select the CEFR level based on the student&apos;s speaking
             performance
           </p>
         </div>
@@ -540,7 +540,7 @@ export default function SubmitSpeakingResult() {
   // ========================================
   // MAIN RENDER
   // ========================================
-  
+
   if (loading) {
     return renderLoadingState();
   }
