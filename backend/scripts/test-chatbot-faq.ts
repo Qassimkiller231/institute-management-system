@@ -11,26 +11,28 @@ const testCases = [
 
 console.log('🤖 Testing Chatbot FAQ System...\n');
 
-let passed = 0;
-let failed = 0;
+(async () => {
+    let passed = 0;
+    let failed = 0;
 
-testCases.forEach((test, index) => {
-    const response = getFAQResponse(test.query, test.role);
+    for (const [index, test] of testCases.entries()) {
+        const response = await getFAQResponse(test.query, test.role);
 
-    const status = (test.expectedType === 'None' && response === null) ||
-        (test.expectedType !== 'None' && response !== null);
+        const status = (test.expectedType === 'None' && response === null) ||
+            (test.expectedType !== 'None' && response !== null);
 
-    if (status) {
-        console.log(`✅ Test ${index + 1}: [${test.expectedType}] "${test.query}" -> Passed`);
-        passed++;
-    } else {
-        console.log(`❌ Test ${index + 1}: [${test.expectedType}] "${test.query}" -> Failed`);
-        console.log(`   Expected response, got: ${response ? 'Response found' : 'null'}`);
-        failed++;
+        if (status) {
+            console.log(`✅ Test ${index + 1}: [${test.expectedType}] "${test.query}" -> Passed`);
+            passed++;
+        } else {
+            console.log(`❌ Test ${index + 1}: [${test.expectedType}] "${test.query}" -> Failed`);
+            console.log(`   Expected response, got: ${response ? 'Response found' : 'null'}`);
+            failed++;
+        }
     }
-});
 
-console.log(`\n🎉 Results: ${passed} Passed, ${failed} Failed`);
+    console.log(`\n🎉 Results: ${passed} Passed, ${failed} Failed`);
 
-if (failed > 0) process.exit(1);
-process.exit(0);
+    if (failed > 0) process.exit(1);
+    process.exit(0);
+})();
