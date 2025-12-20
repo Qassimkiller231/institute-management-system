@@ -19,4 +19,4 @@ databases:
   - name: institute-db
     plan: free
     databaseName: institute_db
-    user: postgres
+    user: institute_user
