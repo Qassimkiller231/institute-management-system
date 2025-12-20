@@ -4,14 +4,14 @@ export const getHeaders = (includeAuth = false): Record<string, string> => {
   const headers: Record<string, string> = {
     'Content-Type': 'application/json'
   };
-  
+
   if (includeAuth) {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     if (token) {
       headers['Authorization'] = `Bearer ${token}`;
     }
   }
-  
+
   return headers;
 };
 

@@ -33,7 +33,7 @@ export const testAPI = {
     return res.json();
   },
   getActiveSession: async (studentId: string) => {
-    const token = localStorage.getItem('authToken');
+    const token = localStorage.getItem('token');
     const response = await fetch(
       `http://localhost:3001/api/test-sessions/active?studentId=${studentId}`,
       {
