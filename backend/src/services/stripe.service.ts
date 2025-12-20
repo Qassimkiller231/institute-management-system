@@ -1,6 +1,12 @@
 import Stripe from 'stripe';
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
+const STRIPE_KEY = process.env.STRIPE_SECRET_KEY || 'sk_test_placeholder_key_for_render_deployment';
+
+if (!process.env.STRIPE_SECRET_KEY) {
+  console.warn('⚠️ STRIPE_SECRET_KEY is missing. Payment features will fail.');
+}
+
+const stripe = new Stripe(STRIPE_KEY, {
   apiVersion: '2024-11-20.acacia' as any
 });
 
