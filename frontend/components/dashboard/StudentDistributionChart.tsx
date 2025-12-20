@@ -32,7 +32,7 @@ export default function StudentDistributionChart({ data, onClose }: StudentDistr
                         paddingAngle={5}
                         dataKey="count"
                         nameKey="name"
-                        label={({ name, percent }: { name: string; percent?: number }) => (percent || 0) > 0.05 ? `${((percent || 0) * 100).toFixed(0)}%` : ''}
+                        label={(props: any) => (props.percent || 0) > 0.05 ? `${((props.percent || 0) * 100).toFixed(0)}%` : ''}
                         labelLine={false}
                         animationDuration={1500}
                     >
