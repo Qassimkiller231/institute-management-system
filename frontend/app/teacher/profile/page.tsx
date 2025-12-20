@@ -129,11 +129,10 @@ export default function TeacherProfile() {
             </h2>
             <p className="text-gray-600 text-lg">{profile.specialization || 'English Teacher'}</p>
             <div className="flex items-center space-x-4 mt-2">
-              <span className={`px-3 py-1 text-sm rounded-full ${
-                profile.isActive
+              <span className={`px-3 py-1 text-sm rounded-full ${profile.isActive
                   ? 'bg-green-100 text-green-800'
                   : 'bg-red-100 text-red-800'
-              }`}>
+                }`}>
                 {profile.isActive ? 'Active' : 'Inactive'}
               </span>
               <span className="text-gray-500 text-sm">
@@ -319,7 +318,7 @@ export default function TeacherProfile() {
       <div className="bg-red-50 border border-red-200 rounded-lg shadow p-8">
         <h3 className="text-xl font-bold text-red-900 mb-4">Danger Zone</h3>
         <p className="text-red-700 mb-4">
-          Logging out will end your current session. You'll need to login again to access your account.
+          Logging out will end your current session. You&apos;ll need to login again to access your account.
         </p>
         <button
           onClick={logout}
@@ -353,14 +352,14 @@ export default function TeacherProfile() {
   // ========================================
   // MAIN RENDER
   // ========================================
-  
+
   if (loading) {
     return <LoadingState message="Loading profile..." />;
   }
 
   if (!profile) {
     return (
-      <ErrorState 
+      <ErrorState
         title="Failed to load profile"
         message="Please try again."
         onRetry={fetchProfile}
