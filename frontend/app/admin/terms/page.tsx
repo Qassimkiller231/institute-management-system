@@ -265,11 +265,25 @@ export default function TermsManagement() {
   // ========================================
 
   const renderHeader = () => (
-    <div className="mb-6 flex justify-between items-center"><div><h1 className="text-3xl font-bold mb-2">Terms Management</h1><p className="text-gray-600">Manage academic terms</p></div><button onClick={openCreateModal} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">+ Create Term</button></div>
+    <div className="mb-6 flex justify-between items-center">
+      <div>
+        <h1 className="text-3xl font-bold mb-2 text-gray-900">Terms Management</h1>
+        <p className="text-gray-600">Manage academic terms</p>
+      </div>
+      <button onClick={openCreateModal} className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700">+ Create Term</button>
+    </div>
   );
 
   const renderFilters = () => (
-    <div className="bg-white rounded-lg shadow mb-6 p-4"><div className="flex gap-4 items-center"><input type="text" placeholder="Search terms..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-1 px-4 py-2 border rounded-lg text-gray-900" /><select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)} className="px-4 py-2 border rounded-lg text-gray-900"><option value="active">Active Only</option><option value="all">All Items</option><option value="inactive">Inactive Only</option></select><select value={programFilter} onChange={(e) => setProgramFilter(e.target.value)} className="px-4 py-2 border rounded-lg text-gray-900 min-w-[180px]"><option value="all">All Programs</option>{programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select><select value={currentFilter} onChange={(e) => setCurrentFilter(e.target.value as any)} className="px-4 py-2 border rounded-lg text-gray-900 min-w-[150px]"><option value="all">All Terms</option><option value="current">Current Only</option><option value="non-current">Non-Current</option></select><button onClick={() => { setSearchTerm(''); setProgramFilter('all'); setCurrentFilter('all'); setFilterStatus('active'); }} className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Reset</button></div></div>
+    <div className="bg-white rounded-lg shadow mb-6 p-4">
+      <div className="flex gap-4 items-center">
+        <input type="text" placeholder="Search terms..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="flex-1 px-4 py-2 border rounded-lg text-gray-900" />
+        <select value={filterStatus} onChange={(e) => setFilterStatus(e.target.value as any)} className="px-4 py-2 border rounded-lg text-gray-900">
+          <option value="active">Active Only</option>
+          <option value="all">All Items</option>
+          <option value="inactive">Inactive Only</option>
+        </select>
+        <select value={programFilter} onChange={(e) => setProgramFilter(e.target.value)} className="px-4 py-2 border rounded-lg text-gray-900 min-w-[180px]"><option value="all">All Programs</option>{programs.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}</select><select value={currentFilter} onChange={(e) => setCurrentFilter(e.target.value as any)} className="px-4 py-2 border rounded-lg text-gray-900 min-w-[150px]"><option value="all">All Terms</option><option value="current">Current Only</option><option value="non-current">Non-Current</option></select><button onClick={() => { setSearchTerm(''); setProgramFilter('all'); setCurrentFilter('all'); setFilterStatus('active'); }} className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200">Reset</button></div></div>
   );
 
   const renderLoadingState = () => (
@@ -277,7 +291,9 @@ export default function TermsManagement() {
   );
 
   const renderStudentExpansion = (group: any) => expandedGroup !== group.id ? null : (
-    <div className="ml-8 mt-2 space-y-1 bg-gray-100 p-3 rounded"><h5 className="font-semibold text-xs text-gray-900 mb-2">Students in {group.groupCode}:</h5>{groupStudents[group.id]?.length > 0 ? groupStudents[group.id].map((student: any) => <div key={student.id} className="text-xs text-gray-700 flex items-center gap-2 p-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span><strong>{student.name}</strong><span className="text-gray-400">•</span><span>{student.email}</span>{student.currentLevel && <><span className="text-gray-400">•</span><span className="px-1 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{student.currentLevel}</span></>}</div>) : <p className="text-xs text-gray-400">No students enrolled</p>}</div>
+    <div className="ml-8 mt-2 space-y-1 bg-gray-100 p-3 rounded">
+      <h5 className="font-semibold text-xs text-gray-900 mb-2">Students in {group.groupCode}:</h5>
+      {groupStudents[group.id]?.length > 0 ? groupStudents[group.id].map((student: any) => <div key={student.id} className="text-xs text-gray-700 flex items-center gap-2 p-1"><span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span><strong>{student.name}</strong><span className="text-gray-400">•</span><span>{student.email}</span>{student.currentLevel && <><span className="text-gray-400">•</span><span className="px-1 py-0.5 bg-blue-100 text-blue-700 rounded text-xs">{student.currentLevel}</span></>}</div>) : <p className="text-xs text-gray-400">No students enrolled</p>}</div>
   );
 
   const renderGroupExpansion = (term: Term) => expandedTerm !== term.id ? null : (
@@ -293,11 +309,47 @@ export default function TermsManagement() {
   );
 
   const renderModalForm = () => (
-    <div className="space-y-4"><div><label className="block text-sm font-medium text-gray-700 mb-2">Program *</label><select value={modalMode === 'create' ? formData.programId : (editData.programId || '')} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, programId: e.target.value }) : setEditData({ ...editData, programId: e.target.value })} className="w-full px-4 py-2 border rounded-lg text-gray-900"><option value="">Select Program</option>{programs.map(program => <option key={program.id} value={program.id}>{program.name} ({program.code})</option>)}</select></div><div><label className="block text-sm font-medium text-gray-700 mb-2">Name *</label><input type="text" value={modalMode === 'create' ? formData.name : (editData.name || '')} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, name: e.target.value }) : setEditData({ ...editData, name: e.target.value })} className="w-full px-4 py-2 border rounded-lg text-gray-900" placeholder="Fall 2025" /></div><div><label className="block text-sm font-medium text-gray-700 mb-2">Start Date *</label><input type="date" value={modalMode === 'create' ? formData.startDate : (editData.startDate || '')} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, startDate: e.target.value }) : setEditData({ ...editData, startDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg text-gray-900" /></div><div><label className="block text-sm font-medium text-gray-700 mb-2">End Date *</label><input type="date" value={modalMode === 'create' ? formData.endDate : (editData.endDate || '')} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, endDate: e.target.value }) : setEditData({ ...editData, endDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg text-gray-900" /></div><div className="flex items-center gap-3 bg-blue-50 p-4 rounded-lg"><input type="checkbox" id="isCurrent" checked={modalMode === 'create' ? (formData.isCurrent || false) : (editData.isCurrent || false)} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, isCurrent: e.target.checked }) : setEditData({ ...editData, isCurrent: e.target.checked })} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" /><div><label htmlFor="isCurrent" className="block text-sm font-medium text-gray-900">Current Term?</label><p className="text-xs text-gray-500">If checked, this will become the active term for the selected program. Any existing current term for this program will be unset.</p></div></div></div>
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-2">Program *</label>
+        <select value={modalMode === 'create' ? formData.programId : (editData.programId || '')} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, programId: e.target.value }) : setEditData({ ...editData, programId: e.target.value })} className="w-full px-4 py-2 border rounded-lg text-gray-900">
+          <option value="">Select Program</option>
+          {programs.map(program => <option key={program.id} value={program.id}>{program.name} ({program.code})</option>)}
+        </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Name *</label>
+            <input type="text" value={modalMode === 'create' ? formData.name : (editData.name || '')} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, name: e.target.value }) : setEditData({ ...editData, name: e.target.value })} className="w-full px-4 py-2 border rounded-lg text-gray-900" placeholder="Fall 2025" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Start Date *</label>
+            <input type="date" value={modalMode === 'create' ? formData.startDate : (editData.startDate || '')} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, startDate: e.target.value }) : setEditData({ ...editData, startDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg text-gray-900" />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">End Date *</label>
+            <input type="date" value={modalMode === 'create' ? formData.endDate : (editData.endDate || '')} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, endDate: e.target.value }) : setEditData({ ...editData, endDate: e.target.value })} className="w-full px-4 py-2 border rounded-lg text-gray-900" />
+          </div>
+          <div className="flex items-center gap-3 bg-blue-50 p-4 rounded-lg">
+            <input type="checkbox" id="isCurrent" checked={modalMode === 'create' ? (formData.isCurrent || false) : (editData.isCurrent || false)} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, isCurrent: e.target.checked }) : setEditData({ ...editData, isCurrent: e.target.checked })} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500" />
+            <div>
+              <label htmlFor="isCurrent" className="block text-sm font-medium text-gray-900">Current Term?</label>
+              <p className="text-xs text-gray-500">If checked, this will become the active term for the selected program. Any existing current term for this program will be unset.</p>
+            </div>
+          </div>
+        </div>
   );
 
   const renderModal = () => !showModal ? null : (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div className="bg-white rounded-lg p-8 max-w-md w-full"><h2 className="text-2xl font-bold mb-6 text-gray-900">{modalMode === 'create' ? 'Add Term' : 'Edit Term'}</h2>{renderModalForm()}<div className="flex gap-3 mt-6"><button onClick={() => { setShowModal(false); resetForm(); }} className="flex-1 px-4 py-2 border rounded-lg hover:bg-gray-50">Cancel</button><button onClick={modalMode === 'create' ? handleCreate : handleUpdate} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{modalMode === 'create' ? 'Create' : 'Update'}</button></div></div></div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-8 max-w-md w-full">
+        <h2 className="text-2xl font-bold mb-6 text-gray-900">{modalMode === 'create' ? 'Add Term' : 'Edit Term'}</h2>
+        {renderModalForm()}
+        <div className="flex gap-3 mt-6">
+          <button onClick={() => { setShowModal(false); resetForm(); }} className="flex-1 px-4 py-2 border text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button onClick={modalMode === 'create' ? handleCreate : handleUpdate} className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700">{modalMode === 'create' ? 'Create' : 'Update'}</button>
+        </div>
+      </div>
+    </div>
   );
 
   // ========================================

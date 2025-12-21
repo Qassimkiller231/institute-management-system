@@ -389,8 +389,8 @@ export default function SpeakingTestsPage() {
                                                 key={slot.id}
                                                 onClick={() => setSelectedSlot(slot.id)}
                                                 className={`p-3 rounded border text-sm text-center transition ${selectedSlot === slot.id
-                                                        ? 'bg-blue-600 text-white border-blue-600'
-                                                        : 'hover:border-blue-500 border-gray-200'
+                                                    ? 'bg-blue-600 text-white border-blue-600'
+                                                    : 'hover:border-blue-500 border-gray-200'
                                                     }`}
                                             >
                                                 {formatTime(slot.startTime)}
@@ -481,7 +481,7 @@ export default function SpeakingTestsPage() {
 
                 <div className="p-6 space-y-4">
                     <div>
-                        <label className="text-xs text-gray-500 uppercase font-semibold">Status</label>
+                        <label className="text-xs text-gray-700 uppercase font-semibold">Status</label>
                         <div className="mt-1">
                             <span className={`px-2 py-1 text-xs rounded-full font-medium
                             ${selectedTestDetails?.status === 'COMPLETED' ? 'bg-green-100 text-green-800' :
@@ -494,17 +494,17 @@ export default function SpeakingTestsPage() {
 
                     <div className="grid grid-cols-2 gap-4">
                         <div>
-                            <label className="text-xs text-gray-500 uppercase font-semibold">Date</label>
-                            <p className="font-medium">{new Date(selectedTestDetails?.slotDate).toLocaleDateString()}</p>
+                            <label className="text-xs text-gray-700 uppercase font-semibold">Date</label>
+                            <p className="font-medium text-gray-900">{new Date(selectedTestDetails?.slotDate).toLocaleDateString()}</p>
                         </div>
                         <div>
-                            <label className="text-xs text-gray-500 uppercase font-semibold">Time</label>
-                            <p className="font-medium">{formatTime(selectedTestDetails?.slotTime)}</p>
+                            <label className="text-xs text-gray-700 uppercase font-semibold">Time</label>
+                            <p className="font-medium text-gray-900">{formatTime(selectedTestDetails?.slotTime)}</p>
                         </div>
                     </div>
 
                     <div className="pt-4 border-t">
-                        <label className="text-xs text-gray-500 uppercase font-semibold">Teacher</label>
+                        <label className="text-xs text-gray-700 uppercase font-semibold">Teacher</label>
                         <p className="font-medium text-gray-900">
                             {selectedTestDetails?.teacher?.firstName} {selectedTestDetails?.teacher?.lastName}
                         </p>
@@ -513,7 +513,7 @@ export default function SpeakingTestsPage() {
 
                     {selectedTestDetails?.student && (
                         <div className="pt-4 border-t">
-                            <label className="text-xs text-gray-500 uppercase font-semibold">Student</label>
+                            <label className="text-xs text-gray-700 uppercase font-semibold">Student</label>
                             <p className="font-medium text-gray-900">
                                 {selectedTestDetails.student.firstName} {selectedTestDetails.student.secondName}
                             </p>
@@ -559,18 +559,18 @@ export default function SpeakingTestsPage() {
         </div>
     );
 
-  // MAIN RENDER
-  // ========================================
+    // MAIN RENDER
+    // ========================================
 
-  return (
-    <div>
-      {renderHeader()}
-      {renderStats()}
-      {renderFilters()}
-      {renderTestsTable()}
+    return (
+        <div>
+            {renderHeader()}
+            {renderStats()}
+            {renderFilters()}
+            {renderTestsTable()}
 
-      {showBookingModal && renderModal()}
-      {showDetailsModal && renderDetailsModal()}
-    </div>
-  );
+            {showBookingModal && renderModal()}
+            {showDetailsModal && renderDetailsModal()}
+        </div>
+    );
 }

@@ -242,19 +242,85 @@ export default function ProgramsManagement() {
   );
 
   const renderProgramRow = (p: any) => (
-    <React.Fragment key={p.id}><tr onClick={() => handleProgramClick(p.id)} className="hover:bg-gray-50 cursor-pointer"><td className="px-6 py-4"><div className="flex items-center gap-2"><span className="text-gray-400">{expandedProgram === p.id ? '▼' : '▶'}</span><span className="font-medium text-gray-900">{p.name}</span></div></td><td className="px-6 py-4 text-sm text-gray-900">{p.description || 'N/A'}</td><td className="px-6 py-4 text-sm text-gray-900">{p._count?.terms || 0} terms</td><td className="px-6 py-4"><span className={`px-2 py-1 text-xs rounded-full ${p.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{p.isActive ? 'Active' : 'Inactive'}</span></td><td className="px-6 py-4 text-sm space-x-2"><button onClick={(e) => { e.stopPropagation(); openEditModal(p); }} className="text-blue-600 hover:text-blue-800">Edit</button><button onClick={(e) => { e.stopPropagation(); handleToggle(p.id, p.isActive); }} className="text-orange-600 hover:text-orange-800">{p.isActive ? 'Deactivate' : 'Activate'}</button><button onClick={(e) => { e.stopPropagation(); handleDelete(p.id, p.name); }} className="text-red-600 hover:text-red-800">Delete</button></td></tr>{expandedProgram === p.id && <tr><td colSpan={5} className="px-6 py-4 bg-gray-50"><div className="ml-8"><h4 className="font-semibold text-gray-900 mb-2">Terms in {p.name}:</h4>{programTerms[p.id]?.length > 0 ? <div className="space-y-2">{programTerms[p.id].map(renderTermRow)}</div> : <p className="text-sm text-gray-500">No terms in this program</p>}</div></td></tr>}</React.Fragment>
+    <React.Fragment key={p.id}>
+      <tr onClick={
+        () => handleProgramClick(p.id)} className="hover:bg-gray-50 cursor-pointer">
+        <td className="px-6 py-4">
+          <div className="flex items-center gap-2">
+            <span className="text-gray-400">{expandedProgram === p.id ? '▼' : '▶'}</span>
+            <span className="font-medium text-gray-900">{p.name}</span>
+          </div>
+        </td>
+        <td className="px-6 py-4 text-sm text-gray-900">{p.description || 'N/A'}</td>
+        <td className="px-6 py-4 text-sm text-gray-900">{p._count?.terms || 0} terms</td>
+        <td className="px-6 py-4"><span className={`px-2 py-1 text-xs rounded-full ${p.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{p.isActive ? 'Active' : 'Inactive'}</span></td>
+        <td className="px-6 py-4 text-sm space-x-2">
+          <button onClick={
+            (e) => {
+              e.stopPropagation();
+              openEditModal(p);
+            }} className="text-blue-600 hover:text-blue-800">Edit</button>
+          <button onClick={(e) => { e.stopPropagation(); handleToggle(p.id, p.isActive); }} className="text-orange-600 hover:text-orange-800">{p.isActive ? 'Deactivate' : 'Activate'}</button>
+          <button onClick={(e) => { e.stopPropagation(); handleDelete(p.id, p.name); }} className="text-red-600 hover:text-red-800">Delete</button>
+        </td>
+      </tr>
+      {expandedProgram === p.id && <tr>
+        <td colSpan={5} className="px-6 py-4 bg-gray-50">
+          <div className="ml-8">
+            <h4 className="font-semibold text-gray-900 mb-2">Terms in {p.name}:</h4>
+            {programTerms[p.id]?.length > 0 ? <div className="space-y-2">{programTerms[p.id].map(renderTermRow)}</div> : <p className="text-sm text-gray-500">No terms in this program</p>}
+          </div>
+        </td>
+      </tr>}
+    </React.Fragment>
   );
 
   const renderTable = () => (
-    <div className="bg-white rounded-lg shadow overflow-hidden"><table className="min-w-full divide-y divide-gray-200"><thead className="bg-gray-50"><tr><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Groups</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th><th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th></tr></thead><tbody className="bg-white divide-y divide-gray-200">{filtered.map(renderProgramRow)}</tbody></table>{filtered.length === 0 && <div className="text-center py-12 text-gray-900">No programs found</div>}</div>
+    <div className="bg-white rounded-lg shadow overflow-hidden">
+      <table className="min-w-full divide-y divide-gray-200">
+        <thead className="bg-gray-50">
+          <tr>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Groups</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Status</th>
+            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
+          </tr>
+        </thead>
+        <tbody className="bg-white divide-y divide-gray-200">{filtered.map(renderProgramRow)}</tbody>
+      </table>
+      {filtered.length === 0 && <div className="text-center py-12 text-gray-900">No programs found</div>}
+    </div>
   );
 
   const renderModalForm = () => (
-    <div className="space-y-4"><div><label className="block text-sm font-medium text-gray-700 mb-1">Name *</label><input type="text" value={modalMode === 'create' ? formData.name : editData.name} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, name: e.target.value }) : setEditData({ ...editData, name: e.target.value })} className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg text-gray-900" placeholder="e.g., IELTS Preparation" /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Description</label><textarea value={modalMode === 'create' ? formData.description : editData.description} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, description: e.target.value }) : setEditData({ ...editData, description: e.target.value })} className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg text-gray-900" rows={3} /></div><div><label className="block text-sm font-medium text-gray-700 mb-1">Code *</label><input type="text" value={modalMode === 'create' ? formData.code : editData.code} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, code: e.target.value.toUpperCase() }) : setEditData({ ...editData, code: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg text-gray-900" placeholder="e.g., IELTS-PREP" /></div></div>
+    <div className="space-y-4">
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+        <input type="text" value={modalMode === 'create' ? formData.name : editData.name} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, name: e.target.value }) : setEditData({ ...editData, name: e.target.value })} className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg text-gray-900" placeholder="e.g., IELTS Preparation" />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+        <textarea value={modalMode === 'create' ? formData.description : editData.description} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, description: e.target.value }) : setEditData({ ...editData, description: e.target.value })} className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg text-gray-900" rows={3} />
+      </div>
+      <div>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Code *</label>
+        <input type="text" value={modalMode === 'create' ? formData.code : editData.code} onChange={(e) => modalMode === 'create' ? setFormData({ ...formData, code: e.target.value.toUpperCase() }) : setEditData({ ...editData, code: e.target.value.toUpperCase() })} className="w-full px-3 py-2 border-2 border-gray-400 rounded-lg text-gray-900" placeholder="e.g., IELTS-PREP" />
+      </div>
+    </div>
   );
 
   const renderModal = () => !showModal ? null : (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div className="bg-white rounded-lg p-8 max-w-2xl w-full"><h2 className="text-2xl font-bold mb-6 text-gray-900">{modalMode === 'create' ? 'Add Program' : 'Edit Program'}</h2>{renderModalForm()}<div className="mt-6 flex space-x-3"><button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-gray-300 rounded-lg">Cancel</button><button onClick={modalMode === 'create' ? handleCreate : handleUpdate} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">{modalMode === 'create' ? 'Create' : 'Update'}</button></div></div></div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-8 max-w-2xl w-full">
+        <h2 className="text-2xl font-bold mb-6 text-gray-900">{modalMode === 'create' ? 'Add Program' : 'Edit Program'}</h2>
+        {renderModalForm()}
+        <div className="mt-6 flex space-x-3">
+          <button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button>
+          <button onClick={modalMode === 'create' ? handleCreate : handleUpdate} className="flex-1 px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">{modalMode === 'create' ? 'Create' : 'Update'}</button>
+        </div>
+      </div>
+    </div>
   );
 
   // ========================================

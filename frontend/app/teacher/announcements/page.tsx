@@ -27,7 +27,7 @@ export default function Announcements() {
   const router = useRouter();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [groups, setGroups] = useState<Group[]>([]);
-  const [loading,setLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     groupId: '',
@@ -45,7 +45,7 @@ export default function Announcements() {
     try {
       const teacherId = getTeacherId();
       if (!teacherId) return;
-      
+
       const data = await groupsAPI.getAll({ teacherId });
       setGroups(data.data || []);
     } catch (err) {
@@ -58,7 +58,7 @@ export default function Announcements() {
       setLoading(true);
       const teacherId = getTeacherId();
       if (!teacherId) return;
-      
+
       const data = await announcementsAPI.getAll({ teacherId });
       setAnnouncements(data.data || []);
     } catch (err) {
@@ -280,7 +280,7 @@ export default function Announcements() {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <h2 className="text-2xl font-bold mb-6">Create Announcement</h2>
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">Create Announcement</h2>
 
           <div className="space-y-4">
             <div>
@@ -389,7 +389,7 @@ export default function Announcements() {
   // ========================================
   // MAIN RENDER
   // ========================================
-  
 
-return renderAnnouncementsPage();
+
+  return renderAnnouncementsPage();
 }

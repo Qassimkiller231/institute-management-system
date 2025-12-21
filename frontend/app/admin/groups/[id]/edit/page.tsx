@@ -151,7 +151,7 @@ export default function EditGroupPage() {
 
   const renderHeader = () => (
     <div className="mb-6">
-      <h1 className="text-3xl font-bold mb-2">Edit Group</h1>
+      <h1 className="text-3xl font-semibold text-gray-900 mb-2">Edit Group</h1>
       <p className="text-gray-600">Update group information</p>
     </div>
   );
@@ -159,13 +159,13 @@ export default function EditGroupPage() {
   const renderStatusToggle = () => (
     <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
       <input type="checkbox" id="isActive" checked={formData.isActive} onChange={(e) => setFormData({ ...formData, isActive: e.target.checked })} className="w-5 h-5 text-blue-600 rounded" />
-      <label htmlFor="isActive" className="text-sm font-medium">Group is Active</label>
+      <label htmlFor="isActive" className="text-sm font-medium text-gray-700">Group is Active</label>
     </div>
   );
 
   const renderBasicInfo = () => (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Basic Information</h2>
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">Basic Information</h2>
       <div className="grid md:grid-cols-2 gap-4">
         <div><label className="block text-sm font-medium text-gray-700 mb-2">Term *</label><select value={formData.termId} onChange={(e) => setFormData({ ...formData, termId: e.target.value })} className="w-full px-4 py-2 border rounded-lg text-gray-900" required><option value="">Select Term</option>{terms.filter(term => term.isActive !== false).map(term => <option key={term.id} value={term.id}>{term.name}</option>)}</select></div>
         <div><label className="block text-sm font-medium text-gray-700 mb-2">Level *</label><select value={formData.levelId} onChange={(e) => setFormData({ ...formData, levelId: e.target.value })} className="w-full px-4 py-2 border rounded-lg text-gray-900" required><option value="">Select Level</option>{levels.map(level => <option key={level.id} value={level.id}>{level.name}</option>)}</select></div>
@@ -178,7 +178,7 @@ export default function EditGroupPage() {
 
   const renderAssignment = () => (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Assignment</h2>
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">Assignment</h2>
       <div className="grid md:grid-cols-2 gap-4">
         <div><label className="block text-sm font-medium text-gray-700 mb-2">Teacher</label><select value={formData.teacherId} onChange={(e) => setFormData({ ...formData, teacherId: e.target.value })} className="w-full px-4 py-2 border rounded-lg text-gray-900"><option value="">No Teacher Assigned</option>{teachers.map(teacher => <option key={teacher.id} value={teacher.id}>{teacher.firstName} {teacher.lastName}</option>)}</select></div>
         <div><label className="block text-sm font-medium text-gray-700 mb-2">Venue</label><select value={formData.venueId} onChange={(e) => handleVenueChange(e.target.value)} className="w-full px-4 py-2 border rounded-lg text-gray-900"><option value="">No Venue Assigned</option>{venues.map(venue => <option key={venue.id} value={venue.id}>{venue.name}</option>)}</select></div>
@@ -189,7 +189,7 @@ export default function EditGroupPage() {
 
   const renderSchedule = () => (
     <div>
-      <h2 className="text-xl font-semibold mb-4">Schedule</h2>
+      <h2 className="text-xl font-semibold text-gray-900 mb-4">Schedule</h2>
       <div className="mb-4"><label className="block text-sm font-medium text-gray-700 mb-2">Class Days</label><div className="flex flex-wrap gap-2">{daysOfWeek.map(day => <button key={day} type="button" onClick={() => toggleDay(day)} className={`px-4 py-2 rounded-lg border-2 transition ${formData.schedule?.days?.includes(day) ? 'bg-blue-600 text-white border-blue-600' : 'bg-white text-gray-700 border-gray-300 hover:border-blue-400'}`}>{day}</button>)}</div></div>
       <div className="grid md:grid-cols-2 gap-4">
         <div><label className="block text-sm font-medium text-gray-700 mb-2">Start Time</label><input type="time" value={formData.schedule?.startTime || '09:00'} onChange={(e) => setFormData({ ...formData, schedule: { ...formData.schedule, startTime: e.target.value, days: formData.schedule?.days || [], endTime: formData.schedule?.endTime || '11:00' } })} className="w-full px-4 py-2 border rounded-lg text-gray-900" /></div>

@@ -79,7 +79,7 @@ export default function AdminGroupsPage() {
   const renderHeader = () => (
     <div className="mb-6 flex justify-between items-center">
       <div>
-        <h1 className="text-2xl font-bold">Groups Management</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">Groups Management</h1>
         <p className="text-gray-600">View and manage all teaching groups</p>
       </div>
       <button onClick={() => router.push('/admin/groups/create')} className="px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg hover:bg-blue-700 transition">+ Create Group</button>

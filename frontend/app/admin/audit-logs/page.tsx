@@ -108,7 +108,7 @@ export default function AuditLogsPage() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-gray-900">Audit Logs</h1>
-                    <p className="text-gray-500">Track system activities and user actions.</p>
+                    <p className="text-gray-700">Track system activities and user actions.</p>
                 </div>
                 <button
                     onClick={fetchLogs}
@@ -124,7 +124,7 @@ export default function AuditLogsPage() {
                 <div className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Action Type</label>
+                            <label className="text-sm font-medium text-gray-700 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Action Type</label>
                             <select
                                 value={filters.action}
                                 onChange={(e) => handleFilterChange('action', e.target.value)}
@@ -143,7 +143,7 @@ export default function AuditLogsPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">User ID Search</label>
+                            <label className="text-sm font-medium text-gray-700 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">User ID Search</label>
                             <input
                                 type="text"
                                 placeholder="Search by User ID..."
@@ -154,7 +154,7 @@ export default function AuditLogsPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Start Date</label>
+                            <label className="text-sm font-medium text-gray-700 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">Start Date</label>
                             <input
                                 type="date"
                                 value={filters.startDate}
@@ -164,7 +164,7 @@ export default function AuditLogsPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">End Date</label>
+                            <label className="text-sm font-medium text-gray-700 leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">End Date</label>
                             <input
                                 type="date"
                                 value={filters.endDate}
@@ -191,11 +191,11 @@ export default function AuditLogsPage() {
                     <table className="w-full caption-bottom text-sm text-left">
                         <thead className="[&_tr]:border-b">
                             <tr className="border-b transition-colors hover:bg-gray-50/50 data-[state=selected]:bg-gray-50">
-                                <th className="h-12 px-4 text-left align-middle font-medium text-gray-500">Timestamp</th>
-                                <th className="h-12 px-4 text-left align-middle font-medium text-gray-500">User</th>
-                                <th className="h-12 px-4 text-left align-middle font-medium text-gray-500">Action</th>
-                                <th className="h-12 px-4 text-left align-middle font-medium text-gray-500">Resource</th>
-                                <th className="h-12 px-4 text-left align-middle font-medium text-gray-500">Details</th>
+                                <th className="h-12 px-4 text-left align-middle font-medium text-gray-700">Timestamp</th>
+                                <th className="h-12 px-4 text-left align-middle font-medium text-gray-700">User</th>
+                                <th className="h-12 px-4 text-left align-middle font-medium text-gray-700">Action</th>
+                                <th className="h-12 px-4 text-left align-middle font-medium text-gray-700">Resource</th>
+                                <th className="h-12 px-4 text-left align-middle font-medium text-gray-700">Details</th>
                             </tr>
                         </thead>
                         <tbody className="[&_tr:last-child]:border-0">
@@ -222,7 +222,7 @@ export default function AuditLogsPage() {
                             ) : (
                                 logs.map((log) => (
                                     <tr key={log.id} className="border-b transition-colors hover:bg-gray-50/50">
-                                        <td className="p-4 align-middle font-mono text-xs whitespace-nowrap">
+                                        <td className="p-4 align-middle font-mono text-xs text-gray-900 whitespace-nowrap">
                                             {formatDate(log.createdAt)}
                                         </td>
                                         <td className="p-4 align-middle">

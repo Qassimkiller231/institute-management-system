@@ -45,7 +45,7 @@ export default function TeacherMaterialsPage() {
     try {
       const teacherId = getTeacherId();
       if (!teacherId) return;
-      
+
       const data = await groupsAPI.getAll({ teacherId });
       setGroups(data.data || []);
     } catch (err) {
@@ -78,7 +78,7 @@ export default function TeacherMaterialsPage() {
       }
 
       // Sort by upload date (newest first)
-      allMaterials.sort((a, b) => 
+      allMaterials.sort((a, b) =>
         new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
       );
 
@@ -284,7 +284,7 @@ export default function TeacherMaterialsPage() {
    * Render materials grid
    */
   const renderMaterialsGrid = () => {
-    const filteredMaterials = materials.filter(m => 
+    const filteredMaterials = materials.filter(m =>
       m.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
       m.description?.toLowerCase().includes(searchTerm.toLowerCase())
     );
@@ -330,7 +330,7 @@ export default function TeacherMaterialsPage() {
     return (
       <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
         <div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-          <h2 className="text-2xl font-bold mb-6">
+          <h2 className="text-2xl font-bold text-gray-900 mb-6">
             {editingMaterial ? 'Edit Material' : 'Upload New Material'}
           </h2>
 
@@ -410,7 +410,7 @@ export default function TeacherMaterialsPage() {
                 placeholder="https://..."
                 required
               />
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-gray-700 font-medium mt-1">
                 Note: Upload files to cloud storage (Google Drive, Dropbox) and paste the public link here
               </p>
             </div>
@@ -461,7 +461,7 @@ export default function TeacherMaterialsPage() {
   // ========================================
   // MAIN RENDER
   // ========================================
-  
 
-return renderMaterialsPage();
+
+  return renderMaterialsPage();
 }

@@ -258,7 +258,7 @@ export default function TeacherManagement() {
   );
 
   const renderModal = () => !showModal ? null : (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"><h2 className="text-2xl font-bold mb-6">{modalMode === 'create' ? 'Add New Teacher' : 'Edit Teacher'}</h2>{renderModalForm()}<div className="mt-6 flex space-x-3"><button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={modalMode === 'create' ? handleCreate : handleUpdate} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">{modalMode === 'create' ? 'Create Teacher' : 'Update Teacher'}</button></div></div></div>
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"><div className="bg-white rounded-lg p-8 max-w-2xl w-full max-h-[90vh] overflow-y-auto"><h2 className="text-2xl font-bold text-gray-900 mb-6">{modalMode === 'create' ? 'Add New Teacher' : 'Edit Teacher'}</h2>{renderModalForm()}<div className="mt-6 flex space-x-3"><button onClick={() => setShowModal(false)} className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50">Cancel</button><button onClick={modalMode === 'create' ? handleCreate : handleUpdate} className="flex-1 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700">{modalMode === 'create' ? 'Create Teacher' : 'Update Teacher'}</button></div></div></div>
   );
 
   // ========================================

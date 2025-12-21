@@ -197,15 +197,14 @@ export default function StudentAttendancePage() {
                       stats.percentage >= 80
                         ? "#10b981"
                         : stats.percentage >= 70
-                        ? "#f59e0b"
-                        : "#ef4444"
+                          ? "#f59e0b"
+                          : "#ef4444"
                     }
                     strokeWidth="8"
                     fill="none"
                     strokeDasharray={`${2 * Math.PI * 56}`}
-                    strokeDashoffset={`${
-                      2 * Math.PI * 56 * (1 - stats.percentage / 100)
-                    }`}
+                    strokeDashoffset={`${2 * Math.PI * 56 * (1 - stats.percentage / 100)
+                      }`}
                     strokeLinecap="round"
                   />
                 </svg>
@@ -281,19 +280,20 @@ export default function StudentAttendancePage() {
             </div>
           </div>
         </div>
-
         {/* Warning */}
         {stats.percentage < 80 && (
           <div
-            className={`mt-6 ${
-              statusColors.bg
-            } border ${statusColors.text.replace(
-              "text-",
-              "border-"
-            )} rounded-lg p-4`}
+            className={`mt-6 ${stats.percentage >= 70
+                ? 'bg-yellow-50 border-2 border-yellow-400'
+                : 'bg-red-50 border-2 border-red-400'
+              } rounded-lg p-4`}
           >
-            <p className="font-semibold mb-1">⚠️ Attendance Alert</p>
-            <p className="text-sm">
+            <p className={`font-bold mb-1 ${stats.percentage >= 70 ? 'text-yellow-800' : 'text-red-800'
+              }`}>
+              ⚠️ Attendance Alert
+            </p>
+            <p className={`text-sm font-medium ${stats.percentage >= 70 ? 'text-yellow-900' : 'text-red-900'
+              }`}>
               Your attendance is below 80%. Please improve your attendance to
               stay on track with your learning goals.
             </p>
@@ -312,51 +312,46 @@ export default function StudentAttendancePage() {
         <div className="flex flex-wrap gap-2">
           <button
             onClick={() => setFilterStatus("all")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filterStatus === "all"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterStatus === "all"
                 ? "bg-gray-800 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+              }`}
           >
             All ({records.length})
           </button>
           <button
             onClick={() => setFilterStatus("PRESENT")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filterStatus === "PRESENT"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterStatus === "PRESENT"
                 ? "bg-green-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+              }`}
           >
             Present ({stats?.present || 0})
           </button>
           <button
             onClick={() => setFilterStatus("ABSENT")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filterStatus === "ABSENT"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterStatus === "ABSENT"
                 ? "bg-red-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+              }`}
           >
             Absent ({stats?.absent || 0})
           </button>
           <button
             onClick={() => setFilterStatus("LATE")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filterStatus === "LATE"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterStatus === "LATE"
                 ? "bg-yellow-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+              }`}
           >
             Late ({stats?.late || 0})
           </button>
           <button
             onClick={() => setFilterStatus("EXCUSED")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filterStatus === "EXCUSED"
+            className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterStatus === "EXCUSED"
                 ? "bg-blue-600 text-white"
                 : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-            }`}
+              }`}
           >
             Excused ({stats?.excused || 0})
           </button>
@@ -476,7 +471,7 @@ export default function StudentAttendancePage() {
 
   if (error) {
     return (
-      <ErrorState 
+      <ErrorState
         title="Error Loading Attendance"
         message={error}
         onRetry={() => window.location.reload()}

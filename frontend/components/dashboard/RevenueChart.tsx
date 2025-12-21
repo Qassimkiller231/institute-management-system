@@ -26,12 +26,12 @@ export default function RevenueChart({ data, onClose }: RevenueChartProps) {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E5E7EB" />
                     <XAxis
                         dataKey="month"
-                        tick={{ fontSize: 12, fill: '#6B7280' }}
+                        tick={{ fontSize: 12, fill: '#374151' }}
                         axisLine={false}
                         tickLine={false}
                     />
                     <YAxis
-                        tick={{ fontSize: 12, fill: '#6B7280' }}
+                        tick={{ fontSize: 12, fill: '#374151' }}
                         axisLine={false}
                         tickLine={false}
                         tickFormatter={(value) => `BD ${value}`}
@@ -41,7 +41,11 @@ export default function RevenueChart({ data, onClose }: RevenueChartProps) {
                         contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                         cursor={{ fill: '#F3F4F6' }}
                     />
-                    <Legend iconType="circle" />
+                    <Legend
+                        iconType="circle"
+                        wrapperStyle={{ paddingTop: '10px' }}
+                        formatter={(value) => <span style={{ color: '#374151', fontWeight: 500 }}>{value}</span>}
+                    />
                     <Bar
                         dataKey="collected"
                         name="Collected"
