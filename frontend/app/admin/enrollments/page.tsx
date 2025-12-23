@@ -128,7 +128,7 @@ export default function EnrollmentManagement() {
 
   const fetchPrograms = async () => {
     try {
-      const result = await programsAPI.getAll();
+      const result = await programsAPI.getAll(true);
       // console.log('Programs API response:', result);
       setPrograms(result.data || []);
     } catch (err) {
@@ -191,11 +191,11 @@ export default function EnrollmentManagement() {
   const openEditModal = (enrollment: Enrollment) => {
     setModalMode('edit');
     setSelectedEnrollment(enrollment);
-    
+
     // Set the program ID based on the group's term program
     const programId = enrollment.group.term.program?.id || '';
     setSelectedProgramId(programId);
-    
+
     setFormData({
       studentId: enrollment.student.id,
       groupId: enrollment.group.id,
@@ -236,22 +236,22 @@ export default function EnrollmentManagement() {
 
   const filteredEnrollments = enrollments.filter(enrollment => {
     const studentName = `${enrollment.student.firstName} ${enrollment.student.secondName || ''} ${enrollment.student.thirdName || ''}`.toLowerCase();
-    const matchesSearch = studentName.includes(searchTerm.toLowerCase()) || 
-                         enrollment.group.groupCode.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesSearch = studentName.includes(searchTerm.toLowerCase()) ||
+      enrollment.group.groupCode.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = !statusFilter || enrollment.status === statusFilter;
     const matchesGroup = !groupFilter || enrollment.group.id === groupFilter;
     const matchesProgram = !programFilter || enrollment.group.term?.program?.name === programFilter;
-    
+
     return matchesSearch && matchesStatus && matchesGroup && matchesProgram;
   });
 
   // Filter students for modal
   const filteredStudentsForModal = students.filter(student => {
     if (modalMode === 'edit') return student.id === formData.studentId;
-    
+
     // Only show students with NO active enrollments
     if (enrolledStudentIds.has(student.id)) return false;
-    
+
     // Filter by search
     if (!studentSearchTerm.trim()) return true;
     const searchLower = studentSearchTerm.toLowerCase();
@@ -326,7 +326,7 @@ export default function EnrollmentManagement() {
   // ========================================
   // MAIN RENDER
   // ========================================
-  
+
   return (
     <div className="min-h-screen bg-gray-50">
       {renderHeader()}
