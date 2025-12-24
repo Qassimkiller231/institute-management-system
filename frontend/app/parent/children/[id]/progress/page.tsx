@@ -45,7 +45,7 @@ export default function ChildProgressPage() {
   const router = useRouter();
   const params = useParams();
   const studentId = params.id as string;
-  
+
   const [student, setStudent] = useState<Student | null>(null);
   const [progressData, setProgressData] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -54,7 +54,7 @@ export default function ChildProgressPage() {
   // ========================================
   // EFFECTS
   // ========================================
-  
+
   /**
    * Effect: Fetch progress data on mount
    */
@@ -62,7 +62,7 @@ export default function ChildProgressPage() {
     const fetchProgress = async () => {
       try {
         const token = getToken();
-        
+
         if (!token) {
           router.push('/login');
           return;
@@ -75,7 +75,7 @@ export default function ChildProgressPage() {
 
         // Get active enrollment
         const activeEnrollment = studentInfo.enrollments?.find((e: any) => e.status === 'ACTIVE');
-        
+
         if (!activeEnrollment) {
           setProgressData({
             studentId,
@@ -98,7 +98,7 @@ export default function ChildProgressPage() {
           enrollmentId: activeEnrollment.id,
           levelId: levelId
         });
-        
+
         const progress = progressResponse.data || progressResponse;
 
         // Get level name
@@ -126,15 +126,15 @@ export default function ChildProgressPage() {
   // ========================================
   // UTILITY FUNCTIONS
   // ========================================
-  
+
   /**
    * Get next level based on current level
    */
   const getNextLevel = (currentLevel: string): string => {
     const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
     const currentIndex = levels.indexOf(currentLevel);
-    return currentIndex >= 0 && currentIndex < levels.length - 1 
-      ? levels[currentIndex + 1] 
+    return currentIndex >= 0 && currentIndex < levels.length - 1
+      ? levels[currentIndex + 1]
       : 'Advanced';
   };
 
@@ -152,7 +152,7 @@ export default function ChildProgressPage() {
           <div className="bg-red-50 border border-red-200 rounded-lg p-6">
             <h2 className="text-red-800 font-semibold mb-2">Error Loading Progress</h2>
             <p className="text-red-600">{error}</p>
-            <button 
+            <button
               onClick={() => window.location.reload()}
               className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
             >
@@ -171,14 +171,14 @@ export default function ChildProgressPage() {
     return (
       <div className="min-h-screen bg-gray-50 p-6">
         <div className="max-w-6xl mx-auto">
-          <button 
+          <button
             onClick={() => router.back()}
             className="mb-4 text-blue-600 hover:text-blue-800 flex items-center gap-2"
           >
             ← Back
           </button>
           <h1 className="text-3xl font-bold text-gray-900 mb-6">
-            {student?.firstName}'s Progress
+            {student?.firstName}&apos;s Progress
           </h1>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-8 text-center">
             <p className="text-blue-800 text-lg">
@@ -197,16 +197,16 @@ export default function ChildProgressPage() {
     return (
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-8 px-6">
         <div className="max-w-6xl mx-auto">
-          <button 
+          <button
             onClick={() => router.back()}
             className="mb-4 text-blue-100 hover:text-white flex items-center gap-2"
           >
             ← Back
           </button>
           <h1 className="text-4xl font-bold mb-2">
-            {student?.firstName}'s Progress
+            {student?.firstName}&apos;s Progress
           </h1>
-          <p className="text-blue-100">Track your child's learning journey and achievements</p>
+          <p className="text-blue-100">Track your child&apos;s learning journey and achievements</p>
         </div>
       </div>
     );
@@ -298,7 +298,7 @@ export default function ChildProgressPage() {
             <span className="text-blue-600 font-semibold">{Math.round(progressPercentage)}%</span>
           </div>
           <div className="w-full bg-gray-200 rounded-full h-3">
-            <div 
+            <div
               className="bg-blue-600 h-3 rounded-full transition-all duration-500"
               style={{ width: `${progressPercentage}%` }}
             ></div>
@@ -315,16 +315,14 @@ export default function ChildProgressPage() {
    */
   const renderCriterionCard = (criterion: Criterion, isCompleted: boolean) => {
     return (
-      <div 
+      <div
         key={criterion.criteriaId}
-        className={`bg-white rounded-lg shadow p-5 border-l-4 ${
-          isCompleted ? 'border-green-500' : 'border-gray-300'
-        }`}
+        className={`bg-white rounded-lg shadow p-5 border-l-4 ${isCompleted ? 'border-green-500' : 'border-gray-300'
+          }`}
       >
         <div className="flex items-start gap-4">
-          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
-            isCompleted ? 'bg-green-100' : 'bg-gray-100'
-          }`}>
+          <div className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${isCompleted ? 'bg-green-100' : 'bg-gray-100'
+            }`}>
             <span className={`text-xl ${isCompleted ? 'text-green-600' : 'text-gray-400'}`}>
               {isCompleted ? '✓' : '○'}
             </span>
@@ -429,7 +427,7 @@ export default function ChildProgressPage() {
   // ========================================
   // MAIN RETURN (State Logic)
   // ========================================
-  
+
   if (loading) {
     return <LoadingState message="Loading progress..." />;
   }

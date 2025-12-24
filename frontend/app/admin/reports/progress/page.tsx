@@ -94,7 +94,7 @@ export default function ProgressReportsPage() {
   );
 
   const renderEmptyState = () => !reportData && !loading ? (
-    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center"><p className="text-gray-600 text-lg">Configure report settings and click "Generate" to view progress data</p></div>
+    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center"><p className="text-gray-600 text-lg">Configure report settings and click &quot;Generate&quot; to view progress data</p></div>
   ) : null;
 
   // ========================================

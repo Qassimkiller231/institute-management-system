@@ -91,7 +91,7 @@ export default function AttendanceReportsPage() {
   );
 
   const renderEmptyState = () => !reportData && !loading ? (
-    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center"><p className="text-gray-600 text-lg">Select a group and click "Generate Report" to view attendance data</p></div>
+    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center"><p className="text-gray-600 text-lg">Select a group and click &quot;Generate Report&quot; to view attendance data</p></div>
   ) : null;
 
   // ========================================

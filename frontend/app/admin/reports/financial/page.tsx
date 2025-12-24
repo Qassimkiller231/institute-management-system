@@ -135,7 +135,7 @@ export default function FinancialReportsPage() {
   );
 
   const renderEmptyState = () => !reportData && !loading ? (
-    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center"><p className="text-gray-600 text-lg">Select term and click "Generate Report" to view financial data</p></div>
+    <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-lg p-12 text-center"><p className="text-gray-600 text-lg">Select term and click &quot;Generate Report&quot; to view financial data</p></div>
   ) : null;
 
   // ========================================

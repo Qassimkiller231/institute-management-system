@@ -123,7 +123,7 @@ export default function MyChildrenPage() {
     return (
       <div className="bg-white rounded-lg shadow p-6">
         <h2 className="text-2xl font-bold text-gray-900 mb-4">My Children</h2>
-        <p className="text-gray-600 mb-4">View and track your children's educational progress</p>
+        <p className="text-gray-600 mb-4">View and track your children&apos;s educational progress</p>
         
         <input
           type="text"

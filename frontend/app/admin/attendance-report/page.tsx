@@ -21,7 +21,7 @@ export default function AttendanceReportPage() {
   const [reportData, setReportData] = useState<AttendanceData[]>([]);
   const [groups, setGroups] = useState<any[]>([]);
   const [terms, setTerms] = useState<any[]>([]);
-  
+
   const [filters, setFilters] = useState({
     groupId: '',
     termId: '',
@@ -39,7 +39,7 @@ export default function AttendanceReportPage() {
         groupsAPI.getAll(),
         termsAPI.getAll()
       ]);
-      
+
       setGroups(groupsRes.data || []);
       setTerms(termsRes.data || []);
     } catch (err) {
@@ -68,10 +68,10 @@ export default function AttendanceReportPage() {
     if (reportData.length === 0) return;
 
     const headers = ['Student,Group,Total Sessions,Present,Absent,Late,Excused,Attendance %'];
-    const rows = reportData.map(row => 
+    const rows = reportData.map(row =>
       `${row.studentName},${row.groupCode},${row.totalSessions},${row.present},${row.absent},${row.late},${row.excused},${row.percentage}%`
     );
-    
+
     const csv = [headers, ...rows].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = window.URL.createObjectURL(blob);
@@ -112,7 +112,7 @@ export default function AttendanceReportPage() {
     return (
       <div className="bg-white rounded-lg shadow p-6 mb-6">
         <h2 className="text-xl font-bold mb-4">Report Filters</h2>
-        
+
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Group</label>
@@ -183,7 +183,7 @@ export default function AttendanceReportPage() {
         >
           {loading ? 'Generating...' : 'Generate Report'}
         </button>
-        
+
         {reportData.length > 0 && (
           <button
             onClick={exportToCSV}
@@ -230,11 +230,10 @@ export default function AttendanceReportPage() {
         <td className="px-6 py-4 text-sm text-yellow-600 font-semibold">{row.late}</td>
         <td className="px-6 py-4 text-sm text-blue-600 font-semibold">{row.excused}</td>
         <td className="px-6 py-4 text-sm">
-          <span className={`px-3 py-1 rounded-full font-semibold ${
-            row.percentage >= 80 ? 'bg-green-100 text-green-800' :
-            row.percentage >= 60 ? 'bg-yellow-100 text-yellow-800' :
-            'bg-red-100 text-red-800'
-          }`}>
+          <span className={`px-3 py-1 rounded-full font-semibold ${row.percentage >= 80 ? 'bg-green-100 text-green-800' :
+              row.percentage >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                'bg-red-100 text-red-800'
+            }`}>
             {row.percentage}%
           </span>
         </td>
@@ -270,7 +269,7 @@ export default function AttendanceReportPage() {
 
     return (
       <div className="bg-white rounded-lg shadow p-12 text-center text-gray-600">
-        Select filters and click "Generate Report" to view attendance data
+        Select filters and click &quot;Generate Report&quot; to view attendance data
       </div>
     );
   };
@@ -295,6 +294,6 @@ export default function AttendanceReportPage() {
   // ========================================
   // MAIN RENDER
   // ========================================
-  
+
   return renderAttendanceReportPage();
 }

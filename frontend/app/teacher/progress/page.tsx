@@ -89,20 +89,20 @@ export default function UpdateProgress() {
     try {
       const teacherId = getTeacherId();
       if (!teacherId) return;
-      
+
       // console.log('📚 [DEBUG] Fetching groups for teacher:', teacherId);
-      
+
       const data = await groupsAPI.getAll({ teacherId });
       // console.log('📚 [DEBUG] Groups response:',data);
       // console.log('📚 [DEBUG] Groups count:', data.data?.length || 0);
-      
+
       // if (data.data && data.data.length > 0) {
       //   console.log('📚 [DEBUG] First group level info:', {
       //     groupCode: data.data[0].groupCode,
       //     level: data.data[0].level
       //   });
       // }
-      
+
       setGroups(data.data || []);
     } catch (err) {
       // console.error('Error fetching groups:', err);
@@ -112,32 +112,32 @@ export default function UpdateProgress() {
   const fetchStudents = async () => {
     try {
       setLoading(true);
-      
+
       // console.log('👥 [DEBUG] Fetching students for group:', selectedGroup);
-      
-      const data = await enrollmentsAPI.getAll({ 
-        groupId: selectedGroup, 
-        status: 'ACTIVE' 
+
+      const data = await enrollmentsAPI.getAll({
+        groupId: selectedGroup,
+        status: 'ACTIVE'
       });
       // console.log('👥 [DEBUG] Enrollments response:', data);
-      
+
       const enrollments = data.data || [];
       // console.log('👥 [DEBUG] Enrollments count:', enrollments.length);
-      
+
       // if (enrollments.length > 0) {
       //   console.log('👥 [DEBUG] First enrollment:', enrollments[0]);
       //   console.log('👥 [DEBUG] First student:', enrollments[0].student);
       // }
-      
+
       const selectedGroupData = groups.find(g => g.id === selectedGroup);
-      
+
       const studentsList = enrollments.map((e: any) => ({
         ...e.student,
         enrollmentId: e.id,
         levelId: selectedGroupData?.level?.id || e.group?.level?.id,
         levelName: selectedGroupData?.level?.name || e.group?.level?.name || 'Not Assigned'
       }));
-      
+
       // console.log('👥 [DEBUG] Mapped students:', studentsList);
       setStudents(studentsList);
     } catch (err) {
@@ -151,12 +151,12 @@ export default function UpdateProgress() {
     try {
       const token = getToken();
       const student = students.find(s => s.id === selectedStudent);
-      
+
       // console.log('🔍 [DEBUG] fetchCriteria called');
       // console.log('   Selected Student ID:', selectedStudent);
       // console.log('   Found Student:', student);
       // console.log('   Student Level ID:', student?.levelId);
-      
+
       if (!student || !student.levelId) {
         // console.log('   ❌ No student or level found, returning...');
         return;
@@ -167,7 +167,7 @@ export default function UpdateProgress() {
 
       // console.log('   📦 Response data:', data);
       // console.log('   📊 Criteria count:', data.data?.length || 0);
-      
+
       setCriteria(data.data || []);
     } catch (err) {
       // console.error('❌ Error fetching criteria:', err);
@@ -178,22 +178,22 @@ export default function UpdateProgress() {
     try {
       const token = getToken();
       const student = students.find(s => s.id === selectedStudent);
-      
+
       if (!student || !student.enrollmentId || !student.levelId) {
         // console.error('Missing student data:', student);
         return;
       }
-      
+
       const data = await criteriaAPI.getStudentProgress(selectedStudent, {
         enrollmentId: student.enrollmentId,
         levelId: student.levelId
       });
       // console.log('📊 [DEBUG] Progress API response:', data);
-      
+
       // Backend returns: { data: { criteria: [...], totalCriteria, completedCount, etc } }
       const progressData: any[] = data.data?.criteria || [];
       // console.log('📊 [DEBUG] Progress criteria array:', progressData);
-      
+
       // Initialize progress state
       const progressMap: Record<string, StudentProgress> = {};
       criteria.forEach(criterion => {
@@ -205,7 +205,7 @@ export default function UpdateProgress() {
           notes: ''
         };
       });
-      
+
       setProgress(progressMap);
     } catch (err) {
       // console.error('Error fetching progress:', err);
@@ -263,20 +263,20 @@ export default function UpdateProgress() {
   };
 
   const selectedStudentData = students.find(s => s.id === selectedStudent);
-  
+
   // console.log('🎓 [DEBUG] Selected student ID:', selectedStudent);
   // console.log('🎓 [DEBUG] Students array:', students);
   // console.log('🎓 [DEBUG] Selected student data:', selectedStudentData);
-  
+
   // Check if student has a level
   // if (selectedStudentData && !selectedStudentData.levelId) {
   //   console.warn('⚠️  [WARNING] Student has no level assigned! Cannot fetch criteria.');
   //   console.log('   Student:', selectedStudentData.firstName, selectedStudentData.secondName);
   //   console.log('   Enrollment ID:', selectedStudentData.enrollmentId);
   // }
-  
+
   const completedCount = Object.values(progress).filter(p => p.completed).length;
-  const completionPercentage = criteria.length > 0 
+  const completionPercentage = criteria.length > 0
     ? Math.round((completedCount / criteria.length) * 100)
     : 0;
 
@@ -287,7 +287,7 @@ export default function UpdateProgress() {
     const orderB = b.orderNumber || 999;
     return orderA - orderB;
   });
-  
+
   // Get student name safely
   const getStudentName = () => {
     if (!selectedStudentData) return 'Student';
@@ -389,7 +389,7 @@ export default function UpdateProgress() {
             </h3>
             <div className="mt-2 text-sm text-yellow-700">
               <p>
-                This student's enrollment does not have a level assigned. 
+                This student&apos;s enrollment does not have a level assigned.
                 You must assign a level (A1, A2, B1, or B2) before you can update their progress.
               </p>
             </div>
@@ -583,6 +583,6 @@ export default function UpdateProgress() {
   // ========================================
   // MAIN RENDER
   // ========================================
-  
+
   return renderProgressPage();
 }

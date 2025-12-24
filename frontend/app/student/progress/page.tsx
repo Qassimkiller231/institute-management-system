@@ -49,7 +49,7 @@ export default function StudentProgressPage() {
 
         // Get active enrollment
         const activeEnrollment = student.enrollments?.find((e: any) => e.status === 'ACTIVE');
-        
+
         if (!activeEnrollment) {
           setProgressData({
             studentId,
@@ -75,7 +75,7 @@ export default function StudentProgressPage() {
 
         // Get levelId from enrollment (access via nested level object)
         const levelId = activeEnrollment.group.level.id;
-        
+
         if (!levelId) {
           throw new Error('Level ID missing. Please contact administration.');
         }
@@ -85,7 +85,7 @@ export default function StudentProgressPage() {
           enrollmentId: activeEnrollment.id,
           levelId: levelId
         });
-        
+
         const progress = progressResponse.data || progressResponse;
 
         // Get level name
@@ -111,15 +111,15 @@ export default function StudentProgressPage() {
   const getNextLevel = (currentLevel: string): string => {
     const levels = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2'];
     const currentIndex = levels.indexOf(currentLevel);
-    return currentIndex >= 0 && currentIndex < levels.length - 1 
-      ? levels[currentIndex + 1] 
+    return currentIndex >= 0 && currentIndex < levels.length - 1
+      ? levels[currentIndex + 1]
       : 'Advanced';
   };
 
   // ========================================
   // CALCULATIONS
   // ========================================
-  
+
   const completedCount = progressData?.completedCount ?? 0;
   const totalCriteria = progressData?.totalCriteria ?? 0;
   const progressPercentage = progressData?.progressPercentage ?? 0;
@@ -140,7 +140,7 @@ export default function StudentProgressPage() {
     return (
       <div className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-8 px-6">
         <div className="max-w-6xl mx-auto">
-          <button 
+          <button
             onClick={() => router.push('/student')}
             className="mb-4 text-blue-100 hover:text-white flex items-center gap-2"
           >
@@ -214,7 +214,7 @@ export default function StudentProgressPage() {
           <span className="text-blue-600 font-semibold">{Math.round(progressPercentage)}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-3">
-          <div 
+          <div
             className="bg-blue-600 h-3 rounded-full transition-all duration-500"
             style={{ width: `${progressPercentage}%` }}
           ></div>
@@ -235,7 +235,7 @@ export default function StudentProgressPage() {
         <div>
           <p className="font-semibold text-green-800">Congratulations!</p>
           <p className="text-green-700 text-sm">
-            You've completed all criteria for {currentLevel}. You're ready for {nextLevel}!
+            You&apos;ve completed all criteria for {currentLevel}. You&apos;re ready for {nextLevel}!
           </p>
         </div>
       </div>
@@ -247,7 +247,7 @@ export default function StudentProgressPage() {
    */
   const renderCompletedCriterion = (criterion: Criterion) => {
     return (
-      <div 
+      <div
         key={criterion.criteriaId}
         className="bg-white rounded-lg shadow p-5 border-l-4 border-green-500"
       >
@@ -294,7 +294,7 @@ export default function StudentProgressPage() {
    */
   const renderPendingCriterion = (criterion: Criterion) => {
     return (
-      <div 
+      <div
         key={criterion.criteriaId}
         className="bg-white rounded-lg shadow p-5 border-l-4 border-gray-300"
       >
@@ -389,14 +389,14 @@ export default function StudentProgressPage() {
   // ========================================
   // MAIN RENDER
   // ========================================
-  
+
   if (loading) {
     return <LoadingState message="Loading your progress..." />;
   }
 
   if (error) {
     return (
-      <ErrorState 
+      <ErrorState
         title="Error Loading Progress"
         message={error}
         onRetry={() => window.location.reload()}

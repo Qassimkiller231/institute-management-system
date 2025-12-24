@@ -90,7 +90,7 @@ export default function AdminDashboard() {
           <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
             Dashboard Overview
           </h1>
-          <p className="text-gray-600 mt-1">Welcome back! Here's your institute's performance at a glance.</p>
+          <p className="text-gray-600 mt-1">Welcome back! Here&apos;s your institute&apos;s performance at a glance.</p>
         </div>
 
         <div className="flex items-center gap-3">

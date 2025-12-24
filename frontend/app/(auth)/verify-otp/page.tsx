@@ -168,7 +168,7 @@ export default function VerifyOtpPage() {
           onClick={handleResendOtp}
           className="text-sm text-blue-600 hover:text-blue-700 font-medium"
         >
-          Didn't receive code? Resend
+          Didn&apos;t receive code? Resend
         </button>
       </div>
     );

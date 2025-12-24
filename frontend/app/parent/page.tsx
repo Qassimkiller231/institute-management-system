@@ -106,7 +106,7 @@ export default function ParentDashboard() {
           Welcome, {parentInfo?.parent?.firstName} {parentInfo?.parent?.lastName}!
         </h2>
         <p className="text-blue-100">
-          View and manage your children's educational progress
+          View and manage your children&apos;s educational progress
         </p>
       </div>
     );

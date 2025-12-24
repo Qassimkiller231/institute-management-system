@@ -114,7 +114,7 @@ export function suggestFinalLevel(
 // POST /api/admin/level-configs
 // PUT  /api/admin/level-configs/:testId
 
-export default {
+const levelConfig = {
   DEFAULT_LEVEL_CONFIG,
   TEN_QUESTION_LEVEL_CONFIG,
   CEFR_LEVELS,
@@ -122,3 +122,5 @@ export default {
   getLevelDescription,
   suggestFinalLevel
 };
+
+export default levelConfig;

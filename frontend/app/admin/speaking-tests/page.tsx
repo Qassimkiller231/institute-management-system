@@ -321,7 +321,7 @@ export default function SpeakingTestsPage() {
                         <div className="space-y-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Select Student</label>
-                                <p className="text-xs text-gray-500 mb-2">Showing students who have completed the Placement Test MCQ but haven't booked a speaking test.</p>
+                                <p className="text-xs text-gray-500 mb-2">Showing students who have completed the Placement Test MCQ but haven&apos;t booked a speaking test.</p>
 
                                 {bookingLoading && eligibleStudents.length === 0 ? (
                                     <div className="text-gray-500 text-sm py-2">Loading students...</div>
@@ -554,7 +554,7 @@ export default function SpeakingTestsPage() {
                             </div>
                             {selectedTestDetails.feedback && (
                                 <div className="mt-3 text-sm text-gray-700 italic border-t pt-2">
-                                    "{selectedTestDetails.feedback}"
+                                    &quot;{selectedTestDetails.feedback}&quot;
                                 </div>
                             )}
                         </div>

@@ -64,7 +64,7 @@ export default function StudentPaymentsPage() {
 
         // Get active enrollment
         const activeEnrollment = student.enrollments?.find((e: any) => e.status === 'ACTIVE');
-        
+
         if (!activeEnrollment) {
           setPaymentPlan(null);
           setLoading(false);
@@ -94,10 +94,10 @@ export default function StudentPaymentsPage() {
   const formatDate = (dateStr: string | null) => {
     if (!dateStr) return '-';
     const date = new Date(dateStr);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
   };
 
@@ -148,10 +148,10 @@ export default function StudentPaymentsPage() {
   // ========================================
   // CALCULATIONS (before render functions)
   // ========================================
-  
+
   // Safety check: ensure installments is an array before using array methods
-  const installments = paymentPlan?.installments && Array.isArray(paymentPlan?.installments) 
-    ? paymentPlan.installments 
+  const installments = paymentPlan?.installments && Array.isArray(paymentPlan?.installments)
+    ? paymentPlan.installments
     : [];
 
   const paidInstallments = installments.filter(isPaid).length;
@@ -172,7 +172,7 @@ export default function StudentPaymentsPage() {
     return (
       <div className="bg-gradient-to-r from-emerald-600 to-teal-800 text-white py-8 px-6">
         <div className="max-w-6xl mx-auto">
-          <button 
+          <button
             onClick={() => router.push('/student')}
             className="mb-4 text-emerald-100 hover:text-white flex items-center gap-2"
           >
@@ -190,9 +190,9 @@ export default function StudentPaymentsPage() {
    */
   const renderSummary = () => {
     if (!paymentPlan) return null;
-    
-    const installments = paymentPlan.installments && Array.isArray(paymentPlan.installments) 
-      ? paymentPlan.installments 
+
+    const installments = paymentPlan.installments && Array.isArray(paymentPlan.installments)
+      ? paymentPlan.installments
       : [];
     const paidInstallments = installments.filter(isPaid).length;
 
@@ -236,7 +236,7 @@ export default function StudentPaymentsPage() {
           <span className="text-sm font-semibold text-gray-900">{Math.round(progressPercentage)}%</span>
         </div>
         <div className="w-full bg-gray-200 rounded-full h-4">
-          <div 
+          <div
             className="bg-green-500 h-4 rounded-full transition-all duration-500"
             style={{ width: `${progressPercentage}%` }}
           ></div>
@@ -267,7 +267,7 @@ export default function StudentPaymentsPage() {
    */
   const renderInstallmentRow = (installment: Installment) => {
     const status = getInstallmentStatus(installment);
-    
+
     return (
       <tr key={installment.id} className="hover:bg-gray-50">
         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
@@ -292,7 +292,7 @@ export default function StudentPaymentsPage() {
         </td>
         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-700">
           {installment.receiptUrl ? (
-            <a 
+            <a
               href={installment.receiptUrl}
               target="_blank"
               rel="noopener noreferrer"
@@ -335,7 +335,7 @@ export default function StudentPaymentsPage() {
         <div className="px-6 py-4 border-b border-gray-200">
           <h3 className="text-xl font-bold text-gray-900">Installment Schedule</h3>
         </div>
-        
+
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50">
@@ -368,7 +368,7 @@ export default function StudentPaymentsPage() {
     return (
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
-          <strong>💳 Online Payments:</strong> You can pay your installments securely online using a credit/debit card. Click "Pay Now" on any pending installment to get started.
+          <strong>💳 Online Payments:</strong> You can pay your installments securely online using a credit/debit card. Click &quot;Pay Now&quot; on any pending installment to get started.
         </p>
         <p className="text-sm text-blue-800 mt-2">
           <strong>Note:</strong> For other payment methods or inquiries, please contact the administration office.
@@ -392,9 +392,9 @@ export default function StudentPaymentsPage() {
           <p className="text-gray-600 mb-6">
             Make a secure payment using your credit or debit card
           </p>
-          
+
           <Elements stripe={stripePromise}>
-            <StripePaymentForm 
+            <StripePaymentForm
               installment={{
                 id: selectedInstallment.id,
                 amount: selectedInstallment.amount
@@ -416,7 +416,7 @@ export default function StudentPaymentsPage() {
       <div className="min-h-screen bg-gray-50">
         <div className="bg-gradient-to-r from-gray-600 to-gray-800 text-white py-8 px-6">
           <div className="max-w-6xl mx-auto">
-            <button 
+            <button
               onClick={() => router.push('/student')}
               className="mb-4 text-gray-300 hover:text-white flex items-center gap-2"
             >
@@ -492,7 +492,7 @@ export default function StudentPaymentsPage() {
 
   if (error) {
     return (
-      <ErrorState 
+      <ErrorState
         title="Error Loading Payments"
         message={error}
         onRetry={() => window.location.reload()}
