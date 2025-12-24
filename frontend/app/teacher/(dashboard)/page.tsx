@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { logout, getTeacherId } from "@/lib/authStorage";
 import { reportsAPI, speakingSlotAPI, type DashboardStats } from "@/lib/api";
@@ -58,11 +58,7 @@ export default function TeacherDashboard() {
     }
   };
 
-  useEffect(() => {
-    fetchDashboard();
-  }, [selectedTerm]);
-
-  const fetchDashboard = async () => {
+  const fetchDashboard = useCallback(async () => {
     try {
       setLoading(true);
       const teacherId = getTeacherId();
@@ -89,7 +85,11 @@ export default function TeacherDashboard() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router, selectedTerm]);
+
+  useEffect(() => {
+    fetchDashboard();
+  }, [fetchDashboard]);
 
   // ========================================
   // RENDER FUNCTIONS
@@ -163,7 +163,7 @@ export default function TeacherDashboard() {
         {/* Today's Classes */}
         <div className="bg-white rounded-lg shadow p-6 hover:shadow-lg transition">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="text-gray-600 font-medium">Today's Classes</h3>
+            <h3 className="text-gray-600 font-medium">Today&apos;s Classes</h3>
             <span className="text-3xl">📅</span>
           </div>
           <p className="text-4xl font-bold text-purple-600">
