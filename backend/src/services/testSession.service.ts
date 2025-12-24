@@ -2,6 +2,7 @@
 import { PrismaClient, Prisma } from '@prisma/client';
 import * as notificationService from './notification.service';
 import * as emailService from './email.service';
+import { getMCQLevel } from '../config/level.config';
 
 const prisma = new PrismaClient();
 
@@ -229,7 +230,7 @@ export const submitMcqAnswers = async (input: SubmitMcqInput) => {
 
     if (studentWithUser?.user?.email) {
       // Calculate assessed level based on score
-      const assessedLevel = calculateLevel(earnedPoints, totalPoints);
+      const assessedLevel = getMCQLevel(earnedPoints, totalPoints);
 
       await emailService.sendPlacementTestCompletionEmail({
         to: studentWithUser.user.email,
