@@ -8,7 +8,7 @@ export default function EditGroupPage() {
   const router = useRouter();
   const params = useParams();
   const groupId = params.id as string;
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [terms, setTerms] = useState<any[]>([]);
@@ -47,9 +47,9 @@ export default function EditGroupPage() {
         termsAPI.getAll(),
         levelsAPI.getAll(),
         teachersAPI.getAll({ isActive: true }),
-        venuesAPI.getAll()
+        venuesAPI.getAll(true)
       ]);
-      
+
       const group = groupData.data;
       setFormData({
         termId: group.termId,
@@ -63,17 +63,18 @@ export default function EditGroupPage() {
         capacity: group.capacity,
         isActive: group.isActive
       });
-      
+
       setTerms(termsData.data.data || []);
       setLevels(levelsData.data || []);
       setTeachers(teachersData.data || []);
       setVenues(venuesData.data || []);
-      
+
       // Load halls if venue exists
       if (group.venueId) {
         try {
           const venueData = await venuesAPI.getById(group.venueId);
-          setHalls(venueData.data.halls || []);
+          const activeHalls = (venueData.data.halls || []).filter((h: any) => h.isActive !== false);
+          setHalls(activeHalls);
         } catch (err) {
           // console.error('Error loading halls:', err);
         }
@@ -91,11 +92,11 @@ export default function EditGroupPage() {
     const newDays = days.includes(day)
       ? days.filter((d: string) => d !== day)
       : [...days, day];
-    
+
     setFormData({
       ...formData,
-      schedule: { 
-        ...formData.schedule, 
+      schedule: {
+        ...formData.schedule,
         days: newDays,
         startTime: formData.schedule?.startTime || '09:00',
         endTime: formData.schedule?.endTime || '11:00'
@@ -103,13 +104,14 @@ export default function EditGroupPage() {
     });
   };
 
-  const handleVenueChange = async (venueId : string) => {
+  const handleVenueChange = async (venueId: string) => {
     setFormData({ ...formData, venueId, hallId: '' });
-    
+
     if (venueId) {
       try {
         const venueData = await venuesAPI.getById(venueId);
-        setHalls(venueData.data.halls || []);
+        const activeHalls = (venueData.data.halls || []).filter((h: any) => h.isActive !== false);
+        setHalls(activeHalls);
       } catch (err) {
         // console.error('Error loading halls:', err);
         setHalls([]);
@@ -121,7 +123,7 @@ export default function EditGroupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!formData.groupCode) {
       alert('Group code is required');
       return;

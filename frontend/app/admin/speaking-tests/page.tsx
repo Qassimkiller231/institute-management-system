@@ -228,11 +228,25 @@ export default function SpeakingTestsPage() {
     };
 
     const formatTime = (time: string) => {
-        return new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-            hour12: true
-        });
+        if (!time) return '-';
+        try {
+            // Check if it's already a full ISO string or similar
+            if (time.includes('T')) {
+                return new Date(time).toLocaleTimeString('en-US', {
+                    hour: 'numeric',
+                    minute: '2-digit',
+                    hour12: true
+                });
+            }
+            // Assume it's HH:MM:SS
+            return new Date(`2000-01-01T${time}`).toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true
+            });
+        } catch (e) {
+            return time;
+        }
     };
 
     // ========================================
@@ -390,7 +404,7 @@ export default function SpeakingTestsPage() {
                                                 onClick={() => setSelectedSlot(slot.id)}
                                                 className={`p-3 rounded border text-sm text-center transition ${selectedSlot === slot.id
                                                     ? 'bg-blue-600 text-white border-blue-600'
-                                                    : 'hover:border-blue-500 border-gray-200'
+                                                    : 'hover:border-blue-500 border-gray-200 text-gray-900'
                                                     }`}
                                             >
                                                 {formatTime(slot.startTime)}
@@ -527,11 +541,11 @@ export default function SpeakingTestsPage() {
                             <div className="grid grid-cols-3 gap-2 text-center text-sm">
                                 <div className="bg-white p-2 rounded border">
                                     <div className="text-xs text-gray-500">MCQ</div>
-                                    <div className="font-bold">{selectedTestDetails.mcqLevel || '-'}</div>
+                                    <div className="font-bold text-gray-900">{selectedTestDetails.mcqLevel || '-'}</div>
                                 </div>
                                 <div className="bg-white p-2 rounded border">
                                     <div className="text-xs text-gray-500">Speaking</div>
-                                    <div className="font-bold">{selectedTestDetails.speakingLevel || '-'}</div>
+                                    <div className="font-bold text-gray-900">{selectedTestDetails.speakingLevel || '-'}</div>
                                 </div>
                                 <div className="bg-white p-2 rounded border-2 border-green-200">
                                     <div className="text-xs text-gray-500">Final</div>

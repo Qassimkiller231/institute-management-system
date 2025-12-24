@@ -38,7 +38,7 @@ export default function ParentDashboard() {
   // STATE & HOOKS
   // ========================================
   const router = useRouter();
-  
+
   const [loading, setLoading] = useState(true);
   const [parentInfo, setParentInfo] = useState<ParentInfo | null>(null);
   const [students, setStudents] = useState<LinkedStudent[]>([]);
@@ -46,7 +46,7 @@ export default function ParentDashboard() {
   // ========================================
   // EFFECTS
   // ========================================
-  
+
   /**
    * Effect: Load parent data on mount
    */
@@ -57,7 +57,7 @@ export default function ParentDashboard() {
   // ========================================
   // DATA LOADING
   // ========================================
-  
+
   /**
    * Fetch parent and linked student data
    */
@@ -65,7 +65,7 @@ export default function ParentDashboard() {
     try {
       setLoading(true);
       const token = getToken();
-      
+
       if (!token) {
         router.push('/login');
         return;
@@ -264,6 +264,13 @@ export default function ParentDashboard() {
         hoverColor: 'hover:border-blue-500 hover:bg-blue-50',
       },
       {
+        icon: '🔔',
+        title: 'Notifications',
+        description: 'View your alerts and updates',
+        path: '/parent/notifications',
+        hoverColor: 'hover:border-purple-500 hover:bg-purple-50',
+      },
+      {
         icon: '📚',
         title: 'Access Materials',
         description: 'View learning resources',
@@ -312,7 +319,7 @@ export default function ParentDashboard() {
   // ========================================
   // MAIN RETURN (State Logic)
   // ========================================
-  
+
   if (loading) {
     return <LoadingState message="Loading dashboard..." />;
   }

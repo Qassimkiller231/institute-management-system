@@ -56,11 +56,11 @@ export default function CreateGroupPage() {
   const loadFormData = async () => {
     try {
       const [programsData, termsData, levelsData, teachersData, venuesData] = await Promise.all([
-        programsAPI.getAll(),
+        programsAPI.getAll(true),
         termsAPI.getAll(),
         levelsAPI.getAll(),
         teachersAPI.getAll({ isActive: true }),
-        venuesAPI.getAll()
+        venuesAPI.getAll(true)
       ]);
 
       setPrograms(programsData.data || []);
@@ -91,7 +91,8 @@ export default function CreateGroupPage() {
     if (venueId) {
       try {
         const venueData = await venuesAPI.getById(venueId);
-        setHalls(venueData.data.halls || []);
+        const activeHalls = (venueData.data.halls || []).filter((h: any) => h.isActive !== false);
+        setHalls(activeHalls);
       } catch (err) {
         // console.error('Error loading halls:', err);
         setHalls([]);

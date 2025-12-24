@@ -91,13 +91,13 @@ export const requestOTP = async (
       userId: user.id,
     });
   } else {
-    // Send via email(existing code)
-    // await emailService.sendOtpEmail({
-    //   to: identifier,
-    //   name: "guest",
-    //   otpCode: code,
-    //   expiryMinutes: 1,
-    // });
+    // Send via email
+    await emailService.sendOtpEmail({
+      to: identifier,
+      name: "User", // generic name as user profile isn't fetched yet
+      otpCode: code,
+      expiryMinutes: 5,
+    });
   }
 
   return {

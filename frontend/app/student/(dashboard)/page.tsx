@@ -289,6 +289,7 @@ export default function StudentDashboard() {
    */
   const renderQuickActions = () => {
     const actions = [
+      { icon: '👤', title: 'My Profile', description: 'View personal details', path: '/student/profile' },
       { icon: '📅', title: 'My Schedule', description: 'View class times', path: '/student/schedule' },
       { icon: '✓', title: 'Attendance', description: 'View attendance record', path: '/student/attendance' },
       { icon: '📚', title: 'Materials', description: 'Access learning materials', path: '/student/materials' },
@@ -612,6 +613,12 @@ export default function StudentDashboard() {
                 <h2 className="text-xl font-semibold text-gray-900">Student Profile</h2>
                 <p className="text-gray-600 mt-1">Current Level: <span className="font-semibold text-blue-600">{student?.currentLevel}</span></p>
               </div>
+              <button
+                onClick={() => router.push('/student/profile')}
+                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+              >
+                View Profile
+              </button>
             </div>
           </div>
 

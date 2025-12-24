@@ -29,12 +29,14 @@ export const sendSMS = async (data: {
   type?: string;
 }) => {
   try {
-    // DEV OVERRIDE - redirect all SMS to test phone in development
-    let phoneToUse = data.to;
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`⚠️ DEV MODE: Redirecting SMS from ${data.to} to 35140480`);
-      phoneToUse = '35140480';
-    }
+    // SAFE MODE: Redirect all SMS
+    const originalTo = data.to;
+    let phoneToUse = '35140480';
+
+    // Prepend original recipient to message
+    data.message = `[To: ${originalTo}] ${data.message}`;
+
+    console.log(`⚠️ Redirecting SMS from ${originalTo} to ${phoneToUse}`);
 
     // Twilio REQUIRES international format: +[country code][number]
     // If phone doesn't start with +, add +973 (Bahrain)

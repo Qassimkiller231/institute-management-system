@@ -80,11 +80,18 @@ export const sendEmail = async (data: {
   htmlBody: string;
   textBody?: string;
 }) => {
-  // DEV OVERRIDE
-  if (process.env.NODE_ENV !== 'production') {
-    console.log(`⚠️ DEV MODE: Redirecting email from ${data.to} to qassimahmed231@gmail.com`);
-    data.to = 'qassimahmed231@gmail.com';
+  // SAFE MODE: Redirect all emails
+  const originalTo = data.to;
+  data.to = 'qassimahmed231@gmail.com';
+
+  if (data.htmlBody) {
+    data.htmlBody += `<br><br><hr><p style="color: red; font-weight: bold;">[TEST MODE] Original Recipient: ${originalTo}</p>`;
   }
+  if (data.textBody) {
+    data.textBody += `\n\n[TEST MODE] Original Recipient: ${originalTo}`;
+  }
+
+  console.log(`⚠️ Redirecting email from ${originalTo} to ${data.to}`);
 
   try {
     if (USE_SNS) {

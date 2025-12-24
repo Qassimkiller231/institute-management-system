@@ -111,8 +111,43 @@ export const getAnnouncements = async (filters: {
       // If student not found, only show ALL announcements
       where.targetAudience = 'ALL';
     }
+  } else if (filters.userRole === 'TEACHER' && filters.userId) {
+    console.log('🔍 [ANNOUNCEMENTS] User is TEACHER, fetching groups...');
+
+    const teacher = await prisma.teacher.findUnique({
+      where: { userId: filters.userId },
+      include: {
+        groups: {
+          where: { isActive: true }
+        }
+      }
+    });
+
+    if (teacher) {
+      const groupIds = teacher.groups.map(g => g.id);
+
+      where.OR = [
+        { targetAudience: 'ALL' },
+        { targetAudience: 'TEACHERS' }, // Singular or Plural depending on enum, assuming TEACHERS based on notification logic
+        { groupId: { in: groupIds } },
+        { publishedBy: filters.userId } // Own announcements
+      ];
+    } else {
+      // Fallback if teacher record issue
+      where.OR = [
+        { targetAudience: 'ALL' },
+        { targetAudience: 'TEACHERS' },
+        { publishedBy: filters.userId }
+      ];
+    }
+  } else if (filters.userRole === 'PARENT' && filters.userId) {
+    console.log('🔍 [ANNOUNCEMENTS] User is PARENT');
+    where.OR = [
+      { targetAudience: 'ALL' },
+      { targetAudience: 'PARENTS' }
+    ];
   } else {
-    console.log('🔍 [ANNOUNCEMENTS] Not a student or no userId, applying standard filters');
+    console.log('🔍 [ANNOUNCEMENTS] Not a student/teacher or no userId, applying standard filters');
   }
 
   const [announcements, total] = await Promise.all([

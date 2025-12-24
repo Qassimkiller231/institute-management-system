@@ -8,7 +8,7 @@ import { clearAuthData } from '@/lib/authStorage';
 // TYPES
 // ========================================
 
-type MenuItem = 
+type MenuItem =
   | { divider: true; label: string }
   | { icon: string; label: string; path: string };
 
@@ -23,10 +23,11 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
   // ========================================
   // CONFIGURATION
   // ========================================
-  
+
   const menuItems: MenuItem[] = [
     { icon: '📊', label: 'Dashboard', path: '/parent' },
     { icon: '👶', label: 'My Children', path: '/parent/children' },
+    { icon: '🔔', label: 'Notifications', path: '/parent/notifications' },
     { icon: '📢', label: 'Announcements', path: '/parent/announcements' },
     { icon: '📚', label: 'Materials', path: '/parent/materials' },
     { icon: '💳', label: 'Payments', path: '/parent/payments' },
@@ -35,7 +36,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
   // ========================================
   // UTILITY FUNCTIONS
   // ========================================
-  
+
   /**
    * Check if a path is currently active
    */
@@ -57,7 +58,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
   // ========================================
   // HANDLERS
   // ========================================
-  
+
   /**
    * Handle user logout
    */
@@ -110,16 +111,15 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
     }
 
     const active = isActive(item.path);
-    
+
     return (
       <button
         key={item.path}
         onClick={() => router.push(item.path)}
-        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${
-          active
+        className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg transition ${active
             ? 'bg-blue-50 text-blue-600 font-medium'
             : 'text-gray-700 hover:bg-gray-100'
-        }`}
+          }`}
         title={!sidebarOpen ? item.label : ''}
       >
         <span className="text-xl">{item.icon}</span>
@@ -154,7 +154,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
     return (
       <aside className={`bg-white shadow-lg transition-all duration-300 ${sidebarOpen ? 'w-64' : 'w-20'} fixed h-full overflow-y-auto z-10`}>
         {renderSidebarHeader()}
-        
+
         <nav className="p-4 space-y-1">
           {menuItems.map((item, index) => renderMenuItem(item, index))}
         </nav>
@@ -194,7 +194,7 @@ export default function ParentLayout({ children }: { children: React.ReactNode }
 
         <main className={`flex-1 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-20'}`}>
           {renderHeader()}
-          
+
           <div className="p-6">
             {children}
           </div>
