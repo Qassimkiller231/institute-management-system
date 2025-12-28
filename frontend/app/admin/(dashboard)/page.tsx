@@ -26,6 +26,9 @@ import EnrollmentTrendChart from '@/components/dashboard/EnrollmentTrendChart';
 import DashboardNotificationWidget from '@/components/dashboard/DashboardNotificationWidget';
 
 export default function AdminDashboard() {
+  // ========================================
+  // STATE & HOOKS
+  // ========================================
   const [isLoading, setIsLoading] = useState(true);
   const [dashboardData, setDashboardData] = useState<any>(null);
   const [trendData, setTrendData] = useState<any>(null);
@@ -65,6 +68,9 @@ export default function AdminDashboard() {
     fetchAllData();
   }, []);
 
+  // ========================================
+  // HANDLERS
+  // ========================================
   const toggleWidget = (key: keyof typeof activeWidgets) => {
     setActiveWidgets(prev => ({
       ...prev,
@@ -72,19 +78,20 @@ export default function AdminDashboard() {
     }));
   };
 
-  if (isLoading) {
+  // ========================================
+  // RENDER FUNCTIONS
+  // ========================================
+
+  const renderLoading = () => {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     );
-  }
+  };
 
-  if (!dashboardData) return null;
-
-  return (
-    <div className="space-y-6 animate-fade-in p-2">
-      {/* Header Section */}
+  const renderHeader = () => {
+    return (
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-gray-900 to-gray-600">
@@ -101,45 +108,52 @@ export default function AdminDashboard() {
             <Settings className="h-4 w-4 text-gray-600" />
             <span className="text-sm font-medium">Customize Layout</span>
           </button>
-
         </div>
       </div>
+    );
+  };
 
-      {/* Layout Configuration Panel */}
-      {showConfig && (
-        <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-lg animate-in fade-in slide-in-from-top-2">
-          <div className="flex items-center justify-between mb-3">
-            <h3 className="font-semibold text-gray-900">Visible Charts</h3>
-            <button onClick={() => setShowConfig(false)} className="text-gray-500 hover:text-gray-700">
-              <X className="h-4 w-4" />
-            </button>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            {[
-              { id: 'revenueTrend', label: 'Revenue Trend' },
-              { id: 'studentDist', label: 'Student Distribution' },
-              { id: 'attendanceTrend', label: 'Attendance Trend' },
-              { id: 'programRevenue', label: 'Program Revenue' },
-              { id: 'paymentMethods', label: 'Payment Methods' },
-              { id: 'teacherWorkload', label: 'Teacher Workload' },
-              { id: 'enrollmentTrend', label: 'Enrollment Growth' },
-            ].map((widget) => (
-              <button
-                key={widget.id}
-                onClick={() => toggleWidget(widget.id as keyof typeof activeWidgets)}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${activeWidgets[widget.id as keyof typeof activeWidgets]
+  const renderLayoutConfig = () => {
+    if (!showConfig) return null;
+
+    const widgetsList = [
+      { id: 'revenueTrend', label: 'Revenue Trend' },
+      { id: 'studentDist', label: 'Student Distribution' },
+      { id: 'attendanceTrend', label: 'Attendance Trend' },
+      { id: 'programRevenue', label: 'Program Revenue' },
+      { id: 'paymentMethods', label: 'Payment Methods' },
+      { id: 'teacherWorkload', label: 'Teacher Workload' },
+      { id: 'enrollmentTrend', label: 'Enrollment Growth' },
+    ];
+
+    return (
+      <div className="bg-white p-4 rounded-xl border border-gray-200 shadow-lg animate-in fade-in slide-in-from-top-2">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-900">Visible Charts</h3>
+          <button onClick={() => setShowConfig(false)} className="text-gray-500 hover:text-gray-700">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="flex flex-wrap gap-3">
+          {widgetsList.map((widget) => (
+            <button
+              key={widget.id}
+              onClick={() => toggleWidget(widget.id as keyof typeof activeWidgets)}
+              className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 border ${activeWidgets[widget.id as keyof typeof activeWidgets]
                   ? 'bg-blue-600 border-blue-600 text-white shadow-md transform scale-105'
                   : 'bg-white border-gray-200 text-gray-500 hover:bg-gray-50 hover:border-gray-300'
-                  }`}
-              >
-                {widget.label}
-              </button>
-            ))}
-          </div>
+                }`}
+            >
+              {widget.label}
+            </button>
+          ))}
         </div>
-      )}
+      </div>
+    );
+  };
 
-      {/* Link to Stat Cards */}
+  const renderStatCards = () => {
+    return (
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <StatCard
           title="Total Students"
@@ -170,12 +184,15 @@ export default function AdminDashboard() {
           color="purple"
         />
       </div>
+    );
+  };
 
-      {/* Dynamic Widget Grid - 7 Charts */}
+  const renderChartsGrid = () => {
+    return (
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {activeWidgets.revenueTrend && (
           <RevenueChart
-            data={trendData.revenueTrend}  // Using trendData
+            data={trendData.revenueTrend}
             onClose={() => toggleWidget('revenueTrend')}
           />
         )}
@@ -216,65 +233,94 @@ export default function AdminDashboard() {
           />
         )}
       </div>
+    );
+  };
 
-      {/* Quick Actions & Recent Activity Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Quick Actions */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold mb-4 text-gray-900">Quick Actions</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <Link href="/admin/students/register" className="flex flex-col items-center p-4 bg-gray-50 rounded-xl hover:bg-blue-50 border border-transparent hover:border-blue-100 transition-all group">
-              <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform text-blue-600">
-                <GraduationCap className="h-5 w-5" />
-              </span>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-blue-700">Enroll Student</span>
-            </Link>
-            <Link href="/admin/payments/new" className="flex flex-col items-center p-4 bg-gray-50 rounded-xl hover:bg-emerald-50 border border-transparent hover:border-emerald-100 transition-all group">
-              <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform text-emerald-600">
-                <CreditCard className="h-5 w-5" />
-              </span>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-emerald-700">New Payment</span>
-            </Link>
-            <Link href="/admin/announcements/create" className="flex flex-col items-center p-4 bg-gray-50 rounded-xl hover:bg-purple-50 border border-transparent hover:border-purple-100 transition-all group">
-              <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform text-purple-600">
-                <Calendar className="h-5 w-5" />
-              </span>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-purple-700">Announcement</span>
-            </Link>
-            <Link href="/admin/groups" className="flex flex-col items-center p-4 bg-gray-50 rounded-xl hover:bg-orange-50 border border-transparent hover:border-orange-100 transition-all group">
-              <span className="w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform text-orange-600">
-                <Users className="h-5 w-5" />
-              </span>
-              <span className="text-sm font-medium text-gray-700 group-hover:text-orange-700">Manage Groups</span>
-            </Link>
-          </div>
-        </div>
+  const renderQuickActions = () => {
+    const actions = [
+      { href: "/admin/students/register", label: "Enroll Student", icon: GraduationCap, color: "blue" },
+      { href: "/admin/payments/new", label: "New Payment", icon: CreditCard, color: "emerald" },
+      { href: "/admin/announcements/create", label: "Announcement", icon: Calendar, color: "purple" },
+      { href: "/admin/groups", label: "Manage Groups", icon: Users, color: "orange" },
+    ];
 
-        {/* Recent Activity */}
-        <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <h3 className="text-lg font-bold mb-4 text-gray-900">Recent Activity</h3>
-          <div className="space-y-4">
-            {dashboardData.recentActivity.map((activity: any, i: number) => (
-              <div key={i} className="flex items-start gap-4 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
-                <div className="p-2 bg-blue-50 rounded-full text-blue-600 mt-1 shrink-0">
-                  <Clock className="h-4 w-4" />
-                </div>
-                <div>
-                  <p className="text-sm text-gray-900 font-medium">{activity.description}</p>
-                  <p className="text-xs text-gray-500 mt-1">
-                    {new Date(activity.timestamp).toLocaleString()}
-                  </p>
-                </div>
-              </div>
-            ))}
-            {dashboardData.recentActivity.length === 0 && (
-              <p className="text-gray-500 text-sm text-center py-4">No recent activity found.</p>
-            )}
-          </div>
+    return (
+      <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h3 className="text-lg font-bold mb-4 text-gray-900">Quick Actions</h3>
+        <div className="grid grid-cols-2 gap-4">
+          {actions.map((action, i) => (
+            <Link
+              key={i}
+              href={action.href}
+              className={`flex flex-col items-center p-4 bg-gray-50 rounded-xl hover:bg-${action.color}-50 border border-transparent hover:border-${action.color}-100 transition-all group`}
+            >
+              <span className={`w-10 h-10 rounded-full bg-white flex items-center justify-center shadow-sm mb-2 group-hover:scale-110 transition-transform text-${action.color}-600`}>
+                <action.icon className="h-5 w-5" />
+              </span>
+              <span className={`text-sm font-medium text-gray-700 group-hover:text-${action.color}-700`}>
+                {action.label}
+              </span>
+            </Link>
+          ))}
         </div>
       </div>
-    </div>
-  );
+    );
+  };
+
+  const renderRecentActivity = () => {
+    return (
+      <div className="lg:col-span-2 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
+        <h3 className="text-lg font-bold mb-4 text-gray-900">Recent Activity</h3>
+        <div className="space-y-4">
+          {dashboardData.recentActivity.map((activity: any, i: number) => (
+            <div key={i} className="flex items-start gap-4 pb-4 border-b border-gray-50 last:border-0 last:pb-0">
+              <div className="p-2 bg-blue-50 rounded-full text-blue-600 mt-1 shrink-0">
+                <Clock className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="text-sm text-gray-900 font-medium">{activity.description}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {new Date(activity.timestamp).toLocaleString()}
+                </p>
+              </div>
+            </div>
+          ))}
+          {dashboardData.recentActivity.length === 0 && (
+            <p className="text-gray-500 text-sm text-center py-4">No recent activity found.</p>
+          )}
+        </div>
+      </div>
+    );
+  };
+
+  const renderBottomSection = () => {
+    return (
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {renderQuickActions()}
+        {renderRecentActivity()}
+      </div>
+    );
+  };
+
+  const renderDashboardContent = () => {
+    return (
+      <div className="space-y-6 animate-fade-in p-2">
+        {renderHeader()}
+        {renderLayoutConfig()}
+        {renderStatCards()}
+        {renderChartsGrid()}
+        {renderBottomSection()}
+      </div>
+    );
+  };
+
+  // ========================================
+  // MAIN RETURN
+  // ========================================
+  if (isLoading) return renderLoading();
+  if (!dashboardData) return null;
+
+  return renderDashboardContent();
 }
 
 function StatCard({ title, value, icon: Icon, trend, color }: any) {

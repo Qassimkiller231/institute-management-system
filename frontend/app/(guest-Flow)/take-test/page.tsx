@@ -43,17 +43,17 @@ export default function TakeTestPage() {
   // STATE & HOOKS
   // ========================================
   const router = useRouter();
-  
+
   // UI State
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [step, setStep] = useState<TestStep>("select");
   const [submitted, setSubmitted] = useState(false);
-  
+
   // Test Selection State
   const [availableTests, setAvailableTests] = useState<TestOption[]>([]);
   const [selectedTestId, setSelectedTestId] = useState("");
-  
+
   // Test Taking State
   const [sessionId, setSessionId] = useState("");
   const [test, setTest] = useState<Test | null>(null);
@@ -65,7 +65,7 @@ export default function TakeTestPage() {
   // ========================================
   // EFFECTS
   // ========================================
-  
+
   /**
    * Effect 1: Initial Load
    * Load available placement tests when component mounts
@@ -102,7 +102,7 @@ export default function TakeTestPage() {
   // ========================================
   // DATA LOADING FUNCTIONS
   // ========================================
-  
+
   /**
    * Load all available placement tests for the student
    * Validates student authentication before loading
@@ -161,9 +161,40 @@ export default function TakeTestPage() {
 
       // Attempt to start a new session
       const sessionResult = await testAPI.startSession(studentId, selectedTestId);
-      
+
       if (!sessionResult.success) {
-        // Check if student has already taken this test
+        // CASE 1: Active session exists -> Resume it automatically
+        if (sessionResult.message?.includes("active placement test")) {
+          // console.log("Found active session, resuming..."); 
+          try {
+            const activeSessionResult = await testAPI.getActiveSession(studentId);
+
+            if (activeSessionResult.success && activeSessionResult.session) {
+              setSessionId(activeSessionResult.session.id);
+
+              // Load questions for the ACTIVE session
+              const questionsResult = await testAPI.getSessionQuestions(activeSessionResult.session.id);
+
+              if (questionsResult.success && questionsResult.test) {
+                setTest(questionsResult.test);
+
+                // Calculate remaining time based on startedAt
+                const startTime = new Date(activeSessionResult.session.startedAt).getTime();
+                const durationMs = questionsResult.test.durationMinutes * 60 * 1000;
+                const elapsedMs = Date.now() - startTime;
+                const remainingSeconds = Math.max(0, Math.floor((durationMs - elapsedMs) / 1000));
+
+                setTimeLeft(remainingSeconds);
+                setStep("taking");
+                return;
+              }
+            }
+          } catch (resumeErr) {
+            // console.error("Failed to resume:", resumeErr);
+          }
+        }
+
+        // CASE 2: Already completed
         if (sessionResult.message?.includes("already taken") || sessionResult.message?.includes("already have")) {
           try {
             const lastSessionResult = await testAPI.getLastSession(studentId, selectedTestId);
@@ -217,7 +248,7 @@ export default function TakeTestPage() {
   // ========================================
   // HANDLERS
   // ========================================
-  
+
   /**
    * Handle selecting/changing an answer for a question
    */
@@ -287,7 +318,7 @@ export default function TakeTestPage() {
   // ========================================
   // UTILITY FUNCTIONS
   // ========================================
-  
+
   /**
    * Format seconds as MM:SS
    */
@@ -321,7 +352,7 @@ export default function TakeTestPage() {
   // ========================================
   // RENDER FUNCTIONS - TEST SELECTION
   // ========================================
-  
+
   /**
    * Error state for test selection
    */
@@ -352,11 +383,10 @@ export default function TakeTestPage() {
           <div
             key={testOption.id}
             onClick={() => setSelectedTestId(testOption.id)}
-            className={`bg-white rounded-lg shadow-md p-6 cursor-pointer transition border-2 ${
-              selectedTestId === testOption.id
+            className={`bg-white rounded-lg shadow-md p-6 cursor-pointer transition border-2 ${selectedTestId === testOption.id
                 ? "border-blue-600 bg-blue-50"
                 : "border-gray-200 hover:border-blue-400"
-            }`}
+              }`}
           >
             <div className="flex items-start justify-between mb-4">
               <h3 className="text-2xl font-bold text-gray-900">
@@ -468,7 +498,7 @@ export default function TakeTestPage() {
   // ========================================
   // RENDER FUNCTIONS - TEST RESULTS
   // ========================================
-  
+
   /**
    * Test already completed state
    */
@@ -546,7 +576,7 @@ export default function TakeTestPage() {
   // ========================================
   // RENDER FUNCTIONS - TEST TAKING
   // ========================================
-  
+
   /**
    * Test header with timer and progress
    */
@@ -564,9 +594,8 @@ export default function TakeTestPage() {
           </div>
           <div className="text-right">
             <div
-              className={`text-3xl font-bold ${
-                timeLeft < 300 ? "text-red-600" : "text-blue-600"
-              }`}
+              className={`text-3xl font-bold ${timeLeft < 300 ? "text-red-600" : "text-blue-600"
+                }`}
             >
               {formatTime(timeLeft)}
             </div>
@@ -628,19 +657,17 @@ export default function TakeTestPage() {
             <button
               key={index}
               onClick={() => handleAnswerSelect(question.id, optionValue)}
-              className={`w-full text-left p-4 rounded-lg border-2 transition ${
-                isSelected
+              className={`w-full text-left p-4 rounded-lg border-2 transition ${isSelected
                   ? "border-blue-600 bg-blue-50"
                   : "border-gray-300 hover:border-blue-400 bg-white"
-              }`}
+                }`}
             >
               <div className="flex items-start">
                 <span
-                  className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3 ${
-                    isSelected
+                  className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center font-bold mr-3 ${isSelected
                       ? "bg-blue-600 text-white"
                       : "bg-gray-200 text-gray-700"
-                  }`}
+                    }`}
                 >
                   {optionLabel}
                 </span>
@@ -662,7 +689,7 @@ export default function TakeTestPage() {
     if (!test) return null;
 
     const question = test.questions[currentQuestion];
-    
+
     if (!question) {
       return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -751,16 +778,16 @@ export default function TakeTestPage() {
   // ========================================
   // MAIN RETURN (State Logic)
   // ========================================
-  
+
   // Test completed (already taken)
   if (testResult) return renderCompletedTest();
-  
+
   // Test submitted successfully
   if (submitted) return renderSubmittedState();
-  
+
   // Test selection screen
   if (step === "select") return renderTestSelection();
-  
+
   // Test taking screen
   return renderTestTaking();
 }

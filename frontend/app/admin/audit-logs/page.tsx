@@ -4,6 +4,9 @@ import { useState, useEffect, useCallback } from 'react';
 import { auditApi, AuditLog, AuditLogResponse } from '@/lib/api/audit';
 
 export default function AuditLogsPage() {
+    // ========================================
+    // STATE & HOOKS
+    // ========================================
     const [logs, setLogs] = useState<AuditLog[]>([]);
     const [pagination, setPagination] = useState({
         page: 1,
@@ -47,6 +50,9 @@ export default function AuditLogsPage() {
         fetchLogs();
     }, [fetchLogs]);
 
+    // ========================================
+    // HANDLERS
+    // ========================================
     const handleFilterChange = (key: string, value: string) => {
         setFilters(prev => ({ ...prev, [key]: value }));
         setPagination(prev => ({ ...prev, page: 1 })); // Reset to page 1 on filter change
@@ -103,8 +109,12 @@ export default function AuditLogsPage() {
         );
     };
 
-    return (
-        <div className="space-y-6 max-w-7xl mx-auto">
+    // ========================================
+    // RENDER FUNCTIONS
+    // ========================================
+
+    const renderHeader = () => {
+        return (
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-3xl font-bold tracking-tight text-gray-900">Audit Logs</h1>
@@ -118,8 +128,11 @@ export default function AuditLogsPage() {
                     {isLoading ? '🔄 Loading...' : '🔄 Refresh'}
                 </button>
             </div>
+        );
+    };
 
-            {/* Filters */}
+    const renderFilters = () => {
+        return (
             <div className="rounded-lg border bg-white shadow-sm">
                 <div className="p-6">
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
@@ -184,8 +197,11 @@ export default function AuditLogsPage() {
                     </div>
                 </div>
             </div>
+        );
+    };
 
-            {/* Logs Table */}
+    const renderLogsTable = () => {
+        return (
             <div className="rounded-lg border bg-white shadow-sm overflow-hidden">
                 <div className="relative w-full overflow-auto">
                     <table className="w-full caption-bottom text-sm text-left">
@@ -252,29 +268,48 @@ export default function AuditLogsPage() {
                     </table>
                 </div>
             </div>
+        );
+    };
 
-            {/* Pagination */}
-            {pagination.totalPages > 1 && (
-                <div className="flex items-center justify-end space-x-2">
-                    <button
-                        onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
-                        disabled={pagination.page === 1 || isLoading}
-                        className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none border border-gray-200 bg-white hover:bg-gray-100 h-9 px-4 py-2"
-                    >
-                        Previous
-                    </button>
-                    <div className="text-sm text-gray-500">
-                        Page {pagination.page} of {pagination.totalPages}
-                    </div>
-                    <button
-                        onClick={() => setPagination(p => ({ ...p, page: Math.min(p.totalPages, p.page + 1) }))}
-                        disabled={pagination.page === pagination.totalPages || isLoading}
-                        className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none border border-gray-200 bg-white hover:bg-gray-100 h-9 px-4 py-2"
-                    >
-                        Next
-                    </button>
+    const renderPagination = () => {
+        if (pagination.totalPages <= 1) return null;
+
+        return (
+            <div className="flex items-center justify-end space-x-2">
+                <button
+                    onClick={() => setPagination(p => ({ ...p, page: Math.max(1, p.page - 1) }))}
+                    disabled={pagination.page === 1 || isLoading}
+                    className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none border border-gray-200 bg-white hover:bg-gray-100 h-9 px-4 py-2"
+                >
+                    Previous
+                </button>
+                <div className="text-sm text-gray-500">
+                    Page {pagination.page} of {pagination.totalPages}
                 </div>
-            )}
-        </div>
-    );
+                <button
+                    onClick={() => setPagination(p => ({ ...p, page: Math.min(p.totalPages, p.page + 1) }))}
+                    disabled={pagination.page === pagination.totalPages || isLoading}
+                    className="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none border border-gray-200 bg-white hover:bg-gray-100 h-9 px-4 py-2"
+                >
+                    Next
+                </button>
+            </div>
+        );
+    };
+
+    const renderMainContent = () => {
+        return (
+            <div className="space-y-6 max-w-7xl mx-auto">
+                {renderHeader()}
+                {renderFilters()}
+                {renderLogsTable()}
+                {renderPagination()}
+            </div>
+        );
+    };
+
+    // ========================================
+    // MAIN RETURN
+    // ========================================
+    return renderMainContent();
 }

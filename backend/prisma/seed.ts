@@ -100,12 +100,47 @@ async function main() {
   // FAQs
   await prisma.fAQ.createMany({
     data: [
-      { question: 'How do I check my attendance?', answer: 'Go to the Dashboard and view the "Attendance" card.', category: 'General', roles: ['STUDENT', 'PARENT'] },
-      { question: 'When are the fees due?', answer: 'Fees are due on the 5th of each month. Check "Payments" tab.', category: 'Finance', roles: ['STUDENT', 'PARENT'] },
-      { question: 'How to request a leave?', answer: 'Contact your coordinator or use the "Request Leave" button in Profile.', category: 'General', roles: ['TEACHER'] },
       { question: 'Is parking available at Riyadat?', answer: 'Yes, free parking is available in the basement.', category: 'Logistics', roles: ['ALL'] },
     ]
   });
+
+  // ============================================
+  // 2.1 PLACEMENT TEST (5 Questions)
+  // ============================================
+  console.log('📝 Creating Placement Test (5 Questions)...');
+  const placementTest = await prisma.test.create({
+    data: {
+      name: 'English Placement Test (Short Version)',
+      testType: 'PLACEMENT',
+      totalQuestions: 5,
+      durationMinutes: 45,
+      isActive: true,
+    },
+  });
+
+  const placementQuestions = [
+    { text: 'What _____ your name?', options: ['is', 'are', 'am', 'be'], answer: 'is' },
+    { text: 'She _____ to the store yesterday.', options: ['went', 'go', 'goes', 'going'], answer: 'went' },
+    { text: 'If I _____ you, I would study harder.', options: ['were', 'am', 'was', 'be'], answer: 'were' },
+    { text: 'The book _____ by millions of people.', options: ['has been read', 'read', 'is reading', 'reads'], answer: 'has been read' },
+    { text: 'Despite _____ tired, she continued working.', options: ['being', 'to be', 'is', 'was'], answer: 'being' },
+  ];
+
+  for (let i = 0; i < placementQuestions.length; i++) {
+    const q = placementQuestions[i];
+    await prisma.testQuestion.create({
+      data: {
+        testId: placementTest.id,
+        questionText: q.text,
+        questionType: 'MULTIPLE_CHOICE',
+        options: q.options,
+        correctAnswer: q.answer,
+        points: 1,
+        orderNumber: i + 1,
+      },
+    });
+  }
+  console.log(`   ✅ Created Placement Test with 5 questions`);
 
 
   // ============================================

@@ -33,16 +33,14 @@ export const testAPI = {
     return res.json();
   },
   getActiveSession: async (studentId: string) => {
-    const token = localStorage.getItem('token');
-    const response = await fetch(
-      `http://localhost:3001/api/test-sessions/active?studentId=${studentId}`,
-      {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+    const res = await fetch(`${API_URL}/test-sessions/active?studentId=${studentId}`, {
+      headers: getHeaders(true)
+    });
+    // Check if 404 (not found) - valid null result
+    if (res.status === 404) {
+      return { success: true, session: null };
+    }
+    return res.json();
   },
   getLastSession: async (studentId: string, testId: string) => {
     const res = await fetch(`${API_URL}/test-sessions/last-session?studentId=${studentId}&testId=${testId}`, {

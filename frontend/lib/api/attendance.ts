@@ -120,5 +120,24 @@ export const attendanceAPI = {
     });
     if (!res.ok) throw new Error('Failed to delete attendance');
     return res.json();
+  },
+
+  // Bulk upload attendance CSV
+  uploadBulk: async (formData: FormData) => {
+    const headers = getHeaders(true);
+    // Remove Content-Type to let browser set it with boundary for FormData
+    delete headers['Content-Type'];
+
+    const res = await fetch(`${API_URL}/attendance/bulk-upload`, {
+      method: 'POST',
+      headers,
+      body: formData
+    });
+
+    if (!res.ok && res.status !== 207) {
+      const error = await res.json();
+      throw new Error(error.message || 'Failed to upload attendance');
+    }
+    return res.json();
   }
 };
