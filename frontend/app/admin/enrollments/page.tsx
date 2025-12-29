@@ -34,6 +34,7 @@ interface Student {
   firstName: string;
   secondName?: string;
   thirdName?: string;
+  isActive: boolean;
 }
 
 interface Group {
@@ -113,6 +114,8 @@ export default function EnrollmentManagement() {
 
   const fetchStudents = async () => {
     try {
+      // We fetch ALL students so we can potentially display name info properly, 
+      // but we will filter them in the dropdown
       const result = await studentsAPI.getAll();
       setStudents(result.data || []);
     } catch (err) {
@@ -253,6 +256,9 @@ export default function EnrollmentManagement() {
   // Filter students for modal
   const filteredStudentsForModal = students.filter(student => {
     if (modalMode === 'edit') return student.id === formData.studentId;
+
+    // Filter out Inactive students
+    if (!student.isActive) return false;
 
     // Only show students with NO active enrollments
     if (enrolledStudentIds.has(student.id)) return false;
