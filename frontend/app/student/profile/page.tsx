@@ -104,7 +104,7 @@ export default function StudentProfilePage() {
         preferredCenter: editData.preferredCenter ?? undefined,
         needsTransport: editData.needsTransport,
       });
-      
+
       // Refetch profile to get updated data
       const result = await studentsAPI.getById(profile.id);
       const updated = result.data || result;
@@ -129,7 +129,7 @@ export default function StudentProfilePage() {
   // ========================================
   // CALCULATIONS
   // ========================================
-  
+
   const activeEnrollment = profile?.enrollments.find(e => e.status === 'ACTIVE');
   const fullName = profile ? [profile.firstName, profile.secondName, profile.thirdName].filter(Boolean).join(' ') : '';
   const primaryPhone = profile?.phones.find(p => p.isPrimary);
@@ -145,7 +145,7 @@ export default function StudentProfilePage() {
     return (
       <div className="bg-gradient-to-r from-gray-800 to-gray-900 text-white py-8 px-6">
         <div className="max-w-4xl mx-auto">
-          <button 
+          <button
             onClick={() => router.push('/student')}
             className="mb-4 text-gray-300 hover:text-white flex items-center gap-2"
           >
@@ -384,7 +384,7 @@ export default function StudentProfilePage() {
    * Render parent information section
    */
   const renderParentInfo = () => {
-    if (!profile || profile.parentStudentLinks.length === 0) return null;
+    if (!profile || !profile.parentStudentLinks || profile.parentStudentLinks.length === 0) return null;
 
     return (
       <div className="bg-white rounded-lg shadow p-6 mb-6">
@@ -524,14 +524,14 @@ export default function StudentProfilePage() {
   // ========================================
   // MAIN RENDER
   // ========================================
-  
+
   if (loading) {
     return <LoadingState message="Loading your profile..." />;
   }
 
   if (error) {
     return (
-      <ErrorState 
+      <ErrorState
         title="Error Loading Profile"
         message={error}
         onRetry={() => window.location.reload()}

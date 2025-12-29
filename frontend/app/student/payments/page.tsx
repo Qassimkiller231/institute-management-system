@@ -73,6 +73,13 @@ export default function StudentPaymentsPage() {
 
         // Fetch payment plan - FIXED ENDPOINT
         const paymentResponse = await paymentsAPI.getPlanByEnrollment(activeEnrollment.id);
+
+        if (!paymentResponse) {
+          setPaymentPlan(null);
+          setLoading(false);
+          return;
+        }
+
         const data = paymentResponse.data || paymentResponse;
         setPaymentPlan(data);
 

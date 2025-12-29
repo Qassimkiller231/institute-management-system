@@ -25,6 +25,7 @@ export const paymentsAPI = {
     const res = await fetch(`${API_URL}/payments/plans/enrollment/${enrollmentId}`, {
       headers: getHeaders(true)
     });
+    if (res.status === 404) return null; // Return null if not found
     if (!res.ok) throw new Error('Failed to fetch payment plan');
     return res.json();
   },

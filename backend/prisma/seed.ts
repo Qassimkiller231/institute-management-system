@@ -396,9 +396,7 @@ async function main() {
   // ============================================
   console.log('📅 Creating Recurring Sessions...');
 
-  // Create last 4 weeks of sessions for Group 1 (Ali's group)
-  // Assumes Sun/Tue schedule
-  const g1 = groups[0];
+  // Create last 4 weeks of sessions for ALL GROUPS
   const dates = [
     new Date('2025-01-05T16:00:00Z'),
     new Date('2025-01-07T16:00:00Z'),
@@ -406,38 +404,87 @@ async function main() {
     new Date('2025-01-14T16:00:00Z'),
   ];
 
-  for (let i = 0; i < dates.length; i++) {
-    const d = dates[i];
-    const sess = await prisma.classSession.create({
-      data: {
-        groupId: g1.id,
-        sessionDate: d,
-        sessionNumber: i + 1,
-        startTime: d,
-        endTime: new Date(d.getTime() + 90 * 60000), // +90 mins
-        topic: `Lesson ${i + 1}`,
-        status: 'COMPLETED'
-      }
-    });
-
-    // Mark random attendance for enrolled students
-    const enrollments = await prisma.enrollment.findMany({ where: { groupId: g1.id, status: 'ACTIVE' } });
-    for (const enr of enrollments) {
-      const attStatus = Math.random() > 0.1 ? 'PRESENT' : 'ABSENT'; // 90% attendance
-      await prisma.attendance.create({
+  for (const group of groups) {
+    for (let i = 0; i < dates.length; i++) {
+      const d = dates[i];
+      const sess = await prisma.classSession.create({
         data: {
-          classSessionId: sess.id,
-          studentId: enr.studentId,
-          enrollmentId: enr.id,
-          status: attStatus,
-          markedAt: new Date(d.getTime() + 3600000),
-          markedBy: teachers[0].id
+          groupId: group.id,
+          sessionDate: d,
+          sessionNumber: i + 1,
+          startTime: d,
+          endTime: new Date(d.getTime() + 90 * 60000), // +90 mins
+          topic: `Lesson ${i + 1}`,
+          status: 'COMPLETED'
         }
       });
+
+      // Mark random attendance for enrolled students
+      const enrollments = await prisma.enrollment.findMany({ where: { groupId: group.id, status: 'ACTIVE' } });
+      for (const enr of enrollments) {
+        const attStatus = Math.random() > 0.1 ? 'PRESENT' : 'ABSENT'; // 90% attendance
+        await prisma.attendance.create({
+          data: {
+            classSessionId: sess.id,
+            studentId: enr.studentId,
+            enrollmentId: enr.id,
+            status: attStatus,
+            markedAt: new Date(d.getTime() + 3600000),
+            markedBy: group.teacherId // Use the group's teacher
+          }
+        });
+      }
     }
   }
 
+  // ============================================
+  // 6. SPEAKING SLOTS (Today + 2 Days)
+  // ============================================
+  console.log('🗣️  Creating Speaking Slots (Today + 2 Days)...');
 
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const targetDates: Date[] = [];
+  // Today, Tomorrow, Day After
+  for (let i = 0; i <= 2; i++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + i);
+    targetDates.push(date);
+  }
+
+  // Generate time slots (13:00 to 15:45, every 15 mins)
+  const timeSlots: string[] = [];
+  for (let hour = 13; hour < 16; hour++) {
+    for (let minute = 0; minute < 60; minute += 15) {
+      if (hour === 15 && minute > 45) break;
+      const timeStr = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}:00`;
+      timeSlots.push(timeStr);
+    }
+  }
+
+  let totalSlots = 0;
+  // Get active teachers from DB just created/verified
+  const activeTeachers = await prisma.teacher.findMany({ where: { isActive: true } });
+
+  for (const teacher of activeTeachers) {
+    for (const targetDate of targetDates) {
+      const slotsToCreate = timeSlots.map(timeStr => ({
+        teacherId: teacher.id,
+        slotDate: targetDate,
+        slotTime: new Date(`2000-01-01T${timeStr}`), // Time part only
+        durationMinutes: 15,
+        status: 'AVAILABLE'
+      }));
+
+      await prisma.speakingSlot.createMany({
+        data: slotsToCreate,
+        skipDuplicates: true
+      });
+      totalSlots += slotsToCreate.length;
+    }
+  }
+  console.log(`   ✅ Created ${totalSlots} speaking slots for ${activeTeachers.length} teachers`);
   console.log('\n✨ Database seeded successfully with FULL REFINEMENTS!');
   console.log(`  - Students: 50 (Active, Withdrawn, Completed)`);
   console.log(`  - Names: Localized Bahraini/International (No Royalty)`);

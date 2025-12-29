@@ -29,7 +29,8 @@ export const autoGenerateSpeakingSlots = async () => {
         today.setHours(0, 0, 0, 0);
 
         const targetDates: Date[] = [];
-        for (let i = 1; i <= 3; i++) {
+        // Generate for Today, Tomorrow, and Day After Tomorrow (3 days)
+        for (let i = 0; i <= 2; i++) {
             const date = new Date(today);
             date.setDate(today.getDate() + i);
             targetDates.push(date);

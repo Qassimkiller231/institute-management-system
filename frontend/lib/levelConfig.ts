@@ -39,6 +39,19 @@ export const TEN_QUESTION_LEVEL_CONFIG: TestLevelConfig = {
   ]
 };
 
+// Configuration for 5-question tests
+export const FIVE_QUESTION_LEVEL_CONFIG: TestLevelConfig = {
+  totalQuestions: 5,
+  levelRanges: [
+    { range: [0, 0], value: "A1" },
+    { range: [1, 1], value: "A2" },
+    { range: [2, 2], value: "B1" },
+    { range: [3, 3], value: "B2" },
+    { range: [4, 4], value: "C1" },
+    { range: [5, 5], value: "C2" },
+  ]
+};
+
 // All available CEFR levels
 export const CEFR_LEVELS = ["A1", "A2", "B1", "B2", "C1", "C2"] as const;
 
@@ -56,7 +69,9 @@ export function getMCQLevel(
 ): CEFRLevel {
   // Select appropriate config based on total points
   let config: TestLevelConfig;
-  if (totalPoints === 10) {
+  if (totalPoints === 5) {
+    config = FIVE_QUESTION_LEVEL_CONFIG;
+  } else if (totalPoints === 10) {
     config = TEN_QUESTION_LEVEL_CONFIG;
   } else {
     config = DEFAULT_LEVEL_CONFIG;

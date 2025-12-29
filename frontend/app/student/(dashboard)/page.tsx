@@ -6,6 +6,7 @@ import { getToken, getStudentId, logout } from '@/lib/authStorage';
 import { announcementsAPI, studentsAPI, speakingSlotAPI } from '@/lib/api';
 import type { Announcement } from '@/lib/api/announcements';
 import { LoadingState } from '@/components/common/LoadingState';
+import { ErrorState } from '@/components/common/ErrorState';
 import DashboardNotificationWidget from '@/components/dashboard/DashboardNotificationWidget';
 
 interface StudentData {
@@ -55,6 +56,15 @@ export default function StudentDashboard() {
   const [student, setStudent] = useState<StudentData | null>(null);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // DEBUG LOGS
+  console.log('StudentDashboard Render:', {
+    loading,
+    error,
+    studentId: student?.id,
+    hasEnrollments: student?.enrollments?.length
+  });
 
   useEffect(() => {
     loadStudentData();
@@ -137,8 +147,11 @@ export default function StudentDashboard() {
           setAnnouncements([]);
         }
       }
-    } catch (error) {
-      // console.error('Error loading student data:', error);
+    } catch (error: any) {
+      console.error('Error loading student data:', error);
+      // Set error state to prevent redirect loop
+      setError(error.message || 'Failed to load profile');
+
       // On error, redirect to login if no auth
       const token = getToken();
       const studentId = getStudentId();
@@ -408,6 +421,37 @@ export default function StudentDashboard() {
   };
 
   /**
+   * Render New Student State (No history)
+   */
+  const renderNewStudentState = () => (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
+      <div className="max-w-md w-full bg-white rounded-xl shadow-lg p-8 text-center">
+        <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+          <span className="text-4xl">🎓</span>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">Welcome to Function Institute!</h2>
+        <p className="text-gray-600 mb-8">
+          To get started with your learning journey, please take our placement test to determine your English level.
+        </p>
+
+        <button
+          onClick={() => router.push('/take-test')}
+          className="w-full bg-blue-600 text-white rounded-lg py-3 font-semibold hover:bg-blue-700 transition-colors mb-4 flex items-center justify-center gap-2"
+        >
+          📝 Take Placement Test
+        </button>
+
+        <button
+          onClick={handleLogout}
+          className="w-full bg-white border border-gray-300 text-gray-700 rounded-lg py-3 font-semibold hover:bg-gray-50 transition-colors"
+        >
+          Logout
+        </button>
+      </div>
+    </div>
+  );
+
+  /**
    * Render State 5: Tests complete, awaiting enrollment
    */
   const renderTestsCompleteState = () => {
@@ -636,12 +680,24 @@ export default function StudentDashboard() {
     return <LoadingState message="Loading your dashboard..." />;
   }
 
+  if (error) {
+    return (
+      <ErrorState
+        title="Session Error"
+        message={error}
+        onRetry={handleLogout}
+        retryLabel="Logout"
+      />
+    );
+  }
+
   // STATE 1: Has enrollment - Show dashboard regardless of test
   if (hasCurrentTermEnrollment) {
     // Continue to show dashboard below (skip to line 480)
   }
   // STATE 2: Has past enrollments but no current - Show re-enrollment
   else if (hasPastEnrollments) {
+    
     return renderReEnrollmentState();
   }
 
@@ -660,6 +716,19 @@ export default function StudentDashboard() {
     return renderTestsCompleteState();
   }
 
-  // STATE 4: Has current term enrollment - Show normal dashboard
+  // STATE 6: New Student (No level, no enrollments, no test history)
+  // DEBUG LOG
+  console.log('Checking State 6 (New Student):', {
+    hasCurrentLevel,
+    hasCurrentTermEnrollment,
+    hasPastEnrollments,
+    hasCompletedWrittenTest
+  });
+
+  if (!hasCurrentLevel && !hasCurrentTermEnrollment && !hasPastEnrollments && !hasCompletedWrittenTest) {
+    return renderNewStudentState();
+  }
+
+  // STATE 7 (Default): Has current term enrollment - Show normal dashboard
   return renderMainDashboard();
 }

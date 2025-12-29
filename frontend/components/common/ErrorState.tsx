@@ -2,9 +2,10 @@ interface ErrorStateProps {
   message: string;
   onRetry?: () => void;
   title?: string;
+  retryLabel?: string;
 }
 
-export function ErrorState({ message, onRetry, title = "Error" }: ErrorStateProps) {
+export function ErrorState({ message, onRetry, title = "Error", retryLabel = "Try Again" }: ErrorStateProps) {
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-6">
       <div className="max-w-md w-full">
@@ -19,7 +20,7 @@ export function ErrorState({ message, onRetry, title = "Error" }: ErrorStateProp
               onClick={onRetry}
               className="w-full px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition font-medium"
             >
-              Try Again
+              {retryLabel}
             </button>
           )}
         </div>
