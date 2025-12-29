@@ -86,9 +86,38 @@ async function main() {
   await prisma.program.create({ data: { name: 'Inactive - French 2020', code: 'FR-OLD', description: 'Discontinued Program', isActive: false } });
 
   // TERMS
-  const termWinter25 = await prisma.term.create({ data: { programId: progGE.id, name: 'Winter 2025', startDate: new Date('2025-01-01'), endDate: new Date('2025-03-31'), isCurrent: true, isActive: true } });
-  const termSpring25 = await prisma.term.create({ data: { programId: progGE.id, name: 'Spring 2025', startDate: new Date('2025-04-01'), endDate: new Date('2025-06-30'), isCurrent: false, isActive: true } });
-  const termFall24 = await prisma.term.create({ data: { programId: progGE.id, name: 'Fall 2024', startDate: new Date('2024-09-01'), endDate: new Date('2024-12-31'), isCurrent: false, isActive: false } });
+  // Updating to align with "Current Time" (Dec 2025)
+  // Winter 2025 Term: Dec 1, 2025 -> Feb 28, 2026
+  const termWinter25 = await prisma.term.create({
+    data: {
+      programId: progGE.id,
+      name: 'Winter 2025',
+      startDate: new Date('2025-12-01'),
+      endDate: new Date('2026-02-28'),
+      isCurrent: true,
+      isActive: true
+    }
+  });
+  const termSpring25 = await prisma.term.create({
+    data: {
+      programId: progGE.id,
+      name: 'Spring 2026',
+      startDate: new Date('2026-03-01'),
+      endDate: new Date('2026-06-30'),
+      isCurrent: false,
+      isActive: true
+    }
+  });
+  const termFall24 = await prisma.term.create({
+    data: {
+      programId: progGE.id,
+      name: 'Fall 2025',
+      startDate: new Date('2025-09-01'),
+      endDate: new Date('2025-11-30'),
+      isCurrent: false,
+      isActive: false
+    }
+  });
 
   // LEVELS
   const levels = [];
@@ -280,6 +309,13 @@ async function main() {
     { code: 'ADV-C1', level: levels[4], teacher: teachers[1], term: termWinter25, days: ['Sat'], time: '09:00' },
   ];
 
+  // Map day names to Day index for generation
+  const dayMap: { [key: string]: number } = { 'Sun': 0, 'Mon': 1, 'Tue': 2, 'Wed': 3, 'Thu': 4, 'Fri': 5, 'Sat': 6 };
+
+  // Date range for session generation: Dec 1, 2025 -> Jan 31, 2026 (2 months)
+  const sessionStartDate = new Date('2025-12-01');
+  const sessionEndDate = new Date('2026-01-31');
+
   for (const cfg of groupConfigs) {
     const g = await prisma.group.create({
       data: {
@@ -288,7 +324,7 @@ async function main() {
         teacherId: cfg.teacher.id,
         venueId: riyadat.id,
         groupCode: cfg.code,
-        name: `${cfg.term.programId === progGE.id ? 'General English' : 'Specialized'} - ${cfg.level.name} (${cfg.days[0]})`,
+        name: `${cfg.term.programId === progGE.id ? 'General English' : 'Specialized'} - ${cfg.level.name} (${cfg.days.join('/')})`,
         isActive: true,
         schedule: { days: cfg.days, time: cfg.time }
       }
@@ -308,24 +344,13 @@ async function main() {
         isPublished: true
       }
     });
-    await prisma.material.create({
-      data: {
-        groupId: g.id,
-        title: 'Week 1 - Introduction Slides',
-        materialType: 'PDF',
-        fileUrl: 'https://example.com/w1_intro.pdf',
-        fileSizeKb: 1200,
-        uploadedBy: cfg.teacher.id,
-        isPublished: true
-      }
-    });
 
-    // ADD ANNOUNCEMENTS (1 active, 1 draft)
+    // ADD ANNOUNCEMENTS
     await prisma.announcement.create({
       data: {
         groupId: g.id,
         title: 'Welcome to Class!',
-        content: 'Welcome everyone to the new term. Please bring your books.',
+        content: `Welcome to the ${cfg.code} class. We meet on ${cfg.days.join(' and ')} at ${cfg.time}.`,
         targetAudience: 'STUDENTS',
         publishedBy: admin.id,
         isPublished: true,
@@ -333,56 +358,75 @@ async function main() {
       }
     });
 
-    // ADD PROGRESS CRITERIA (3 per group)
-    await prisma.progressCriteria.create({ data: { groupId: g.id, name: 'Can introduce themselves', orderNumber: 1 } });
-    await prisma.progressCriteria.create({ data: { groupId: g.id, name: 'Can write a short paragraph', orderNumber: 2 } });
-    await prisma.progressCriteria.create({ data: { groupId: g.id, name: 'Understands basic tenses', orderNumber: 3 } });
+    // GENERATE SESSIONS FOR THIS GROUP
+    console.log(`   - Generating sessions for ${cfg.code} (${cfg.days.join(',')})`);
+
+    // Convert config days to integers
+    const targetDays = cfg.days.map(d => dayMap[d]);
+    let sessionCounter = 1;
+
+    // Loop through date range
+    for (let d = new Date(sessionStartDate); d <= sessionEndDate; d.setDate(d.getDate() + 1)) {
+      if (targetDays.includes(d.getDay())) {
+        // MATCH found
+        const isPast = d < new Date(); // Compare with "Now"
+        const sessionTime = new Date(d);
+        const [hours, mins] = cfg.time.split(':');
+        sessionTime.setHours(parseInt(hours), parseInt(mins), 0, 0);
+
+        const sess = await prisma.classSession.create({
+          data: {
+            groupId: g.id,
+            sessionDate: sessionTime,
+            sessionNumber: sessionCounter++,
+            startTime: sessionTime,
+            endTime: new Date(sessionTime.getTime() + 90 * 60000), // +90 mins
+            topic: `Lesson ${sessionCounter - 1}`,
+            status: isPast ? 'COMPLETED' : 'SCHEDULED'
+          }
+        });
+
+        // Add attendance if completed
+        if (isPast) {
+          // We can't add attendance yet because students aren't enrolled! 
+          // Sessions must be created, students enrolled, THEN attendance added.
+          // Store session ID to add attendance later? 
+          // Or just enroll students dynamically inside this loop? 
+          // Easier: Create sessions first (done here). 
+          // Enroll students (next loop).
+          // Then iterate sessions AGAIN to add attendance. -> Better.
+        }
+      }
+    }
   }
 
   // ENROLLMENTS & STATUSES
   let studentIdx = 0;
   for (const group of groups) {
-    const numStudents = getRandomNumber(4, 9);
+    const numStudents = getRandomNumber(5, 12);
     for (let k = 0; k < numStudents; k++) {
       if (studentIdx < students.length) {
         const s = students[studentIdx];
         let status = 'ACTIVE';
-        // Logic: Last 10 students are withdrawn or completed
-        if (studentIdx >= 40) {
-          status = Math.random() > 0.5 ? 'WITHDRAWN' : 'COMPLETED';
-        }
+        if (studentIdx >= 40) status = 'COMPLETED'; // Mix it up
 
         const enroll = await prisma.enrollment.create({
           data: {
             studentId: s.id,
             groupId: group.id,
-            enrollmentDate: new Date('2025-01-02'),
+            enrollmentDate: new Date('2025-12-01'),
             status: status
           }
         });
 
-        // Financials associated with enrollment (only if not withdrawn early, but let's add for all to show history)
-        const totalAmount = 150.00;
-        const plan = await prisma.studentPaymentPlan.create({
+        // Payment Plan
+        await prisma.studentPaymentPlan.create({
           data: {
             enrollmentId: enroll.id,
-            totalAmount: totalAmount,
-            finalAmount: totalAmount,
+            totalAmount: 150.00,
+            finalAmount: 150.00,
             totalInstallments: 3,
             status: status === 'ACTIVE' ? 'ACTIVE' : 'COMPLETED'
-          }
-        });
-
-        // Installment 1
-        await prisma.installment.create({
-          data: {
-            paymentPlanId: plan.id,
-            installmentNumber: 1,
-            amount: 50.00,
-            dueDate: new Date('2025-01-05'),
-            paymentDate: status === 'WITHDRAWN' ? null : new Date('2025-01-05'), // Paid if not withdrawn
-            paymentMethod: status === 'WITHDRAWN' ? null : 'BENEFIT_PAY',
-            receiptNumber: status === 'WITHDRAWN' ? null : `REC-${plan.id.substring(0, 4)}`
           }
         });
 
@@ -391,46 +435,38 @@ async function main() {
     }
   }
 
-  // ============================================
-  // 5. CLASS SESSIONS (Recurring)
-  // ============================================
-  console.log('📅 Creating Recurring Sessions...');
+  // 4B. ADD ATTENDANCE TO COMPLETED SESSIONS
+  // Now that students are enrolled, we can populate attendance for past sessions.
+  console.log('📝 Marking Attendance for Past Sessions...');
+  const allSessions = await prisma.classSession.findMany({
+    where: { status: 'COMPLETED' },
+    include: { group: { include: { enrollments: true } } }
+  });
 
-  // Create last 4 weeks of sessions for ALL GROUPS
-  const dates = [
-    new Date('2025-01-05T16:00:00Z'),
-    new Date('2025-01-07T16:00:00Z'),
-    new Date('2025-01-12T16:00:00Z'),
-    new Date('2025-01-14T16:00:00Z'),
-  ];
-
-  for (const group of groups) {
-    for (let i = 0; i < dates.length; i++) {
-      const d = dates[i];
-      const sess = await prisma.classSession.create({
-        data: {
-          groupId: group.id,
-          sessionDate: d,
-          sessionNumber: i + 1,
-          startTime: d,
-          endTime: new Date(d.getTime() + 90 * 60000), // +90 mins
-          topic: `Lesson ${i + 1}`,
-          status: 'COMPLETED'
-        }
-      });
-
-      // Mark random attendance for enrolled students
-      const enrollments = await prisma.enrollment.findMany({ where: { groupId: group.id, status: 'ACTIVE' } });
-      for (const enr of enrollments) {
-        const attStatus = Math.random() > 0.1 ? 'PRESENT' : 'ABSENT'; // 90% attendance
+  for (const sess of allSessions) {
+    // Only active students in that group
+    const enrols = sess.group.enrollments.filter(e => e.status === 'ACTIVE');
+    for (const enr of enrols) {
+      if (Math.random() > 0.15) { // 85% attendance chance
         await prisma.attendance.create({
           data: {
             classSessionId: sess.id,
             studentId: enr.studentId,
             enrollmentId: enr.id,
-            status: attStatus,
-            markedAt: new Date(d.getTime() + 3600000),
-            markedBy: group.teacherId // Use the group's teacher
+            status: Math.random() > 0.1 ? 'PRESENT' : 'LATE',
+            markedAt: new Date(sess.endTime),
+            markedBy: sess.group.teacherId
+          }
+        });
+      } else {
+        await prisma.attendance.create({
+          data: {
+            classSessionId: sess.id,
+            studentId: enr.studentId,
+            enrollmentId: enr.id,
+            status: 'ABSENT',
+            markedAt: new Date(sess.endTime),
+            markedBy: sess.group.teacherId
           }
         });
       }
