@@ -1,9 +1,8 @@
 // src/services/email.service.ts
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/db';
 import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 
 const nodemailer = require('nodemailer');
-const prisma = new PrismaClient();
 
 // Email provider configuration
 const USE_SNS = process.env.USE_SNS === 'true';

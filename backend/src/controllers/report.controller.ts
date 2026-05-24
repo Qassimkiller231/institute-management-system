@@ -81,47 +81,6 @@ export const getPlacementTestReportData = async (
   }
 };
 
-/**
- * POST /api/reports/placement-test/:studentId/email
- * Send placement test report via email
- */
-export const emailPlacementTestReport = async (
-  req: AuthRequest,
-  res: Response
-) => {
-  try {
-    const { studentId } = req.params;
-    const { recipientEmail } = req.body;
-
-    if (!studentId) {
-      return res.status(400).json({
-        success: false,
-        message: 'studentId is required'
-      });
-    }
-
-    // TODO: Implement email sending with PDF attachment
-    // This would use your email service (AWS SES, SendGrid, etc.)
-    // For now, return success message
-
-    return res.status(200).json({
-      success: true,
-      message: 'Report email functionality coming soon',
-      data: {
-        studentId,
-        recipientEmail: recipientEmail || 'student email'
-      }
-    });
-
-  } catch (error: any) {
-    console.error('emailPlacementTestReport error:', error);
-    return res.status(400).json({
-      success: false,
-      message: error.message || 'Failed to email report'
-    });
-  }
-};
-
 // ============================================
 // GROUP REPORTS (Teacher Portal)
 // ============================================

@@ -1,6 +1,6 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import prisma from '../utils/db';
 
-const prisma = new PrismaClient();
 
 export interface CreateAuditLogDto {
     userId?: string;

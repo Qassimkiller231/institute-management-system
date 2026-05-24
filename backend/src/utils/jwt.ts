@@ -1,9 +1,10 @@
 import jwt, { Secret, SignOptions } from 'jsonwebtoken';
+import { env } from '../config/env';
 
-const JWT_SECRET: Secret =
-  process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
+// Fail-secure: env.JWT_SECRET throws at startup if unset (see config/env.ts).
+const JWT_SECRET: Secret = env.JWT_SECRET;
 
-const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || '7d';
+const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN;
 
 export interface JwtPayload {
   userId: string;

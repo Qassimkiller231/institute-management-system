@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../utils/db';
 
-const prisma = new PrismaClient();
 
 const ATTENDED_STATUSES = ['PRESENT', 'LATE'];
 

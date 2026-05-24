@@ -1,8 +1,8 @@
-import { PrismaClient, Material, Prisma } from '@prisma/client';
+import { Material, Prisma } from '@prisma/client';
+import prisma from '../utils/db';
 import auditService from './audit.service';
 import * as notificationService from './notification.service';
 
-const prisma = new PrismaClient();
 
 type MaterialType = 'PDF' | 'VIDEO' | 'LINK' | 'IMAGE' | 'OTHER';
 
@@ -30,6 +30,23 @@ interface UpdateMaterialInput {
 }
 
 export class MaterialService {
+  // Returns the teacher id for a given user, or null if none.
+  async getTeacherIdByUserId(userId: string): Promise<string | null> {
+    const teacher = await prisma.teacher.findUnique({ where: { userId } });
+    return teacher?.id ?? null;
+  }
+
+  // True if the user is a student with an ACTIVE enrollment in the group.
+  async isStudentEnrolledInGroup(userId: string, groupId: string): Promise<boolean> {
+    const student = await prisma.student.findUnique({
+      where: { userId },
+      include: {
+        enrollments: { where: { groupId, status: 'ACTIVE' } },
+      },
+    });
+    return !!student && student.enrollments.length > 0;
+  }
+
   // Create new material
   async createMaterial(data: CreateMaterialInput): Promise<Material> {
     // Verify group exists

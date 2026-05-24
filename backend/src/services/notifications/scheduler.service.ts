@@ -4,9 +4,8 @@ import * as paymentReminderService from './paymentReminder.service';
 import * as attendanceWarningService from './attendanceWarning.service';
 import * as announcementService from '../announcement.service';
 import * as autoGenerateSpeakingSlots from './autoGenerateSpeakingSlots.service';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../utils/db';
 
-const prisma = new PrismaClient();
 /**
  * Start all scheduled jobs
  */

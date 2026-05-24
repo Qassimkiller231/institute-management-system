@@ -5,7 +5,6 @@ import { requireTeacherOrAdmin } from '../middleware/role.middleware';
 import {
   downloadPlacementTestReport,
   getPlacementTestReportData,
-  emailPlacementTestReport,
   downloadGroupAttendanceReport,
   getGroupAttendanceData,
   downloadGroupProgressReport,
@@ -33,12 +32,6 @@ router.get('/placement-test/:studentId', downloadPlacementTestReport);
  * Get report data (JSON) without generating PDF
  */
 router.get('/placement-test/:studentId/preview', getPlacementTestReportData);
-
-/**
- * POST /api/reports/placement-test/:studentId/email
- * Send report via email
- */
-router.post('/placement-test/:studentId/email', emailPlacementTestReport);
 
 // ============================================
 // GROUP REPORTS (Teacher Portal)

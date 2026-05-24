@@ -1,10 +1,10 @@
 // src/services/testSession.service.ts
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import prisma from '../utils/db';
 import * as notificationService from './notification.service';
 import * as emailService from './email.service';
 import { getMCQLevel } from '../config/level.config';
 
-const prisma = new PrismaClient();
 
 export type TestSessionStatus =
   | 'IN_PROGRESS'

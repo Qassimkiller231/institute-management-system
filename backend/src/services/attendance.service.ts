@@ -1,6 +1,6 @@
-import { PrismaClient, Attendance } from '@prisma/client';
+import { Attendance } from '@prisma/client';
+import prisma from '../utils/db';
 
-const prisma = new PrismaClient();
 
 type AttendanceStatus = 'PRESENT' | 'ABSENT' | 'LATE' | 'EXCUSED';
 

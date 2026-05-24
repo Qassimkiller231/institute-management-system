@@ -2,8 +2,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../types/auth.types';
 import * as paymentService from '../services/payment.service';
-import * as stripeService from '../services/stripe.service';
-import prisma from '../utils/db';
 
 /**
  * POST /api/payments/plans
@@ -54,6 +52,11 @@ export const getPaymentPlanByEnrollment = async (
 ) => {
   try {
     const { enrollmentId } = req.params;
+
+    // Enforce object-level ownership (prevents IDOR on other users' finances).
+    if (!(await paymentService.canAccessEnrollment(enrollmentId, req.user!))) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
 
     const plan = await paymentService.getPaymentPlanByEnrollment(enrollmentId);
 
@@ -252,32 +255,22 @@ export const getAllPayments = async (req: AuthRequest, res: Response) => {
 
     if (userRole === 'PARENT') {
       // Get parent's linked student IDs
-      const parent = await prisma.parent.findUnique({
-        where: { userId },
-        include: {
-          parentStudentLinks: {
-            select: { studentId: true }
-          }
-        }
-      });
+      const linkedIds = await paymentService.getParentLinkedStudentIds(userId);
 
-      if (!parent) {
+      if (linkedIds === null) {
         return res.status(404).json({
           success: false,
           message: 'Parent not found'
         });
       }
 
-      studentIds = parent.parentStudentLinks.map(link => link.studentId);
+      studentIds = linkedIds;
     } else if (userRole === 'STUDENT') {
       // Get student's own ID
-      const student = await prisma.student.findUnique({
-        where: { userId },
-        select: { id: true }
-      });
+      const studentId = await paymentService.getStudentIdByUserId(userId);
 
-      if (student) {
-        studentIds = [student.id];
+      if (studentId) {
+        studentIds = [studentId];
       }
     } else {
       // Admin/Teacher can see all - use default behavior
@@ -325,31 +318,7 @@ export const getAllPayments = async (req: AuthRequest, res: Response) => {
     }
 
     // Fetch payment plans for the specific students
-    const paymentPlans = await prisma.studentPaymentPlan.findMany({
-      where: {
-        enrollment: {
-          studentId: { in: studentIds }
-        }
-      },
-      include: {
-        installments: {
-          orderBy: { dueDate: 'asc' }
-        },
-        enrollment: {
-          include: {
-            student: {
-              select: {
-                id: true,
-                firstName: true,
-                secondName: true,
-                thirdName: true,
-              }
-            }
-          }
-        }
-      },
-      orderBy: { createdAt: 'desc' }
-    });
+    const paymentPlans = await paymentService.getPaymentPlansByStudentIds(studentIds);
 
     // Transform to simplified payment format
     const payments = paymentPlans.flatMap((plan: any) =>
@@ -491,6 +460,11 @@ export const updatePayment = async (req: AuthRequest, res: Response) => {
 export const getBalance = async (req: AuthRequest, res: Response) => {
   try {
     const { enrollmentId } = req.params;
+
+    // Enforce object-level ownership (prevents IDOR on other users' finances).
+    if (!(await paymentService.canAccessEnrollment(enrollmentId, req.user!))) {
+      return res.status(403).json({ success: false, message: 'Access denied' });
+    }
 
     const balance = await paymentService.getBalance(enrollmentId);
 
@@ -650,111 +624,6 @@ export const getAllRefunds = async (req: AuthRequest, res: Response) => {
     res.status(500).json({
       success: false,
       message: error.message || 'Failed to fetch refunds',
-    });
-  }
-};
-
-
-// stripe 
-export const createStripeIntent = async (req: AuthRequest, res: Response) => {
-  try {
-    const { installmentId, amount, currency } = req.body;
-
-    if (!installmentId || !amount || !currency) {
-      return res.status(400).json({
-        success: false,
-        message: 'installmentId, amount, and currency are required',
-      });
-    }
-
-    const installment = await paymentService.getInstallmentWithStudent(installmentId);
-
-    const result = await stripeService.createPaymentIntent({
-      amount,
-      currency,
-      installmentId,
-      studentEmail: installment.paymentPlan.enrollment.student.user.email,
-    });
-
-    res.status(200).json({
-      success: true,
-      data: result,
-    });
-  } catch (error: any) {
-    console.error('Stripe intent error:', error);
-
-    if (error.message === 'Installment not found') {
-      return res.status(404).json({
-        success: false,
-        message: error.message
-      });
-    }
-
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Failed to create payment intent',
-    });
-  }
-};
-
-export const confirmStripePayment = async (req: AuthRequest, res: Response) => {
-  try {
-    console.log('📝 confirmStripePayment called with body:', JSON.stringify(req.body, null, 2));
-
-    const { paymentIntentId, installmentId } = req.body;
-
-    if (!paymentIntentId || !installmentId) {
-      console.error('❌ Missing required fields:', { paymentIntentId, installmentId });
-      return res.status(400).json({
-        success: false,
-        message: 'paymentIntentId and installmentId are required',
-      });
-    }
-
-    console.log('🔍 Step 1: Confirming payment with Stripe...');
-    console.log('   paymentIntentId:', paymentIntentId);
-
-    const result = await stripeService.confirmPayment(paymentIntentId);
-    console.log('✅ Step 1 complete: Stripe confirmation successful');
-
-    // Extract receipt URL from Stripe (if available)
-    const paymentIntent = result.paymentIntent as any;
-    const receiptUrl = paymentIntent.latest_charge?.receipt_url || null;
-
-    console.log('🔍 Step 2: Recording payment in database...');
-    console.log('   installmentId:', installmentId);
-    console.log('   receiptUrl:', receiptUrl);
-
-    await paymentService.recordPayment(installmentId, {
-      paymentMethod: 'ONLINE_PAYMENT',
-      receiptNumber: `STRIPE-${paymentIntentId}`,
-      receiptUrl: receiptUrl,
-      notes: `Stripe Payment Intent: ${paymentIntentId}`,
-      receiptMakerId: req.user!.userId,
-    });
-
-    console.log('✅ Step 2 complete: Payment recorded successfully');
-
-    res.status(200).json({
-      success: true,
-      message: 'Payment confirmed successfully',
-      data: result,
-    });
-  } catch (error: any) {
-    console.error('❌ Stripe confirm error details:');
-    console.error('   Error name:', error.name);
-    console.error('   Error message:', error.message);
-    console.error('   Error stack:', error.stack);
-    console.error('   Full error object:', JSON.stringify(error, null, 2));
-
-    res.status(400).json({
-      success: false,
-      message: error.message || 'Failed to confirm payment',
-      error: process.env.NODE_ENV === 'development' ? {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      } : undefined
     });
   }
 };

@@ -1,8 +1,7 @@
 // src/services/phone.service.ts
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/db';
 import { normalizePhoneNumber, validatePhoneNumber } from '../utils/phone.utils';
 
-const prisma = new PrismaClient();
 
 /**
  * Add phone number

@@ -1,9 +1,8 @@
 // src/services/sms.service.ts
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/db';
 import twilio from 'twilio';
 import { normalizePhoneNumber } from '../utils/phone.utils';
 
-const prisma = new PrismaClient();
 const accountSid = process.env.TWILIO_ACCOUNT_SID || '';
 const authToken = process.env.TWILIO_AUTH_TOKEN || '';
 

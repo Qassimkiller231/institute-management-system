@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../utils/db';
 
-const prisma = new PrismaClient();
 
 /**
  * Generate admin weekly summary (ADMIN ONLY)

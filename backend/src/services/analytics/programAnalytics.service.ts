@@ -1,7 +1,6 @@
 // src/services/analytics/programAnalytics.service.ts
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../utils/db';
 
-const prisma = new PrismaClient();
 
 // 3. Program overview (students + groups + venues)
 export const getProgramStudentOverview = async (programId: string) => {

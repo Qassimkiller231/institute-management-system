@@ -1,9 +1,6 @@
 import { Response } from 'express';
 import { AuthRequest } from '../types/auth.types';
 import materialService from '../services/material.service';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 
 export class MaterialController {
   // Create new material
@@ -32,18 +29,16 @@ export class MaterialController {
       let uploadedBy: string | undefined;
 
       if (req.user!.role === 'TEACHER') {
-        const teacher = await prisma.teacher.findUnique({
-          where: { userId: req.user!.userId }
-        });
+        const teacherId = await materialService.getTeacherIdByUserId(req.user!.userId);
 
-        if (!teacher) {
+        if (!teacherId) {
           res.status(403).json({
             success: false,
             message: 'Teacher record not found'
           });
           return;
         }
-        uploadedBy = teacher.id;
+        uploadedBy = teacherId;
       } else if (req.user!.role === 'ADMIN') {
         // Admin can optionally provide teacherId, otherwise uploadedBy is undefined
         uploadedBy = req.body.teacherId;
@@ -91,19 +86,12 @@ export class MaterialController {
       // Authorization check for students
       if (req.user!.role === 'STUDENT') {
         // Verify student is enrolled in this group
-        const student = await prisma.student.findUnique({
-          where: { userId: req.user!.userId },
-          include: {
-            enrollments: {
-              where: {
-                groupId: groupId,
-                status: 'ACTIVE'
-              }
-            }
-          }
-        });
+        const enrolled = await materialService.isStudentEnrolledInGroup(
+          req.user!.userId,
+          groupId
+        );
 
-        if (!student || student.enrollments.length === 0) {
+        if (!enrolled) {
           res.status(403).json({
             success: false,
             message: 'Access denied. You are not enrolled in this group.'

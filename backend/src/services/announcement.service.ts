@@ -1,8 +1,8 @@
-import { PrismaClient } from '@prisma/client';
-import * as emailService from './notifications/email.service';
-import * as smsService from './notifications/sms.service';
+import prisma from '../utils/db';
+// Use the real (sending) services, not the notifications/ stubs which only log.
+import * as emailService from './email.service';
+import * as smsService from './sms.service';
 
-const prisma = new PrismaClient();
 
 /**
  * Create announcement

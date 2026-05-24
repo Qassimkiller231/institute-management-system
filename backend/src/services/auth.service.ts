@@ -1,14 +1,7 @@
 import prisma from "../utils/db";
 import { generateToken } from "../utils/jwt";
-import {
-  generateOTP,
-  getOTPExpiration,
-  isOTPExpired,
-  sendOTP,
-} from "../utils/otp";
 import { normalizePhoneNumber, validatePhoneNumber } from "../utils/phone.utils";
-import * as smsService from "./sms.service";
-import * as emailService from "./email.service";
+import * as otpService from "./otp.service";
 import auditService from "./audit.service";
 /**
  * Request OTP code for login
@@ -40,70 +33,25 @@ export const requestOTP = async (
       : { phone: searchIdentifier },
   });
 
-  if (!user) {
-    throw new Error("User not found");
-  }
-
-  if (!user.isActive) {
-    throw new Error("User account is inactive");
-  }
-
-  // Check if there's a recent unused OTP (within last minute)
-  const recentOTP = await prisma.otpCode.findFirst({
-    where: {
-      userId: user.id,
-      isUsed: false,
-      expiresAt: { gt: new Date() },
-      createdAt: { gt: new Date(Date.now() - 60000) }, // Last 1 minute
-    },
-  });
-
-  if (recentOTP) {
-    throw new Error(
-      "OTP already sent. Please wait before requesting a new one."
-    );
-  }
-
-  // Generate new OTP
-  const code = generateOTP();
-  const expiresAt = getOTPExpiration();
-
-  // Save OTP to database
-  await prisma.otpCode.create({
-    data: {
-      userId: user.id,
-      code,
-      expiresAt,
-      isUsed: false,
-      attempts: 0,
-    },
-  });
-
-  // Send OTP (simulated for now)
-  const recipient = method === "email" ? user.email : user.phone || "";
-  await sendOTP(recipient, code, method);
-
-  if (method === "sms") {
-    // Send via SMS
-    await smsService.sendOTP({
-      phone: identifier,
-      code: code,
-      userId: user.id,
-    });
-  } else {
-    // Send via email
-    await emailService.sendOtpEmail({
-      to: identifier,
-      name: "User", // generic name as user profile isn't fetched yet
-      otpCode: code,
-      expiryMinutes: 5,
-    });
-  }
-
-  return {
+  // Avoid account enumeration: respond identically whether or not the
+  // account exists / is active. Only actually send an OTP when valid.
+  const genericResponse = {
     success: true,
-    message: `OTP sent to ${method === "email" ? "email" : "phone"}`,
+    message: `If an account exists, an OTP has been sent to the ${method}.`,
   };
+
+  if (!user || !user.isActive) {
+    return genericResponse;
+  }
+
+  // Generate, store, and deliver the OTP (handles resend cooldown + channel).
+  await otpService.sendOtp({
+    userId: user.id,
+    recipient: identifier,
+    method,
+  });
+
+  return genericResponse;
 };
 
 /**
@@ -134,41 +82,8 @@ export const verifyOTP = async (identifier: string, code: string) => {
     throw new Error("User not found");
   }
 
-  // Find OTP code
-  const otpRecord = await prisma.otpCode.findFirst({
-    where: {
-      userId: user.id,
-      code,
-      isUsed: false,
-    },
-    orderBy: { createdAt: "desc" },
-  });
-
-  if (!otpRecord) {
-    throw new Error("Invalid OTP code");
-  }
-
-  // Check if OTP expired
-  if (isOTPExpired(otpRecord.expiresAt)) {
-    throw new Error("OTP code has expired");
-  }
-
-  // Check attempts (max 3)
-  if (otpRecord.attempts >= 3) {
-    throw new Error("Maximum OTP attempts exceeded");
-  }
-
-  // Increment attempts
-  await prisma.otpCode.update({
-    where: { id: otpRecord.id },
-    data: { attempts: otpRecord.attempts + 1 },
-  });
-
-  // Mark OTP as used
-  await prisma.otpCode.update({
-    where: { id: otpRecord.id },
-    data: { isUsed: true },
-  });
+  // Verify the submitted code (enforces expiry, attempt limit, and consumes it).
+  await otpService.verifyOtp(user.id, code);
 
   // Update last login
   await prisma.user.update({

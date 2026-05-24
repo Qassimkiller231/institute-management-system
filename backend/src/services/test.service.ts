@@ -1,7 +1,6 @@
 // src/services/test.service.ts
-import { PrismaClient } from "@prisma/client";
+import prisma from '../utils/db';
 
-const prisma = new PrismaClient();
 
 // In DB it's just string, but we narrow it for the service
 export type TestType = "PLACEMENT" | "SPEAKING" | "WRITTEN" | "UPGRADE";

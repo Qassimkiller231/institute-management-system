@@ -2,13 +2,10 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Elements } from '@stripe/react-stripe-js';
-import { stripePromise } from '@/lib/stripe/config';
 import { getToken, getStudentId } from '@/lib/authStorage';
 import { studentsAPI, paymentsAPI } from '@/lib/api';
 import { LoadingState } from '@/components/common/LoadingState';
 import { ErrorState } from '@/components/common/ErrorState';
-import StripePaymentForm from '@/components/payments/StripePaymentForm';
 
 interface Installment {
   id: string;
@@ -142,13 +139,6 @@ export default function StudentPaymentsPage() {
   const handlePayNow = (installment: Installment) => {
     setSelectedInstallment(installment);
     setShowPaymentModal(true);
-  };
-
-  const handlePaymentSuccess = () => {
-    setShowPaymentModal(false);
-    setSelectedInstallment(null);
-    alert('Payment successful! 🎉 Your payment has been recorded.');
-    window.location.reload(); // Refresh to show updated payment status
   };
 
 
@@ -375,10 +365,10 @@ export default function StudentPaymentsPage() {
     return (
       <div className="mt-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
         <p className="text-sm text-blue-800">
-          <strong>💳 Online Payments:</strong> You can pay your installments securely online using a credit/debit card. Click &quot;Pay Now&quot; on any pending installment to get started.
+          <strong>🏛️ Paying your installments:</strong> Payments are made at the institute. We accept Cash, Benefit Pay, Bank Transfer, and Card Machine. Click &quot;Pay Now&quot; on any pending installment to see the details.
         </p>
         <p className="text-sm text-blue-800 mt-2">
-          <strong>Note:</strong> For other payment methods or inquiries, please contact the administration office.
+          <strong>Note:</strong> The administration records your payment once it is received. For inquiries, please contact the office.
         </p>
       </div>
     );
@@ -397,19 +387,31 @@ export default function StudentPaymentsPage() {
             Pay Installment #{selectedInstallment.installmentNumber}
           </h2>
           <p className="text-gray-600 mb-6">
-            Make a secure payment using your credit or debit card
+            Online card payment is not available. Please pay at the institute.
           </p>
 
-          <Elements stripe={stripePromise}>
-            <StripePaymentForm
-              installment={{
-                id: selectedInstallment.id,
-                amount: selectedInstallment.amount
-              }}
-              onSuccess={handlePaymentSuccess}
-              onCancel={() => setShowPaymentModal(false)}
-            />
-          </Elements>
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-900 font-semibold mb-2">
+              Amount due: {selectedInstallment.amount} BHD
+            </p>
+            <p className="text-sm text-blue-800">Accepted payment methods at the institute:</p>
+            <ul className="text-sm text-blue-800 list-disc list-inside mt-1">
+              <li>Cash</li>
+              <li>Benefit Pay</li>
+              <li>Bank Transfer</li>
+              <li>Card Machine</li>
+            </ul>
+            <p className="text-xs text-blue-700 mt-3">
+              The administration will record your payment once it is received.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setShowPaymentModal(false)}
+            className="w-full bg-gray-200 text-gray-800 font-semibold py-3 rounded-lg hover:bg-gray-300 transition"
+          >
+            Close
+          </button>
         </div>
       </div>
     );

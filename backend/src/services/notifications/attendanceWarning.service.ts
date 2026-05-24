@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../utils/db';
 import * as emailService from '../email.service';
 import * as smsService from '../sms.service';
 
-const prisma = new PrismaClient();
 
 const ATTENDANCE_THRESHOLD = 75;
 

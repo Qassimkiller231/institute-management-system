@@ -3,9 +3,6 @@ import { AuthRequest } from '../types/auth.types';
 import * as queryService from '../services/chatbot/query.service';
 import * as summaryService from '../services/chatbot/summary.service';
 import * as faqService from '../services/chatbot/faq.service';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
 
 /**
  * POST /api/chatbot/query
@@ -69,15 +66,11 @@ export const getChatHistory = async (req: AuthRequest, res: Response) => {
     const userId = req.user!.userId;
     const limit = req.query.limit ? parseInt(req.query.limit as string) : 50;
 
-    const messages = await prisma.chatMessage.findMany({
-      where: { userId },
-      orderBy: { createdAt: 'desc' },
-      take: limit
-    });
+    const messages = await queryService.getChatHistory(userId, limit);
 
     res.status(200).json({
       success: true,
-      data: messages.reverse() // Return in chronological order
+      data: messages
     });
   } catch (error: any) {
     console.error('Get chat history error:', error);
@@ -138,9 +131,7 @@ export const clearHistory = async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.user!.userId;
 
-    await prisma.chatMessage.deleteMany({
-      where: { userId }
-    });
+    await queryService.clearChatHistory(userId);
 
     res.status(200).json({
       success: true,

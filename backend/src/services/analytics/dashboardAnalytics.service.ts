@@ -1,7 +1,6 @@
 // src/services/analytics/dashboardAnalytics.service.ts
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../utils/db';
 
-const prisma = new PrismaClient();
 const ATTENDED_STATUSES = ['PRESENT', 'LATE'];
 const safePercent = (num: number, den: number) =>
   den > 0 ? Number(((num / den) * 100).toFixed(2)) : 0;

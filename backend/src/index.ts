@@ -1,6 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import dotenv from 'dotenv';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import { env, isProduction } from './config/env';
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import programRoutes from './routes/program.routes';
@@ -21,10 +23,6 @@ import teacherScheduleRoutes from './routes/teacherSchedule.routes';
 import speakingSlotRoutes from './routes/speakingSlots.routes';
 import testRoutes from './routes/test.routes';
 import testSessionRoutes from './routes/testSession.routes';
-// import financialAnalyticsRoutes from './routes/financialAnalytics.routes';
-// import programAnalyticsRoutes from './routes/programAnalytics.routes';
-// import performanceReportsRoutes from './routes/performanceReports.routes';
-// import dashboardAnalyticsRoutes from './routes/dashboardAnalytics.routes';
 import reportingRoutes from './routes/reporting.routes';
 import progressCriteriaRoutes from './routes/progressCriteria.routes';
 import paymentRoutes from './routes/payment.routes';
@@ -42,15 +40,43 @@ import faqRoutes from './routes/faq.routes';
 import auditRoutes from './routes/audit.routes';
 import backupRoutes from './routes/backup.routes';
 
-// Load environment variables
-dotenv.config();
+// Environment is loaded and validated in ./config/env (fail-secure).
 
 const app = express();
-const PORT = process.env.PORT || 3001;
+const PORT = env.PORT;
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Security headers (CSP, HSTS, X-Frame-Options, etc.)
+app.use(helmet());
+
+// CORS: restrict to known frontend origins instead of allowing any origin.
+const allowedOrigins = env.FRONTEND_URL.split(',').map((o) => o.trim());
+app.use(
+  cors({
+    origin: allowedOrigins,
+    credentials: true,
+  })
+);
+
+// Cap request body size to mitigate DoS via huge payloads.
+app.use(express.json({ limit: '1mb' }));
+
+// Global rate limit (defense-in-depth against abuse/DoS).
+const globalLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 1000,
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use(globalLimiter);
+
+// Stricter limit on auth endpoints to throttle OTP brute-force / enumeration.
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: 'Too many attempts. Please try again later.' },
+});
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -62,7 +88,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/programs', programRoutes);
 app.use('/api/groups', groupRoutes);
@@ -82,10 +108,6 @@ app.use('/api/teacher-schedules', teacherScheduleRoutes);
 app.use('/api/speaking-slots', speakingSlotRoutes);
 app.use('/api/tests', testRoutes);
 app.use('/api/test-sessions', testSessionRoutes);
-// app.use('/api/reports', financialAnalyticsRoutes);
-// app.use('/api/reports', programAnalyticsRoutes);
-// app.use('/api/reports', performanceReportsRoutes);
-// app.use('/api/reports', dashboardAnalyticsRoutes);
 app.use('/api/progress-criteria', progressCriteriaRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/reports', reportingRoutes);
@@ -96,8 +118,6 @@ app.use('/api/sms', smsRoutes);
 app.use('/api/payment-reminders', paymentReminderRoutes);
 app.use('/api/attendance-warnings', attendanceWarningRoutes);
 app.use('/api/email', emailRoutes);
-app.use('/api/reports', reportRoutes);
-app.use('/uploads', uploadsRoutes);  // Serve uploaded files
 app.use('/api/reports', reportRoutes);
 app.use('/uploads', uploadsRoutes);  // Serve uploaded files
 app.use('/api/faqs', faqRoutes);

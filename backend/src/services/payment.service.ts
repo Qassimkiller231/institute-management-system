@@ -1,9 +1,8 @@
 // src/services/payment.service.ts
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/db';
 import { calculateInstallmentStatus } from '../utils/paymentHelpers';
 import auditService from './audit.service';
 
-const prisma = new PrismaClient();
 
 /**
  * Create Payment Plan for an enrollment
@@ -83,6 +82,79 @@ export const createPaymentPlan = async (data: {
   });
 
   return result;
+};
+
+/**
+ * Authorization helper: can this user view the financial data of an enrollment?
+ * ADMIN: always. STUDENT: only their own enrollment. PARENT: only linked children.
+ * Prevents IDOR where any authenticated user could read others' payment data.
+ */
+export const canAccessEnrollment = async (
+  enrollmentId: string,
+  user: { role: string; studentId?: string | null; parentId?: string | null }
+): Promise<boolean> => {
+  if (user.role === 'ADMIN') return true;
+
+  const enrollment = await prisma.enrollment.findUnique({
+    where: { id: enrollmentId },
+    select: { studentId: true },
+  });
+  if (!enrollment) return false;
+
+  if (user.role === 'STUDENT') {
+    return !!user.studentId && enrollment.studentId === user.studentId;
+  }
+
+  if (user.role === 'PARENT' && user.parentId) {
+    const link = await prisma.parentStudentLink.findFirst({
+      where: { parentId: user.parentId, studentId: enrollment.studentId },
+      select: { id: true },
+    });
+    return !!link;
+  }
+
+  return false;
+};
+
+/** Student IDs linked to a parent user, or null if the parent record is missing. */
+export const getParentLinkedStudentIds = async (
+  userId: string
+): Promise<string[] | null> => {
+  const parent = await prisma.parent.findUnique({
+    where: { userId },
+    include: { parentStudentLinks: { select: { studentId: true } } },
+  });
+  if (!parent) return null;
+  return parent.parentStudentLinks.map((link) => link.studentId);
+};
+
+/** Student id for a student user, or null if none. */
+export const getStudentIdByUserId = async (
+  userId: string
+): Promise<string | null> => {
+  const student = await prisma.student.findUnique({
+    where: { userId },
+    select: { id: true },
+  });
+  return student?.id ?? null;
+};
+
+/** Payment plans (with installments + student) for a set of students. */
+export const getPaymentPlansByStudentIds = async (studentIds: string[]) => {
+  return prisma.studentPaymentPlan.findMany({
+    where: { enrollment: { studentId: { in: studentIds } } },
+    include: {
+      installments: { orderBy: { dueDate: 'asc' } },
+      enrollment: {
+        include: {
+          student: {
+            select: { id: true, firstName: true, secondName: true, thirdName: true },
+          },
+        },
+      },
+    },
+    orderBy: { createdAt: 'desc' },
+  });
 };
 
 /**

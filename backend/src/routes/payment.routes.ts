@@ -97,6 +97,5 @@ router.patch(
   requireAdmin,
   paymentController.processRefund
 );
-router.post('/stripe/create-intent', paymentController.createStripeIntent);
-router.post('/stripe/confirm', paymentController.confirmStripePayment);
+
 export default router;

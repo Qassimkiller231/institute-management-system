@@ -1,6 +1,5 @@
 // src/controllers/progressCriteria controller.ts
 import { Request, Response, NextFunction } from 'express';
-import prisma from '../utils/db';
 import {
   setStudentCriteriaCompletion,
   getStudentCriteriaProgress,
@@ -8,6 +7,7 @@ import {
   createProgressCriteria,
   updateProgressCriteria,
   setProgressCriteriaActive,
+  getActiveEnrollmentId,
 } from '../services/progressCriteria.service';
 
 /**
@@ -203,12 +203,9 @@ export const bulkSetCriteriaCompletionController = async (
       }
 
       try {
-        const enrollment = await prisma.enrollment.findFirst({
-          where: { studentId, status: 'ACTIVE' },
-          select: { id: true },
-        });
+        const enrollmentId = await getActiveEnrollmentId(studentId);
 
-        if (!enrollment) {
+        if (!enrollmentId) {
           console.warn(`⚠️  No active enrollment for student ${studentId}`);
           errors.push({ update, reason: 'No active enrollment' });
           continue;
@@ -217,7 +214,7 @@ export const bulkSetCriteriaCompletionController = async (
         const result = await setStudentCriteriaCompletion(
           studentId,
           criteriaId,
-          enrollment.id,
+          enrollmentId,
           completed,
           completed ? new Date() : undefined
         );

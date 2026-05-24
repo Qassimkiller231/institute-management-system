@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../utils/db';
 
-const prisma = new PrismaClient();
 
 interface FAQMatch {
   id: string;
@@ -63,7 +62,7 @@ const INITIAL_FAQS = [
   {
     question: "Payment Methods",
     keywords: ['payment methods', 'how to pay'],
-    answer: "We accept the following payment methods:\n- Benefit Pay\n- Bank Transfer\n- Cash\n- Card Machine\n- Online payment (Stripe)\n\nPayments can be made in installments (1-4 installments).",
+    answer: "We accept the following payment methods:\n- Benefit Pay\n- Bank Transfer\n- Cash\n- Card Machine\n\nPayments can be made in installments (1-4 installments). Please visit the institute to pay.",
     category: "Financial",
     roles: ["ALL"]
   },

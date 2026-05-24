@@ -1,8 +1,8 @@
 
 // ==================== SCHEDULE MANAGEMENT ====================
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import prisma from './db';
 
-const prisma = new PrismaClient();
 export const checkScheduleConflicts = async (
   venueId: string,
   date: string,

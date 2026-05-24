@@ -15,7 +15,6 @@ export const authenticate = async (
   try {
     // Get token from Authorization header
     const authHeader = req.headers.authorization;
-    console.log("🔍 Authorization header:", authHeader);
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
       return res.status(401).json({
         success: false,
@@ -24,14 +23,9 @@ export const authenticate = async (
     }
 
     const token = authHeader.replace('Bearer ', '');
-    // 🔍 DEBUG #2: see extracted token
-  console.log("🔍 Extracted token:", token);
 
-  // 🔍 DEBUG #3: verify environment variable
-  console.log("🔍 JWT_SECRET length:", process.env.JWT_SECRET?.length);
-    // Verify token
+    // Verify token signature/expiry
     const decoded = verifyToken(token);
-     console.log("🔍 Decoded token payload:", decoded);
 
     // Check if session exists in database
     const session = await prisma.session.findFirst({
@@ -42,7 +36,6 @@ export const authenticate = async (
     });
 
     if (!session) {
-      console.error("❌ JWT verification error:");
       return res.status(401).json({
         success: false,
         message: 'Invalid or expired session',

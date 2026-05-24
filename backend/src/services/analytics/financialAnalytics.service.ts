@@ -1,7 +1,6 @@
 // src/services/analytics/financialAnalytics.service.ts
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../utils/db';
 
-const prisma = new PrismaClient();
 
 // 1. Monthly dues (per month + per program)
 export const getMonthlyProgramDues = async (year?: number) => {

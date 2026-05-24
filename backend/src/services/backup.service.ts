@@ -1,11 +1,51 @@
-import { exec } from 'child_process';
+import { spawn } from 'child_process';
 import path from 'path';
 import fs from 'fs';
-import { promisify } from 'util';
 import cron from 'node-cron';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
-const execAsync = promisify(exec);
+// Strict allow-list for backup filenames. Prevents path traversal and shell
+// metacharacters from ever reaching a child process or the filesystem.
+const SAFE_FILENAME = /^[A-Za-z0-9._-]+\.sql$/;
+
+function assertSafeFilename(filename: string): void {
+  if (!filename || !SAFE_FILENAME.test(filename) || filename.includes('..')) {
+    throw new Error('Invalid backup filename');
+  }
+}
+
+/**
+ * Run a postgres CLI tool with arguments passed as an array (no shell), so
+ * user-influenced values cannot be interpreted as commands. The DB password
+ * is provided via the PGPASSWORD env var, never interpolated into a string.
+ */
+function runPgTool(
+  command: 'pg_dump' | 'psql',
+  args: string[],
+  password: string,
+  io: { stdoutFile?: string; stdinFile?: string }
+): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      env: { ...process.env, PGPASSWORD: password },
+    });
+
+    if (io.stdoutFile) {
+      child.stdout.pipe(fs.createWriteStream(io.stdoutFile));
+    }
+    if (io.stdinFile) {
+      fs.createReadStream(io.stdinFile).pipe(child.stdin);
+    }
+
+    let stderr = '';
+    child.stderr.on('data', (d) => (stderr += d.toString()));
+    child.on('error', reject);
+    child.on('close', (code) => {
+      if (code === 0) resolve();
+      else reject(new Error(`${command} exited with code ${code}: ${stderr}`));
+    });
+  });
+}
 
 interface BackupConfig {
     enabled: boolean;
@@ -139,11 +179,13 @@ export class BackupService {
             port: process.env.DB_PORT || '5432'
         };
 
-        // Construct pg_dump command
-        const cmd = `PGPASSWORD='${dbConfig.password}' pg_dump -U ${dbConfig.user} -h ${dbConfig.host} -p ${dbConfig.port} ${dbConfig.database} > "${filepath}"`;
-
         try {
-            await execAsync(cmd);
+            await runPgTool(
+                'pg_dump',
+                ['-U', dbConfig.user, '-h', dbConfig.host, '-p', dbConfig.port, dbConfig.database],
+                dbConfig.password,
+                { stdoutFile: filepath }
+            );
 
             const stats = fs.statSync(filepath);
 
@@ -186,23 +228,29 @@ export class BackupService {
     }
 
     async deleteBackup(filename: string): Promise<void> {
+        assertSafeFilename(filename);
         const filepath = path.join(this.backupDir, filename);
-
-        if (!fs.existsSync(filepath)) {
-            throw new Error('Backup file not found');
-        }
 
         // Security check: prevent directory traversal
         if (path.dirname(filepath) !== this.backupDir) {
             throw new Error('Invalid file path');
         }
 
+        if (!fs.existsSync(filepath)) {
+            throw new Error('Backup file not found');
+        }
+
         fs.unlinkSync(filepath);
     }
 
     async restoreBackup(filename: string): Promise<void> {
+        assertSafeFilename(filename);
         const filepath = path.join(this.backupDir, filename);
 
+        // Defense in depth: ensure the resolved path is inside backupDir.
+        if (path.dirname(filepath) !== this.backupDir) {
+            throw new Error('Invalid file path');
+        }
         if (!fs.existsSync(filepath)) {
             throw new Error('Backup file not found');
         }
@@ -215,10 +263,13 @@ export class BackupService {
             port: process.env.DB_PORT || '5432'
         };
 
-        const cmd = `PGPASSWORD='${dbConfig.password}' psql -U ${dbConfig.user} -h ${dbConfig.host} -p ${dbConfig.port} -d ${dbConfig.database} < "${filepath}"`;
-
         try {
-            await execAsync(cmd);
+            await runPgTool(
+                'psql',
+                ['-U', dbConfig.user, '-h', dbConfig.host, '-p', dbConfig.port, '-d', dbConfig.database],
+                dbConfig.password,
+                { stdinFile: filepath }
+            );
         } catch (error) {
             console.error('Restore failed:', error);
             throw new Error(`Restore failed: ${(error as any).message}`);
@@ -226,7 +277,11 @@ export class BackupService {
     }
 
     getBackupPath(filename: string): string {
+        assertSafeFilename(filename);
         const filepath = path.join(this.backupDir, filename);
+        if (path.dirname(filepath) !== this.backupDir) {
+            throw new Error('Invalid file path');
+        }
         if (!fs.existsSync(filepath)) {
             throw new Error('File not found');
         }

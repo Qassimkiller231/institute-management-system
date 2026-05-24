@@ -1,9 +1,8 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../utils/db';
 import * as claudeService from './claude.service';
 import * as faqService from './faq.service';
 import * as analyticsService from './analytics.service';
 
-const prisma = new PrismaClient();
 
 export interface ChatQuery {
   userId: string;
@@ -219,4 +218,23 @@ export const saveChatMessage = async (data: {
       context: data.context || {}
     }
   });
+};
+
+/**
+ * Get a user's chat history in chronological order.
+ */
+export const getChatHistory = async (userId: string, limit = 50) => {
+  const messages = await prisma.chatMessage.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+  });
+  return messages.reverse(); // chronological order
+};
+
+/**
+ * Delete all chat messages for a user.
+ */
+export const clearChatHistory = async (userId: string) => {
+  await prisma.chatMessage.deleteMany({ where: { userId } });
 };

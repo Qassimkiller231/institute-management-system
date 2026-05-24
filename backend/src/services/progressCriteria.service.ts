@@ -1,7 +1,7 @@
 // src/services/progressCriteria.service.ts
-import { PrismaClient, ProgressCriteria } from '@prisma/client';
+import { ProgressCriteria } from '@prisma/client';
+import prisma from '../utils/db';
 
-const prisma = new PrismaClient();
 
 const safePercent = (num: number, den: number) =>
   den > 0 ? Number(((num / den) * 100).toFixed(2)) : 0;
@@ -177,6 +177,17 @@ export interface SetStudentCriteriaCompletionInput {
   completed: boolean;
   completedAt?: Date | null;
 }
+
+// Returns the id of a student's active enrollment, or null if none.
+export const getActiveEnrollmentId = async (
+  studentId: string
+): Promise<string | null> => {
+  const enrollment = await prisma.enrollment.findFirst({
+    where: { studentId, status: 'ACTIVE' },
+    select: { id: true },
+  });
+  return enrollment?.id ?? null;
+};
 
 // Create / update completion for a student + criteria (+ optional enrollment)
 export const setStudentCriteriaCompletion = async (

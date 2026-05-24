@@ -1,7 +1,7 @@
 // src/services/group.service.ts
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import prisma from '../utils/db';
 
-const prisma = new PrismaClient();
 
 // ==================== GROUPS ====================
 

@@ -2,9 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Elements } from '@stripe/react-stripe-js';
-import { stripePromise } from '@/lib/stripe/config';
-import StripePaymentForm from '@/components/payments/StripePaymentForm';
 import { getToken } from '@/lib/authStorage';
 import { paymentsAPI } from '@/lib/api';
 import { LoadingState } from '@/components/common/LoadingState';
@@ -145,17 +142,6 @@ export default function ParentPaymentsPage() {
   const handleMakePayment = (payment: Payment) => {
     setSelectedPayment(payment);
     setShowPaymentModal(true);
-  };
-
-  /**
-   * Handle successful payment
-   */
-  const handlePaymentSuccess = () => {
-    setShowPaymentModal(false);
-    setSelectedPayment(null);
-    // Could show a toast notification instead of alert
-    // alert('Payment successful! 🎉 Your payment has been recorded.');
-    fetchPayments();
   };
 
   // ========================================
@@ -328,7 +314,7 @@ export default function ParentPaymentsPage() {
   };
 
   /**
-   * Render Stripe payment modal
+   * Render payment info modal (offline / in-person payment)
    */
   const renderPaymentModal = () => {
     if (!showPaymentModal || !selectedPayment) return null;
@@ -345,19 +331,31 @@ export default function ParentPaymentsPage() {
               : 'N/A'}
           </p>
           <p className="text-gray-600 mb-6">
-            Make a secure payment using your credit or debit card
+            Online card payment is not available. Please pay at the institute.
           </p>
-          
-          <Elements stripe={stripePromise}>
-            <StripePaymentForm 
-              installment={{
-                id: selectedPayment.id,
-                amount: selectedPayment.amount.toString()
-              }}
-              onSuccess={handlePaymentSuccess}
-              onCancel={() => setShowPaymentModal(false)}
-            />
-          </Elements>
+
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+            <p className="text-sm text-blue-900 font-semibold mb-2">
+              Amount due: {selectedPayment.amount} BHD
+            </p>
+            <p className="text-sm text-blue-800">Accepted payment methods at the institute:</p>
+            <ul className="text-sm text-blue-800 list-disc list-inside mt-1">
+              <li>Cash</li>
+              <li>Benefit Pay</li>
+              <li>Bank Transfer</li>
+              <li>Card Machine</li>
+            </ul>
+            <p className="text-xs text-blue-700 mt-3">
+              The administration will record the payment once it is received.
+            </p>
+          </div>
+
+          <button
+            onClick={() => setShowPaymentModal(false)}
+            className="w-full bg-gray-200 text-gray-800 font-semibold py-3 rounded-lg hover:bg-gray-300 transition"
+          >
+            Close
+          </button>
         </div>
       </div>
     );

@@ -1,8 +1,8 @@
-import { PrismaClient, Prisma } from '@prisma/client';
+import { Prisma } from '@prisma/client';
+import prisma from '../utils/db';
 import * as notificationService from './notification.service';
 import * as emailService from './email.service';
 
-const prisma = new PrismaClient();
 
 interface AvailableSlotsFilter {
   startDate?: Date;

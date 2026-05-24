@@ -1,8 +1,7 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../utils/db';
 import * as emailService from '../email.service';
 import * as smsService from '../sms.service';
 
-const prisma = new PrismaClient();
 
 export const checkAndSendReminders = async () => {
   console.log('\n🔔 ===== PAYMENT REMINDER CHECK START =====');

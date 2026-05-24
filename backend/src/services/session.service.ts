@@ -1,8 +1,7 @@
 // src/services/session.service.ts
-import { PrismaClient } from "@prisma/client";
+import prisma from '../utils/db';
 import { checkScheduleConflicts, checkTeacherConflicts } from "../utils/schedule";
 
-const prisma = new PrismaClient();
 
 /**
  * Create a single class session

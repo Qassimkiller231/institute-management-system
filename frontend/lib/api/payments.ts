@@ -41,28 +41,6 @@ export const paymentsAPI = {
     return res.json();
   },
 
-  // Stripe: Create payment intent
-  createStripeIntent: async (installmentId: string, amount: number, currency: string = 'BHD') => {
-    const res = await fetch(`${API_URL}/payments/stripe/create-intent`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify({ installmentId, amount, currency })
-    });
-    if (!res.ok) throw new Error('Failed to create payment intent');
-    return res.json();
-  },
-
-  // Stripe: Confirm payment after Stripe processes it
-  confirmStripePayment: async (paymentIntentId: string, installmentId: string) => {
-    const res = await fetch(`${API_URL}/payments/stripe/confirm`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify({ paymentIntentId, installmentId })
-    });
-    if (!res.ok) throw new Error('Failed to confirm payment');
-    return res.json();
-  },
-
   // CRUD for Plans
   createPlan: async (data: any) => {
     const res = await fetch(`${API_URL}/payments/plans`, {

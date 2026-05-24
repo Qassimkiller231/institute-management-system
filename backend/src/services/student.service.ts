@@ -1,10 +1,9 @@
 // src/services/student.service.ts
-import { PrismaClient } from '@prisma/client';
+import prisma from '../utils/db';
 import { normalizePhoneNumber, validatePhoneNumber } from '../utils/phone.utils';
 
 import auditService from './audit.service';
 
-const prisma = new PrismaClient();
 
 /**
  * Create a new student
