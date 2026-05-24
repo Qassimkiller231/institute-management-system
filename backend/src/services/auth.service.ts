@@ -1,8 +1,91 @@
+import { OAuth2Client } from "google-auth-library";
 import prisma from "../utils/db";
 import { generateToken } from "../utils/jwt";
+import { env } from "../config/env";
 import { normalizePhoneNumber, validatePhoneNumber } from "../utils/phone.utils";
 import * as otpService from "./otp.service";
 import auditService from "./audit.service";
+
+const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
+
+/**
+ * Issue a JWT + DB session for an authenticated user and return the login
+ * payload. Shared by OTP login and Google login so the session contract
+ * stays identical regardless of how the user authenticated.
+ */
+const issueSession = async (
+  user: { id: string; email: string; phone: string | null; role: string },
+  method: "EMAIL" | "SMS" | "GOOGLE"
+) => {
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { lastLogin: new Date() },
+  });
+
+  // Resolve role-specific id
+  let studentId: string | null = null;
+  let teacherId: string | null = null;
+  let parentId: string | null = null;
+
+  if (user.role === "STUDENT") {
+    const student = await prisma.student.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    studentId = student?.id || null;
+  } else if (user.role === "TEACHER") {
+    const teacher = await prisma.teacher.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    teacherId = teacher?.id || null;
+  } else if (user.role === "PARENT") {
+    const parent = await prisma.parent.findUnique({
+      where: { userId: user.id },
+      select: { id: true },
+    });
+    parentId = parent?.id || null;
+  }
+
+  const token = generateToken({
+    userId: user.id,
+    email: user.email,
+    role: user.role,
+    studentId,
+    teacherId,
+    parentId,
+  });
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+
+  await prisma.session.create({
+    data: { userId: user.id, token, expiresAt, userAgent: null },
+  });
+
+  await auditService.createLog({
+    userId: user.id,
+    action: "LOGIN",
+    newValues: { method, role: user.role },
+  });
+
+  return {
+    success: true,
+    message: "Login successful",
+    data: {
+      token,
+      user: {
+        id: user.id,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        studentId,
+        teacherId,
+        parentId,
+      },
+    },
+  };
+};
 /**
  * Request OTP code for login
  */
@@ -85,83 +168,50 @@ export const verifyOTP = async (identifier: string, code: string) => {
   // Verify the submitted code (enforces expiry, attempt limit, and consumes it).
   await otpService.verifyOtp(user.id, code);
 
-  // Update last login
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { lastLogin: new Date() },
-  });
+  return issueSession(user, isEmail ? "EMAIL" : "SMS");
+};
 
-  // Get role-specific ID
-  let studentId = null;
-  let teacherId = null;
-  let parentId = null;
-
-  if (user.role === "STUDENT") {
-    const student = await prisma.student.findUnique({
-      where: { userId: user.id },
-      select: { id: true },
-    });
-    studentId = student?.id || null;
-  } else if (user.role === "TEACHER") {
-    const teacher = await prisma.teacher.findUnique({
-      where: { userId: user.id },
-      select: { id: true },
-    });
-    teacherId = teacher?.id || null;
-  } else if (user.role === "PARENT") {
-    const parent = await prisma.parent.findUnique({
-      where: { userId: user.id },
-      select: { id: true },
-    });
-    parentId = parent?.id || null;
+/**
+ * Login with a Google ID token (staff only).
+ * Verifies the token against Google, requires a verified email that matches an
+ * existing ADMIN/TEACHER account. Students/parents keep OTP-only login.
+ */
+export const loginWithGoogle = async (idToken: string) => {
+  if (!env.GOOGLE_CLIENT_ID) {
+    throw new Error("Google sign-in is not configured");
   }
 
-  // Generate JWT token
-  const token = generateToken({
-    userId: user.id,
-    email: user.email,
-    role: user.role,
-    studentId,
-    teacherId,
-    parentId,
+  // Verify the ID token signature, audience, issuer and expiry with Google.
+  let payload;
+  try {
+    const ticket = await googleClient.verifyIdToken({
+      idToken,
+      audience: env.GOOGLE_CLIENT_ID,
+    });
+    payload = ticket.getPayload();
+  } catch {
+    throw new Error("Invalid Google credential");
+  }
+
+  if (!payload?.email || !payload.email_verified) {
+    throw new Error("Google account email is not verified");
+  }
+
+  const user = await prisma.user.findFirst({
+    where: { email: { equals: payload.email, mode: "insensitive" } },
   });
 
-  // Create session
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + 7); // 7 days
+  // Generic rejection to avoid revealing which emails are registered.
+  if (!user || !user.isActive) {
+    throw new Error("No staff account is linked to this Google account");
+  }
 
-  await prisma.session.create({
-    data: {
-      userId: user.id,
-      token,
-      expiresAt,
-      userAgent: null,
-    },
-  });
+  // Google sign-in is restricted to staff. Students/parents use OTP.
+  if (user.role !== "ADMIN" && user.role !== "TEACHER") {
+    throw new Error("Google sign-in is only available for staff accounts");
+  }
 
-  // ✅ LOG AUDIT EVENT
-  await auditService.createLog({
-    userId: user.id,
-    action: 'LOGIN',
-    newValues: { method: isEmail ? 'EMAIL' : 'SMS', role: user.role }
-  });
-
-  return {
-    success: true,
-    message: "Login successful",
-    data: {
-      token,
-      user: {
-        id: user.id,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        studentId,
-        teacherId,
-        parentId,
-      },
-    },
-  };
+  return issueSession(user, "GOOGLE");
 };
 
 /**

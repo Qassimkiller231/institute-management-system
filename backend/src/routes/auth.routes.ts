@@ -19,6 +19,13 @@ router.post('/request-otp', authController.requestOtp);
 router.post('/verify-otp', authController.verifyOtp);
 
 /**
+ * POST /api/auth/google
+ * Login with a Google ID token (staff only)
+ * Public route
+ */
+router.post('/google', authController.googleLogin);
+
+/**
  * POST /api/auth/logout
  * Logout user
  * Protected route

@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { authAPI } from '@/lib/api';
-import { getOtpEmail, removeOtpEmail, saveToken, saveUserRole, saveStudentId, saveTeacherId, saveParentId } from '@/lib/authStorage';
+import { getOtpEmail, removeOtpEmail, persistSession } from '@/lib/authStorage';
 import { AuthHeader } from '@/components/auth/AuthHeader';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { ErrorMessage } from '@/components/common/Messages';
@@ -45,48 +45,10 @@ export default function VerifyOtpPage() {
    * 3. Redirecting to role-specific dashboard
    */
   const handleSuccessfulLogin = (result: any) => {
-    // Save authentication data
-    saveToken(result.token);
-    saveUserRole(result.user.role);
-
-    // Role-specific configuration (ID storage + routing)
-    const roleConfig = {
-      STUDENT: {
-        saveId: () => saveStudentId(result.user.studentId),
-        route: '/student',
-      },
-      TEACHER: {
-        saveId: () => saveTeacherId(result.user.teacherId),
-        route: '/teacher',
-      },
-      PARENT: {
-        saveId: () => saveParentId(result.user.parentId),
-        route: '/parent',
-      },
-      ADMIN: {
-        saveId: () => { }, // Admin doesn't need specific ID
-        route: '/admin',
-      },
-    };
-
-    const config = roleConfig[result.user.role as keyof typeof roleConfig];
-
-    if (config) {
-      config.saveId(); // Save role-specific ID
-      removeOtpEmail(); // Clean up OTP email
-      router.push(config.route); // Navigate to dashboard
-    } else {
-      // Fallback for unknown roles
-      removeOtpEmail();
-      router.push('/');
-    }
-
-    // Debug logging (commented out for production)
-    // console.log('🎉 Login successful:', {
-    //   role: result.user.role,
-    //   route: config?.route,
-    //   token: result.token.substring(0, 20) + '...',
-    // });
+    // Save token + role + role-specific id, then go to the role's dashboard.
+    const route = persistSession(result);
+    removeOtpEmail(); // Clean up OTP email
+    router.push(route);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

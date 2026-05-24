@@ -20,6 +20,16 @@ export const authAPI = {
     return res.json();
   },
 
+  // Staff login with a Google ID token (credential) from Google Identity Services.
+  googleLogin: async (idToken: string) => {
+    const res = await fetch(`${API_URL}/auth/google`, {
+      method: 'POST',
+      headers: getHeaders(false),
+      body: JSON.stringify({ idToken })
+    });
+    return res.json();
+  },
+
   getCurrentUser: async () => {
     const res = await fetch(`${API_URL}/auth/me`, {
       headers: getHeaders(true)

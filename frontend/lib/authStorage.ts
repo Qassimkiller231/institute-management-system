@@ -122,6 +122,45 @@ export const getUserRole = (): string | null => {
 };
 
 // ========================================
+// SESSION PERSISTENCE
+// ========================================
+
+interface LoginPayload {
+    token: string;
+    user: {
+        role: 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN' | string;
+        studentId?: string | null;
+        teacherId?: string | null;
+        parentId?: string | null;
+    };
+}
+
+/**
+ * Persist a successful login (token + role + role-specific id) and return the
+ * dashboard route for that role. Shared by OTP verification and Google sign-in.
+ */
+export const persistSession = (data: LoginPayload): string => {
+    saveToken(data.token);
+    saveUserRole(data.user.role as 'STUDENT' | 'TEACHER' | 'PARENT' | 'ADMIN');
+
+    switch (data.user.role) {
+        case 'STUDENT':
+            if (data.user.studentId) saveStudentId(data.user.studentId);
+            return '/student';
+        case 'TEACHER':
+            if (data.user.teacherId) saveTeacherId(data.user.teacherId);
+            return '/teacher';
+        case 'PARENT':
+            if (data.user.parentId) saveParentId(data.user.parentId);
+            return '/parent';
+        case 'ADMIN':
+            return '/admin';
+        default:
+            return '/';
+    }
+};
+
+// ========================================
 // ROLE CHECKING HELPERS
 // ========================================
 

@@ -4,6 +4,7 @@ import * as paymentReminderService from './paymentReminder.service';
 import * as attendanceWarningService from './attendanceWarning.service';
 import * as announcementService from '../announcement.service';
 import * as autoGenerateSpeakingSlots from './autoGenerateSpeakingSlots.service';
+import materialService from '../material.service';
 import prisma from '../../utils/db';
 
 /**
@@ -112,7 +113,7 @@ export const startScheduler = () => {
     // console.log('\n⏰ ===== CHECKING SCHEDULED ITEMS =====');
     try {
       const annCount = await announcementService.publishScheduledAnnouncements();
-      const matCount = await import('../material.service').then(m => m.default.publishScheduledMaterials());
+      const matCount = await materialService.publishScheduledMaterials();
 
       if (annCount > 0) console.log(`✅ Published ${annCount} scheduled announcement(s)`);
       if (matCount > 0) console.log(`✅ Published ${matCount} scheduled material(s)`);

@@ -2,11 +2,14 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { GoogleOAuthProvider, GoogleLogin } from '@react-oauth/google';
 import { authAPI } from '@/lib/api';
-import { saveOtpEmail } from '@/lib/authStorage';
+import { saveOtpEmail, persistSession } from '@/lib/authStorage';
 import { AuthHeader } from '@/components/auth/AuthHeader';
 import { AuthLayout } from '@/components/auth/AuthLayout';
 import { ErrorMessage } from '@/components/common/Messages';
+
+const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
 
 export default function LoginPage() {
   // ========================================
@@ -42,9 +45,53 @@ export default function LoginPage() {
     }
   };
 
+  /**
+   * Handle Google sign-in (staff only). Sends the Google ID token to the
+   * backend, which links it to an existing ADMIN/TEACHER account.
+   */
+  const handleGoogleSuccess = async (idToken?: string) => {
+    if (!idToken) return;
+    setError('');
+    try {
+      const result = await authAPI.googleLogin(idToken);
+      if (result.success) {
+        const route = persistSession(result.data);
+        router.push(route);
+      } else {
+        setError(result.message || 'Google sign-in failed');
+      }
+    } catch {
+      setError('Google sign-in failed. Please try again.');
+    }
+  };
+
   // ========================================
   // RENDER FUNCTIONS
   // ========================================
+
+  const renderGoogleSignIn = () => {
+    if (!GOOGLE_CLIENT_ID) return null;
+    return (
+      <div className="mt-6">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="h-px bg-gray-200 flex-1" />
+          <span className="text-xs text-gray-400 uppercase">or</span>
+          <div className="h-px bg-gray-200 flex-1" />
+        </div>
+        <div className="flex justify-center">
+          <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
+            <GoogleLogin
+              onSuccess={(cred) => handleGoogleSuccess(cred.credential)}
+              onError={() => setError('Google sign-in failed')}
+            />
+          </GoogleOAuthProvider>
+        </div>
+        <p className="text-xs text-gray-500 mt-2 text-center">
+          Google sign-in is for staff (admin / teacher) only.
+        </p>
+      </div>
+    );
+  };
   
   const renderEmailInput = () => {
     return (
@@ -122,6 +169,8 @@ export default function LoginPage() {
           <ErrorMessage message={error} />
           {renderSubmitButton()}
         </form>
+
+        {renderGoogleSignIn()}
       </AuthLayout>
     );
   };

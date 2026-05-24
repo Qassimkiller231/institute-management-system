@@ -34,6 +34,10 @@ export const env = {
 
   // CORS allow-list. Comma-separated list of allowed origins.
   FRONTEND_URL: optional('FRONTEND_URL', 'http://localhost:3000'),
+
+  // Google Sign-In (staff). Optional: if unset, the /auth/google endpoint
+  // returns an error but the rest of the app runs normally.
+  GOOGLE_CLIENT_ID: optional('GOOGLE_CLIENT_ID', ''),
 };
 
 export const isProduction = env.NODE_ENV === 'production';

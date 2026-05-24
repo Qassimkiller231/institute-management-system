@@ -73,6 +73,33 @@ export const verifyOtp = async (req: Request, res: Response) => {
 };
 
 /**
+ * POST /api/auth/google
+ * Login with a Google ID token (staff only). OTP remains for all roles.
+ */
+export const googleLogin = async (req: Request, res: Response) => {
+  try {
+    const { idToken } = req.body;
+
+    if (!idToken) {
+      return res.status(400).json({
+        success: false,
+        message: 'idToken is required',
+      });
+    }
+
+    const result = await authService.loginWithGoogle(idToken);
+
+    res.status(200).json(result);
+  } catch (error: any) {
+    console.error('Google login error:', error.message);
+    res.status(401).json({
+      success: false,
+      message: error.message || 'Google sign-in failed',
+    });
+  }
+};
+
+/**
  * POST /api/auth/logout
  * Logout user
  */
