@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export interface Venue {
   id: string;
@@ -24,73 +24,19 @@ export interface UpdateVenueDto {
 }
 
 export const venuesAPI = {
-  // Get all venues
-  getAll: async (isActive?: boolean) => {
-    const url = isActive !== undefined
-      ? `${API_URL}/venues?isActive=${isActive}`
-      : `${API_URL}/venues`;
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch venues');
-    return res.json();
-  },
+  getAll: (isActive?: boolean) =>
+    apiFetch(isActive !== undefined ? `/venues?isActive=${isActive}` : '/venues'),
 
-  // Get by ID
-  getById: async (id: string) => {
-    const res = await fetch(`${API_URL}/venues/${id}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch venue');
-    return res.json();
-  },
+  getById: (id: string) => apiFetch(`/venues/${id}`),
 
-  // Create venue
-  create: async (data: CreateVenueDto) => {
-    const res = await fetch(`${API_URL}/venues`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to create venue');
-    }
-    return res.json();
-  },
+  create: (data: CreateVenueDto) =>
+    apiFetch('/venues', { method: 'POST', body: data }),
 
-  // Update venue
-  update: async (id: string, data: UpdateVenueDto) => {
-    const res = await fetch(`${API_URL}/venues/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to update venue');
-    }
-    return res.json();
-  },
+  update: (id: string, data: UpdateVenueDto) =>
+    apiFetch(`/venues/${id}`, { method: 'PUT', body: data }),
 
-  // Delete venue (soft delete)
-  delete: async (id: string) => {
-    const res = await fetch(`${API_URL}/venues/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to delete venue');
-    return res.json();
-  },
+  delete: (id: string) => apiFetch(`/venues/${id}`, { method: 'DELETE' }),
 
-  // Reactivate venue
-  reactivate: async (id: string) => {
-    const res = await fetch(`${API_URL}/venues/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify({ isActive: true })
-    });
-    if (!res.ok) throw new Error('Failed to reactivate venue');
-    return res.json();
-  }
+  reactivate: (id: string) =>
+    apiFetch(`/venues/${id}`, { method: 'PUT', body: { isActive: true } }),
 };

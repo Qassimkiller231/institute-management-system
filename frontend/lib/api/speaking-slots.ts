@@ -1,58 +1,38 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export const speakingSlotAPI = {
-  getAvailable: async () => {
-    const res = await fetch(`${API_URL}/speaking-slots/available`, {
-      headers: getHeaders(true)
-    });
-    return res.json();
-  },
+  getAvailable: () => apiFetch('/speaking-slots/available', { throwOnError: false }),
 
-  getAll: async () => {
-    const res = await fetch(`${API_URL}/speaking-slots`, {
-      headers: getHeaders(true)
-    });
-    return res.json();
-  },
+  getAll: () => apiFetch('/speaking-slots', { throwOnError: false }),
 
-  getByTeacher: async (teacherId: string) => {
-    const res = await fetch(`${API_URL}/speaking-slots/teacher/${teacherId}`, {
-      headers: getHeaders(true)
-    });
-    return res.json();
-  },
+  getByTeacher: (teacherId: string) =>
+    apiFetch(`/speaking-slots/teacher/${teacherId}`, { throwOnError: false }),
 
-  submitResult: async (data: {
+  submitResult: (data: {
     slotId: string;
     sessionId: string;
     mcqLevel: string;
     speakingLevel: string;
     finalLevel: string;
     feedback?: string;
-  }) => {
-    const res = await fetch(`${API_URL}/speaking-slots/submit-result`, {
+  }) =>
+    apiFetch('/speaking-slots/submit-result', {
       method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    return res.json();
-  },
+      body: data,
+      throwOnError: false,
+    }),
 
-  cancel: async (slotId: string, sessionId: string) => {
-    const res = await fetch(`${API_URL}/speaking-slots/${slotId}/cancel`, {
+  cancel: (slotId: string, sessionId: string) =>
+    apiFetch(`/speaking-slots/${slotId}/cancel`, {
       method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify({ sessionId }),
-    });
-    return res.json();
-  },
+      body: { sessionId },
+      throwOnError: false,
+    }),
 
-  book: async (slotId: string, sessionId: string, studentId: string) => {
-    const res = await fetch(`${API_URL}/speaking-slots/book`, {
+  book: (slotId: string, sessionId: string, studentId: string) =>
+    apiFetch('/speaking-slots/book', {
       method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify({ slotId, sessionId, studentId })
-    });
-    return res.json();
-  },
+      body: { slotId, sessionId, studentId },
+      throwOnError: false,
+    }),
 };

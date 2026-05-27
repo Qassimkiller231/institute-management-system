@@ -1,41 +1,33 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export const authAPI = {
-  requestOTP: async (identifier: string, method: 'email' | 'sms') => {
-    const res = await fetch(`${API_URL}/auth/request-otp`, {
+  // Login endpoints: no auth header, and don't throw — the login pages inspect
+  // `result.success` and show the server's message inline.
+  requestOTP: (identifier: string, method: 'email' | 'sms') =>
+    apiFetch('/auth/request-otp', {
       method: 'POST',
-      headers: getHeaders(false),
-      body: JSON.stringify({ identifier, method })
-    });
-    console.log(res);
-    return res.json();
-  },
+      body: { identifier, method },
+      auth: false,
+      throwOnError: false,
+    }),
 
-  verifyOTP: async (identifier: string, code: string) => {
-    const res = await fetch(`${API_URL}/auth/verify-otp`, {
+  verifyOTP: (identifier: string, code: string) =>
+    apiFetch('/auth/verify-otp', {
       method: 'POST',
-      headers: getHeaders(false),
-      body: JSON.stringify({ identifier, code })
-    });
-    return res.json();
-  },
+      body: { identifier, code },
+      auth: false,
+      throwOnError: false,
+    }),
 
   // Staff login with a Google ID token (credential) from Google Identity Services.
-  googleLogin: async (idToken: string) => {
-    const res = await fetch(`${API_URL}/auth/google`, {
+  googleLogin: (idToken: string) =>
+    apiFetch('/auth/google', {
       method: 'POST',
-      headers: getHeaders(false),
-      body: JSON.stringify({ idToken })
-    });
-    return res.json();
-  },
+      body: { idToken },
+      auth: false,
+      throwOnError: false,
+    }),
 
-  getCurrentUser: async () => {
-    const res = await fetch(`${API_URL}/auth/me`, {
-      headers: getHeaders(true)
-    });
-    console.log('[API] getCurrentUser response:', res.status);
-    if (!res.ok) throw new Error('Failed to fetch user data');
-    return res.json();
-  }
+  // Authenticated: a 401 here flows through apiFetch's session-expiry handling.
+  getCurrentUser: () => apiFetch('/auth/me'),
 };

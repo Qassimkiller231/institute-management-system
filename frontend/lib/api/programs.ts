@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export interface Program {
   id: string;
@@ -24,62 +24,16 @@ export interface UpdateProgramDto {
 }
 
 export const programsAPI = {
-  // Get all programs
-  getAll: async (isActive?: boolean) => {
-    const url = isActive !== undefined
-      ? `${API_URL}/programs?isActive=${isActive}`
-      : `${API_URL}/programs`;
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch programs');
-    return res.json();
-  },
+  getAll: (isActive?: boolean) =>
+    apiFetch(isActive !== undefined ? `/programs?isActive=${isActive}` : '/programs'),
 
-  // Get by ID
-  getById: async (id: string) => {
-    const res = await fetch(`${API_URL}/programs/${id}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch program');
-    return res.json();
-  },
+  getById: (id: string) => apiFetch(`/programs/${id}`),
 
-  // Create program
-  create: async (data: CreateProgramDto) => {
-    const res = await fetch(`${API_URL}/programs`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to create program');
-    }
-    return res.json();
-  },
+  create: (data: CreateProgramDto) =>
+    apiFetch('/programs', { method: 'POST', body: data }),
 
-  // Update program
-  update: async (id: string, data: UpdateProgramDto) => {
-    const res = await fetch(`${API_URL}/programs/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to update program');
-    }
-    return res.json();
-  },
+  update: (id: string, data: UpdateProgramDto) =>
+    apiFetch(`/programs/${id}`, { method: 'PUT', body: data }),
 
-  // Delete program
-  delete: async (id: string) => {
-    const res = await fetch(`${API_URL}/programs/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to delete program');
-    return res.json();
-  }
+  delete: (id: string) => apiFetch(`/programs/${id}`, { method: 'DELETE' }),
 };

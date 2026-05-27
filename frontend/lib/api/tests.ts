@@ -1,55 +1,42 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch, API_URL, getHeaders } from './client';
 
 export const testAPI = {
-  getPlacementTests: async () => {
-    const res = await fetch(`${API_URL}/tests?testType=PLACEMENT&isActive=true`, {
-      headers: getHeaders(true)
-    });
-    return res.json();
-  },
+  getPlacementTests: () =>
+    apiFetch('/tests?testType=PLACEMENT&isActive=true', { throwOnError: false }),
 
-  startSession: async (studentId: string, testId: string) => {
-    const res = await fetch(`${API_URL}/test-sessions/start`, {
+  startSession: (studentId: string, testId: string) =>
+    apiFetch('/test-sessions/start', {
       method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify({ studentId, testId })
-    });
-    return res.json();
-  },
+      body: { studentId, testId },
+      throwOnError: false,
+    }),
 
-  getSessionQuestions: async (sessionId: string) => {
-    const res = await fetch(`${API_URL}/test-sessions/${sessionId}/questions`, {
-      headers: getHeaders(true)
-    });
-    return res.json();
-  },
+  getSessionQuestions: (sessionId: string) =>
+    apiFetch(`/test-sessions/${sessionId}/questions`, { throwOnError: false }),
 
-  submitMCQ: async (sessionId: string, answers: Record<string, string>) => {
-    const res = await fetch(`${API_URL}/test-sessions/${sessionId}/submit-mcq`, {
+  submitMCQ: (sessionId: string, answers: Record<string, string>) =>
+    apiFetch(`/test-sessions/${sessionId}/submit-mcq`, {
       method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify({ answers })
-    });
-    return res.json();
-  },
+      body: { answers },
+      throwOnError: false,
+    }),
+
+  // These map a 404 to a valid "no session" result, so they need the raw
+  // status code (which apiFetch intentionally hides) — keep plain fetch.
   getActiveSession: async (studentId: string) => {
     const res = await fetch(`${API_URL}/test-sessions/active?studentId=${studentId}`, {
-      headers: getHeaders(true)
+      headers: getHeaders(true),
     });
-    // Check if 404 (not found) - valid null result
-    if (res.status === 404) {
-      return { success: true, session: null };
-    }
+    if (res.status === 404) return { success: true, session: null };
     return res.json();
   },
+
   getLastSession: async (studentId: string, testId: string) => {
-    const res = await fetch(`${API_URL}/test-sessions/last-session?studentId=${studentId}&testId=${testId}`, {
-      headers: getHeaders(true)
-    });
-    // Check if 404 (not found) - this is a valid "null" result, not an error
-    if (res.status === 404) {
-      return { success: true, session: null };
-    }
+    const res = await fetch(
+      `${API_URL}/test-sessions/last-session?studentId=${studentId}&testId=${testId}`,
+      { headers: getHeaders(true) }
+    );
+    if (res.status === 404) return { success: true, session: null };
     return res.json();
-  }
+  },
 };

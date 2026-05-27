@@ -1,6 +1,6 @@
 // src/services/session.service.ts
 import prisma from '../utils/db';
-import { checkScheduleConflicts, checkTeacherConflicts } from "../utils/schedule";
+import { checkScheduleConflicts, checkTeacherConflicts } from "./schedule.service";
 
 
 /**

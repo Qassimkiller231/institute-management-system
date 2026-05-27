@@ -1,91 +1,41 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch, API_URL, getHeaders } from './client';
 
 export const reportingAPI = {
   // Dashboard Analytics
-  getDashboardAnalytics: async (termId?: string) => {
-    const url = termId
-      ? `${API_URL}/reports/dashboard/admin?termId=${termId}`
-      : `${API_URL}/reports/dashboard/admin`;
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch dashboard analytics');
-    return res.json();
-  },
+  getDashboardAnalytics: (termId?: string) =>
+    apiFetch(termId ? `/reports/dashboard/admin?termId=${termId}` : '/reports/dashboard/admin'),
 
-  getTrends: async (monthsBack: number = 6) => {
-    const res = await fetch(`${API_URL}/reports/trends?monthsBack=${monthsBack}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch trends');
-    return res.json();
-  },
+  getTrends: (monthsBack: number = 6) =>
+    apiFetch(`/reports/trends?monthsBack=${monthsBack}`),
 
-  getAnalyticsCharts: async () => {
-    const res = await fetch(`${API_URL}/reports/charts`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch analytics charts');
-    return res.json();
-  },
+  getAnalyticsCharts: () => apiFetch('/reports/charts'),
 
   // Financial Analytics
-  getFinancialAnalytics: async (termId?: string) => {
-    // Use overall endpoint for all terms, specific term endpoint otherwise
-    const url = termId
-      ? `${API_URL}/reports/financial/term/${termId}`
-      : `${API_URL}/reports/financial/overall`;
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch financial analytics');
-    return res.json();
-  },
+  getFinancialAnalytics: (termId?: string) =>
+    apiFetch(termId ? `/reports/financial/term/${termId}` : '/reports/financial/overall'),
 
   // Program Analytics
-  getProgramAnalytics: async (programId?: string) => {
-    const url = programId
-      ? `${API_URL}/analytics/program?programId=${programId}`
-      : `${API_URL}/analytics/program`;
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch program analytics');
-    return res.json();
-  },
+  getProgramAnalytics: (programId?: string) =>
+    apiFetch(programId ? `/analytics/program?programId=${programId}` : '/analytics/program'),
 
   // Performance Reports
-  getPerformanceReports: async (params?: { groupId?: string; studentId?: string }) => {
+  getPerformanceReports: (params?: { groupId?: string; studentId?: string }) => {
     const queryParams = new URLSearchParams();
     if (params?.groupId) queryParams.append('groupId', params.groupId);
     if (params?.studentId) queryParams.append('studentId', params.studentId);
-
-    const url = queryParams.toString()
-      ? `${API_URL}/reports/performance?${queryParams}`
-      : `${API_URL}/reports/performance`;
-
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch performance reports');
-    return res.json();
+    const qs = queryParams.toString();
+    return apiFetch(`/reports/performance${qs ? `?${qs}` : ''}`);
   },
 
   // Attendance Reports
-  getAttendanceReport: async (groupId: string) => {
-    const res = await fetch(`${API_URL}/reports/group/${groupId}/attendance/preview`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch attendance report');
-    return res.json();
-  },
+  getAttendanceReport: (groupId: string) =>
+    apiFetch(`/reports/group/${groupId}/attendance/preview`),
 
   downloadAttendancePDF: async (groupId: string, groupCode: string) => {
     const res = await fetch(`${API_URL}/reports/group/${groupId}/attendance`, {
-      headers: getHeaders(true)
+      headers: getHeaders(true),
     });
     if (!res.ok) throw new Error('Failed to generate PDF');
-
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -98,20 +48,14 @@ export const reportingAPI = {
   },
 
   // Progress Reports
-  getProgressReport: async (groupId: string) => {
-    const res = await fetch(`${API_URL}/reports/group/${groupId}/progress/preview`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch progress report');
-    return res.json();
-  },
+  getProgressReport: (groupId: string) =>
+    apiFetch(`/reports/group/${groupId}/progress/preview`),
 
   downloadProgressPDF: async (groupId: string, groupCode: string) => {
     const res = await fetch(`${API_URL}/reports/group/${groupId}/progress`, {
-      headers: getHeaders(true)
+      headers: getHeaders(true),
     });
     if (!res.ok) throw new Error('Failed to generate PDF');
-
     const blob = await res.blob();
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -121,5 +65,5 @@ export const reportingAPI = {
     a.click();
     window.URL.revokeObjectURL(url);
     document.body.removeChild(a);
-  }
+  },
 };

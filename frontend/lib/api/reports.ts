@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch, API_URL, getHeaders } from './client';
 
 // Export types for use in components
 export interface DashboardStats {
@@ -27,45 +27,27 @@ export interface DashboardStats {
 }
 
 export const reportsAPI = {
-  // Get teacher dashboard stats
-  getTeacherDashboard: async (params: { teacherId: string; termId?: string }) => {
-    let url = `${API_URL}/reports/dashboard/teacher?teacherId=${params.teacherId}`;
-    if (params.termId) {
-      url += `&termId=${params.termId}`;
-    }
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) {
-      if (res.status === 401) {
-        throw new Error('Session expired. Please log in again.');
-      }
-      throw new Error('Failed to fetch dashboard');
-    }
-    return res.json();
+  getTeacherDashboard: (params: { teacherId: string; termId?: string }) => {
+    let path = `/reports/dashboard/teacher?teacherId=${params.teacherId}`;
+    if (params.termId) path += `&termId=${params.termId}`;
+    return apiFetch(path);
   },
 
-  // Get attendance report
-  getAttendanceReport: async (params: { groupId?: string; termId?: string; startDate?: string; endDate?: string }) => {
+  getAttendanceReport: (params: { groupId?: string; termId?: string; startDate?: string; endDate?: string }) => {
     const searchParams = new URLSearchParams();
     if (params.groupId) searchParams.append('groupId', params.groupId);
     if (params.termId) searchParams.append('termId', params.termId);
     if (params.startDate) searchParams.append('startDate', params.startDate);
     if (params.endDate) searchParams.append('endDate', params.endDate);
-
-    const res = await fetch(`${API_URL}/reports/attendance?${searchParams.toString()}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to generate report');
-    return res.json();
+    return apiFetch(`/reports/attendance?${searchParams.toString()}`);
   },
 
-  // Generate Group Reports (PDF)
+  // Returns a PDF (Blob), so it can't use apiFetch's JSON handling.
   generateGroupReport: async (groupId: string, type: 'attendance' | 'progress' | 'performance') => {
     const res = await fetch(`${API_URL}/reports/group/${groupId}/${type}`, {
-      headers: getHeaders(true)
+      headers: getHeaders(true),
     });
     if (!res.ok) throw new Error(`Failed to generate ${type} report`);
     return res.blob();
-  }
+  },
 };

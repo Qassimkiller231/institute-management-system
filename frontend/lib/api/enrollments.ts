@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export interface Enrollment {
   id: string;
@@ -29,76 +29,26 @@ export interface UpdateEnrollmentDto {
 }
 
 export const enrollmentsAPI = {
-  // Get all enrollments with optional filters
-  getAll: async (params?: { groupId?: string; status?: string; studentId?: string }) => {
-    let url = `${API_URL}/enrollments`;
+  getAll: (params?: { groupId?: string; status?: string; studentId?: string }) => {
     const queryParams: string[] = [];
     if (params?.groupId) queryParams.push(`groupId=${params.groupId}`);
     if (params?.status) queryParams.push(`status=${params.status}`);
     if (params?.studentId) queryParams.push(`studentId=${params.studentId}`);
-    if (queryParams.length > 0) {
-      url += `?${queryParams.join('&')}`;
-    }
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch enrollments');
-    return res.json();
+    const qs = queryParams.join('&');
+    return apiFetch(`/enrollments${qs ? `?${qs}` : ''}`);
   },
 
-  // Get by student
-  getByStudent: async (studentId: string) => {
-    const res = await fetch(`${API_URL}/enrollments?studentId=${studentId}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch enrollments');
-    return res.json();
-  },
+  getByStudent: (studentId: string) =>
+    apiFetch(`/enrollments?studentId=${studentId}`),
 
-  // Get by group
-  getByGroup: async (groupId: string) => {
-    const res = await fetch(`${API_URL}/enrollments?groupId=${groupId}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch enrollments');
-    return res.json();
-  },
+  getByGroup: (groupId: string) =>
+    apiFetch(`/enrollments?groupId=${groupId}`),
 
-  // Create enrollment
-  create: async (data: CreateEnrollmentDto) => {
-    const res = await fetch(`${API_URL}/enrollments`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to create enrollment');
-    }
-    return res.json();
-  },
+  create: (data: CreateEnrollmentDto) =>
+    apiFetch('/enrollments', { method: 'POST', body: data }),
 
-  // Update enrollment
-  update: async (id: string, data: UpdateEnrollmentDto) => {
-    const res = await fetch(`${API_URL}/enrollments/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to update enrollment');
-    }
-    return res.json();
-  },
+  update: (id: string, data: UpdateEnrollmentDto) =>
+    apiFetch(`/enrollments/${id}`, { method: 'PUT', body: data }),
 
-  // Delete enrollment
-  delete: async (id: string) => {
-    const res = await fetch(`${API_URL}/enrollments/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to delete enrollment');
-    return res.json();
-  }
+  delete: (id: string) => apiFetch(`/enrollments/${id}`, { method: 'DELETE' }),
 };

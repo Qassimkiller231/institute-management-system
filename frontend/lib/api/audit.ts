@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export interface AuditLog {
     id: string;
@@ -46,8 +46,7 @@ export interface AuditStats {
 }
 
 export const auditApi = {
-    getLogs: async (params: GetAuditLogsParams): Promise<AuditLogResponse> => {
-        // Build query string
+    getLogs: (params: GetAuditLogsParams) => {
         const queryParams = new URLSearchParams();
         if (params.page) queryParams.append('page', params.page.toString());
         if (params.limit) queryParams.append('limit', params.limit.toString());
@@ -57,26 +56,8 @@ export const auditApi = {
         if (params.startDate) queryParams.append('startDate', params.startDate);
         if (params.endDate) queryParams.append('endDate', params.endDate);
 
-        const res = await fetch(`${API_URL}/audit?${queryParams.toString()}`, {
-            headers: getHeaders(true)
-        });
-
-        if (!res.ok) {
-            throw new Error(`Failed to fetch audit logs: ${res.statusText}`);
-        }
-
-        return res.json();
+        return apiFetch<AuditLogResponse>(`/audit?${queryParams.toString()}`);
     },
 
-    getStats: async (): Promise<AuditStats> => {
-        const res = await fetch(`${API_URL}/audit/stats`, {
-            headers: getHeaders(true)
-        });
-
-        if (!res.ok) {
-            throw new Error(`Failed to fetch audit stats: ${res.statusText}`);
-        }
-
-        return res.json();
-    },
+    getStats: () => apiFetch<AuditStats>('/audit/stats'),
 };

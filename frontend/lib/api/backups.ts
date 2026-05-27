@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch, API_URL, getHeaders } from './client';
 
 export interface BackupFile {
     filename: string;
@@ -12,70 +12,28 @@ export interface BackupConfig {
 }
 
 export const backupsAPI = {
-    // Get Config
-    getConfig: async () => {
-        const res = await fetch(`${API_URL}/backups/config`, {
-            headers: getHeaders(true)
-        });
-        if (!res.ok) throw new Error('Failed to fetch backup config');
-        return res.json();
-    },
+    getConfig: () => apiFetch('/backups/config'),
 
-    // Update Config
-    updateConfig: async (config: Partial<BackupConfig>) => {
-        const res = await fetch(`${API_URL}/backups/config`, {
-            method: 'PUT',
-            headers: getHeaders(true),
-            body: JSON.stringify(config)
-        });
-        if (!res.ok) throw new Error('Failed to update backup config');
-        return res.json();
-    },
+    updateConfig: (config: Partial<BackupConfig>) =>
+        apiFetch('/backups/config', { method: 'PUT', body: config }),
 
-    // List all backups
-    list: async () => {
-        const res = await fetch(`${API_URL}/backups`, {
-            headers: getHeaders(true)
-        });
-        if (!res.ok) throw new Error('Failed to fetch backups');
-        return res.json();
-    },
+    list: () => apiFetch('/backups'),
 
-    // Create manual backup
-    create: async () => {
-        const res = await fetch(`${API_URL}/backups`, {
+    create: () => apiFetch('/backups', { method: 'POST' }),
+
+    restore: (filename: string) =>
+        apiFetch(`/backups/${filename}/restore`, {
             method: 'POST',
-            headers: getHeaders(true)
-        });
-        if (!res.ok) throw new Error('Failed to create backup');
-        return res.json();
-    },
+            body: { confirmation: 'RESTORE' },
+        }),
 
-    // Restore backup
-    restore: async (filename: string) => {
-        const res = await fetch(`${API_URL}/backups/${filename}/restore`, {
-            method: 'POST',
-            headers: getHeaders(true),
-            body: JSON.stringify({ confirmation: 'RESTORE' })
-        });
-        if (!res.ok) throw new Error('Failed to restore backup');
-        return res.json();
-    },
+    delete: (filename: string) =>
+        apiFetch(`/backups/${filename}`, { method: 'DELETE' }),
 
-    // Delete backup
-    delete: async (filename: string) => {
-        const res = await fetch(`${API_URL}/backups/${filename}`, {
-            method: 'DELETE',
-            headers: getHeaders(true)
-        });
-        if (!res.ok) throw new Error('Failed to delete backup');
-        return res.json();
-    },
-
-    // Download via Blob (Secure way with Headers)
+    // Downloads a binary file (Blob), so it can't use apiFetch's JSON handling.
     download: async (filename: string) => {
         const res = await fetch(`${API_URL}/backups/${filename}/download`, {
-            headers: getHeaders(true)
+            headers: getHeaders(true),
         });
         if (!res.ok) throw new Error('Failed to download backup');
         const blob = await res.blob();
@@ -87,5 +45,5 @@ export const backupsAPI = {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-    }
+    },
 };

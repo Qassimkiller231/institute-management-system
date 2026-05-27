@@ -1,121 +1,41 @@
 // frontend/lib/api/payments.ts
-import { API_URL, getHeaders } from './client';
+import { apiFetch, API_URL, getHeaders } from './client';
 
 export const paymentsAPI = {
-  // Get all payment plans with installments
-  getAllPlans: async () => {
-    const res = await fetch(`${API_URL}/payments/plans`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch payment plans');
-    return res.json();
-  },
+  getAllPlans: () => apiFetch('/payments/plans'),
 
-  // Get all payments (history)
-  getPayments: async () => {
-    const res = await fetch(`${API_URL}/payments`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch payments');
-    return res.json();
-  },
+  getPayments: () => apiFetch('/payments'),
 
-  // Get payment plan by enrollment
+  // Maps 404 to null, so it needs the raw status code that apiFetch hides.
   getPlanByEnrollment: async (enrollmentId: string) => {
     const res = await fetch(`${API_URL}/payments/plans/enrollment/${enrollmentId}`, {
-      headers: getHeaders(true)
+      headers: getHeaders(true),
     });
-    if (res.status === 404) return null; // Return null if not found
+    if (res.status === 404) return null;
     if (!res.ok) throw new Error('Failed to fetch payment plan');
     return res.json();
   },
 
-  // Record payment for an installment
-  recordPayment: async (installmentId: string, data: any) => {
-    const res = await fetch(`${API_URL}/payments/installments/${installmentId}/pay`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) throw new Error('Failed to record payment');
-    return res.json();
-  },
+  recordPayment: (installmentId: string, data: any) =>
+    apiFetch(`/payments/installments/${installmentId}/pay`, { method: 'POST', body: data }),
 
   // CRUD for Plans
-  createPlan: async (data: any) => {
-    const res = await fetch(`${API_URL}/payments/plans`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to create payment plan');
-    }
-    return res.json();
-  },
+  createPlan: (data: any) =>
+    apiFetch('/payments/plans', { method: 'POST', body: data }),
 
-  updatePlan: async (id: string, data: any) => {
-    const res = await fetch(`${API_URL}/payments/plans/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to update payment plan');
-    }
-    return res.json();
-  },
+  updatePlan: (id: string, data: any) =>
+    apiFetch(`/payments/plans/${id}`, { method: 'PUT', body: data }),
 
-  deletePlan: async (id: string) => {
-    const res = await fetch(`${API_URL}/payments/plans/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(true)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to delete payment plan');
-    }
-    return res.json();
-  },
+  deletePlan: (id: string) =>
+    apiFetch(`/payments/plans/${id}`, { method: 'DELETE' }),
 
   // CRUD for Installments
-  addInstallment: async (planId: string, data: any) => {
-    const res = await fetch(`${API_URL}/payments/plans/${planId}/installments`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to add installment');
-    }
-    return res.json();
-  },
+  addInstallment: (planId: string, data: any) =>
+    apiFetch(`/payments/plans/${planId}/installments`, { method: 'POST', body: data }),
 
-  updateInstallment: async (id: string, data: any) => {
-    const res = await fetch(`${API_URL}/payments/installments/${id}/details`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to update installment');
-    }
-    return res.json();
-  },
+  updateInstallment: (id: string, data: any) =>
+    apiFetch(`/payments/installments/${id}/details`, { method: 'PUT', body: data }),
 
-  deleteInstallment: async (id: string) => {
-    const res = await fetch(`${API_URL}/payments/installments/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(true)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to delete installment');
-    }
-    return res.json();
-  }
+  deleteInstallment: (id: string) =>
+    apiFetch(`/payments/installments/${id}`, { method: 'DELETE' }),
 };

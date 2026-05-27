@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export interface Attendance {
   id: string;
@@ -25,119 +25,33 @@ export interface MarkAttendanceDto {
 }
 
 export const attendanceAPI = {
-  // Get all attendance records
-  getAll: async () => {
-    const res = await fetch(`${API_URL}/attendance`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch attendance');
-    return res.json();
-  },
+  getAll: () => apiFetch('/attendance'),
 
-  // Get by group
-  getByGroup: async (groupId: string) => {
-    const res = await fetch(`${API_URL}/attendance?groupId=${groupId}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch attendance');
-    return res.json();
-  },
+  getByGroup: (groupId: string) => apiFetch(`/attendance?groupId=${groupId}`),
 
-  // Get by session
-  getBySession: async (sessionId: string) => {
-    const res = await fetch(`${API_URL}/attendance/session/${sessionId}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch attendance');
-    return res.json();
-  },
+  getBySession: (sessionId: string) => apiFetch(`/attendance/session/${sessionId}`),
 
-  // Get by student
-  getByStudent: async (studentId: string) => {
-    const res = await fetch(`${API_URL}/attendance/student/${studentId}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch attendance');
-    return res.json();
-  },
+  getByStudent: (studentId: string) => apiFetch(`/attendance/student/${studentId}`),
 
-  // Get student attendance stats
-  getStudentStats: async (studentId: string) => {
-    const res = await fetch(`${API_URL}/attendance/student/${studentId}/stats`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch attendance stats');
-    return res.json();
-  },
+  getStudentStats: (studentId: string) =>
+    apiFetch(`/attendance/student/${studentId}/stats`),
 
-  // Mark attendance
-  mark: async (data: MarkAttendanceDto) => {
-    const res = await fetch(`${API_URL}/attendance`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to mark attendance');
-    }
-    return res.json();
-  },
+  mark: (data: MarkAttendanceDto) =>
+    apiFetch('/attendance', { method: 'POST', body: data }),
 
-  // Bulk mark attendance
-  markBulk: async (data: { classSessionId: string; records: Array<{ studentId: string; status: string; notes?: string }>; teacherId: string }) => {
-    const res = await fetch(`${API_URL}/attendance/bulk`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to mark bulk attendance');
-    }
-    return res.json();
-  },
+  markBulk: (data: {
+    classSessionId: string;
+    records: Array<{ studentId: string; status: string; notes?: string }>;
+    teacherId: string;
+  }) => apiFetch('/attendance/bulk', { method: 'POST', body: data }),
 
-  // Update attendance
-  update: async (id: string, data: Partial<MarkAttendanceDto>) => {
-    const res = await fetch(`${API_URL}/attendance/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to update attendance');
-    }
-    return res.json();
-  },
+  update: (id: string, data: Partial<MarkAttendanceDto>) =>
+    apiFetch(`/attendance/${id}`, { method: 'PUT', body: data }),
 
-  // Delete attendance
-  delete: async (id: string) => {
-    const res = await fetch(`${API_URL}/attendance/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to delete attendance');
-    return res.json();
-  },
+  delete: (id: string) => apiFetch(`/attendance/${id}`, { method: 'DELETE' }),
 
-  // Bulk upload attendance CSV
-  uploadBulk: async (formData: FormData) => {
-    const headers = getHeaders(true);
-    // Remove Content-Type to let browser set it with boundary for FormData
-    delete headers['Content-Type'];
-
-    const res = await fetch(`${API_URL}/attendance/bulk-upload`, {
-      method: 'POST',
-      headers,
-      body: formData
-    });
-
-    if (!res.ok && res.status !== 207) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to upload attendance');
-    }
-    return res.json();
-  }
+  // CSV upload: apiFetch detects FormData and omits the JSON Content-Type so
+  // the browser sets the multipart boundary. (207 Multi-Status counts as ok.)
+  uploadBulk: (formData: FormData) =>
+    apiFetch('/attendance/bulk-upload', { method: 'POST', body: formData }),
 };

@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export interface FAQ {
     id: string;
@@ -34,60 +34,36 @@ export interface UpdateFAQDto {
 }
 
 export const faqsAPI = {
-    /**
-     * Get all FAQs
-     */
-    getAll: async (isActive?: boolean): Promise<{ success: boolean; data: FAQ[] }> => {
+    getAll: (isActive?: boolean) => {
         const params = new URLSearchParams();
         if (isActive !== undefined) params.append('isActive', String(isActive));
-
-        const url = `${API_URL}/faqs${params.toString() ? `?${params}` : ''}`;
-        const response = await fetch(url, { headers: getHeaders(true) });
-        return response.json();
+        const qs = params.toString();
+        return apiFetch<{ success: boolean; data: FAQ[] }>(
+            `/faqs${qs ? `?${qs}` : ''}`,
+            { throwOnError: false }
+        );
     },
 
-    /**
-     * Get FAQ by ID
-     */
-    getById: async (id: string): Promise<{ success: boolean; data: FAQ }> => {
-        const response = await fetch(`${API_URL}/faqs/${id}`, {
-            headers: getHeaders(true)
-        });
-        return response.json();
-    },
+    getById: (id: string) =>
+        apiFetch<{ success: boolean; data: FAQ }>(`/faqs/${id}`, { throwOnError: false }),
 
-    /**
-     * Create FAQ
-     */
-    create: async (data: CreateFAQDto): Promise<{ success: boolean; data: FAQ }> => {
-        const response = await fetch(`${API_URL}/faqs`, {
+    create: (data: CreateFAQDto) =>
+        apiFetch<{ success: boolean; data: FAQ }>('/faqs', {
             method: 'POST',
-            headers: getHeaders(true),
-            body: JSON.stringify(data)
-        });
-        return response.json();
-    },
+            body: data,
+            throwOnError: false,
+        }),
 
-    /**
-     * Update FAQ
-     */
-    update: async (id: string, data: UpdateFAQDto): Promise<{ success: boolean; data: FAQ }> => {
-        const response = await fetch(`${API_URL}/faqs/${id}`, {
+    update: (id: string, data: UpdateFAQDto) =>
+        apiFetch<{ success: boolean; data: FAQ }>(`/faqs/${id}`, {
             method: 'PUT',
-            headers: getHeaders(true),
-            body: JSON.stringify(data)
-        });
-        return response.json();
-    },
+            body: data,
+            throwOnError: false,
+        }),
 
-    /**
-     * Delete FAQ
-     */
-    delete: async (id: string): Promise<{ success: boolean; message: string }> => {
-        const response = await fetch(`${API_URL}/faqs/${id}`, {
+    delete: (id: string) =>
+        apiFetch<{ success: boolean; message: string }>(`/faqs/${id}`, {
             method: 'DELETE',
-            headers: getHeaders(true)
-        });
-        return response.json();
-    }
+            throwOnError: false,
+        }),
 };

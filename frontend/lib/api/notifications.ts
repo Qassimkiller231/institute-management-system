@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export interface Notification {
     id: string;
@@ -11,29 +11,12 @@ export interface Notification {
 }
 
 export const notificationAPI = {
-    getMyNotifications: async (limit = 50) => {
-        const res = await fetch(`${API_URL}/notifications?limit=${limit}`, {
-            headers: getHeaders(true)
-        });
-        if (!res.ok) throw new Error('Failed to fetch notifications');
-        return res.json();
-    },
+    getMyNotifications: (limit = 50) =>
+        apiFetch(`/notifications?limit=${limit}`),
 
-    markAsRead: async (id: string) => {
-        const res = await fetch(`${API_URL}/notifications/${id}/read`, {
-            method: 'PUT',
-            headers: getHeaders(true)
-        });
-        if (!res.ok) throw new Error('Failed to mark notification as read');
-        return res.json();
-    },
+    markAsRead: (id: string) =>
+        apiFetch(`/notifications/${id}/read`, { method: 'PUT' }),
 
-    markAllAsRead: async () => {
-        const res = await fetch(`${API_URL}/notifications/read-all`, {
-            method: 'PUT',
-            headers: getHeaders(true)
-        });
-        if (!res.ok) throw new Error('Failed to mark all notifications as read');
-        return res.json();
-    }
+    markAllAsRead: () =>
+        apiFetch('/notifications/read-all', { method: 'PUT' }),
 };

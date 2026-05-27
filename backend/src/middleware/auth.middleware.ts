@@ -54,7 +54,18 @@ export const authenticate = async (
       });
     }
 
-    // Attach user to request
+    // If the token's role no longer matches the DB (e.g. an admin changed it),
+    // force re-login so the frontend and backend never authorize on different
+    // roles. The frontend turns this 401 into a redirect to /session-expired.
+    if (decoded.role !== user.role) {
+      return res.status(401).json({
+        success: false,
+        message: 'Your session is out of date. Please log in again.',
+        code: 'ROLE_CHANGED',
+      });
+    }
+
+    // Attach user to request.
     req.user = decoded;
 
     next();

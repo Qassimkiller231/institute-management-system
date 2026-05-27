@@ -1,25 +1,11 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export const testSessionAPI = {
-  getAll: async () => {
-    const res = await fetch(`${API_URL}/test-sessions`, {
-      headers: getHeaders(true)
-    });
-    return res.json();
-  },
+  getAll: () => apiFetch('/test-sessions', { throwOnError: false }),
 
-  getByStudent: async (studentId: string) => {
-    const res = await fetch(`${API_URL}/test-sessions?studentId=${studentId}`, {
-      headers: getHeaders(true)
-    });
-    return res.json();
-  },
+  getByStudent: (studentId: string) =>
+    apiFetch(`/test-sessions?studentId=${studentId}`, { throwOnError: false }),
 
-  getById: async (sessionId: string) => {
-    const res = await fetch(`${API_URL}/test-sessions/${sessionId}`, {
-      headers: getHeaders(true)
-    });
-    return res.json();
-  }
-
+  getById: (sessionId: string) =>
+    apiFetch(`/test-sessions/${sessionId}`, { throwOnError: false }),
 };

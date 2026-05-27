@@ -58,7 +58,7 @@ app.use(
 );
 
 // Cap request body size to mitigate DoS via huge payloads.
-app.use(express.json({ limit: '1mb' }));
+app.use(express.json({ limit: '100kb' }));
 
 // Global rate limit (defense-in-depth against abuse/DoS).
 const globalLimiter = rateLimit({
@@ -88,7 +88,9 @@ app.get('/api/health', (req, res) => {
 });
 
 // Routes
+// only route that has auth limiter
 app.use('/api/auth', authLimiter, authRoutes);
+
 app.use('/api/users', userRoutes);
 app.use('/api/programs', programRoutes);
 app.use('/api/groups', groupRoutes);

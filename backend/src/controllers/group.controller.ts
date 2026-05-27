@@ -1,7 +1,7 @@
 // src/controllers/group.controller.ts
 import { Request, Response } from 'express';
 import * as groupService from '../services/group.service';
-import { checkScheduleConflicts as checkConflicts } from '../utils/schedule';
+import { checkScheduleConflicts as checkConflicts } from '../services/schedule.service';
 
 // ==================== GROUPS ====================
 

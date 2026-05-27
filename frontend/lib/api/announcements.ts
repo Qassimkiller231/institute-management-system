@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export interface Announcement {
   id: string;
@@ -40,72 +40,23 @@ export interface UpdateAnnouncementDto {
 }
 
 export const announcementsAPI = {
-  // Get all announcements
-  getAll: async (filters?: { 
-    teacherId?: string; 
-    groupId?: string;
-    isPublished?: boolean;
-  }) => {
-    let url = `${API_URL}/announcements`;
+  getAll: (filters?: { teacherId?: string; groupId?: string; isPublished?: boolean }) => {
     const params = new URLSearchParams();
-    
     if (filters?.teacherId) params.append('teacherId', filters.teacherId);
     if (filters?.groupId) params.append('groupId', filters.groupId);
     if (filters?.isPublished !== undefined) params.append('isPublished', String(filters.isPublished));
-    
-    if (params.toString()) url += `?${params.toString()}`;
-    
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch announcements');
-    return res.json();
+    const qs = params.toString();
+    return apiFetch(`/announcements${qs ? `?${qs}` : ''}`);
   },
 
-  // Get announcements by program
-  getByProgram: async (programId: string) => {
-    const res = await fetch(`${API_URL}/announcements?programId=${programId}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch announcements');
-    return res.json();
-  },
+  getByProgram: (programId: string) =>
+    apiFetch(`/announcements?programId=${programId}`),
 
-  // Create new announcement
-  create: async (data: CreateAnnouncementDto) => {
-    const res = await fetch(`${API_URL}/announcements`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to create announcement');
-    }
-    return res.json();
-  },
+  create: (data: CreateAnnouncementDto) =>
+    apiFetch('/announcements', { method: 'POST', body: data }),
 
-  // Update announcement
-  update: async (id: string, data: UpdateAnnouncementDto) => {
-    const res = await fetch(`${API_URL}/announcements/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to update announcement');
-    }
-    return res.json();
-  },
+  update: (id: string, data: UpdateAnnouncementDto) =>
+    apiFetch(`/announcements/${id}`, { method: 'PUT', body: data }),
 
-  // Delete announcement
-  delete: async (id: string) => {
-    const res = await fetch(`${API_URL}/announcements/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to delete announcement');
-    return res.json();
-  }
+  delete: (id: string) => apiFetch(`/announcements/${id}`, { method: 'DELETE' }),
 };

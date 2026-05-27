@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export interface Session {
   id: string;
@@ -27,78 +27,25 @@ export interface CreateSessionDto {
 }
 
 export const sessionsAPI = {
-  // Get all sessions with optional filters
-  getAll: async (params?: { groupId?: string; status?: string }) => {
-    let url = `${API_URL}/sessions`;
+  getAll: (params?: { groupId?: string; status?: string }) => {
     const queryParams: string[] = [];
     if (params?.groupId) queryParams.push(`groupId=${params.groupId}`);
     if (params?.status) queryParams.push(`status=${params.status}`);
-    if (queryParams.length > 0) {
-      url += `?${queryParams.join('&')}`;
-    }
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch sessions');
-    return res.json();
+    const qs = queryParams.join('&');
+    return apiFetch(`/sessions${qs ? `?${qs}` : ''}`);
   },
 
-  // Get sessions by teacher
-  getByTeacher: async (teacherId: string) => {
-    const res = await fetch(`${API_URL}/sessions?teacherId=${teacherId}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch sessions');
-    return res.json();
-  },
+  getByTeacher: (teacherId: string) =>
+    apiFetch(`/sessions?teacherId=${teacherId}`),
 
-  // Get sessions by student
-  getByStudent: async (studentId: string) => {
-    const res = await fetch(`${API_URL}/sessions?studentId=${studentId}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch sessions');
-    return res.json();
-  },
+  getByStudent: (studentId: string) =>
+    apiFetch(`/sessions?studentId=${studentId}`),
 
-  // Create a new session
-  create: async (data: CreateSessionDto) => {
-    const res = await fetch(`${API_URL}/sessions`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to create session');
-    }
-    return res.json();
-  },
+  create: (data: CreateSessionDto) =>
+    apiFetch('/sessions', { method: 'POST', body: data }),
 
-  // Update a session
-  update: async (id: string, data: Partial<CreateSessionDto>) => {
-    const res = await fetch(`${API_URL}/sessions/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to update session');
-    }
-    return res.json();
-  },
+  update: (id: string, data: Partial<CreateSessionDto>) =>
+    apiFetch(`/sessions/${id}`, { method: 'PUT', body: data }),
 
-  // Delete a session
-  delete: async (id: string) => {
-    const res = await fetch(`${API_URL}/sessions/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(true)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to delete session');
-    }
-    return res.json();
-  }
+  delete: (id: string) => apiFetch(`/sessions/${id}`, { method: 'DELETE' }),
 };

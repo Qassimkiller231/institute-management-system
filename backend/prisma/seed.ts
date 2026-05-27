@@ -8,11 +8,10 @@ import { hash } from 'bcryptjs';
 const prisma = new PrismaClient();
 
 // ============================================
-// DATA POOLS (NO ROYAL NAMES)
+// DATA POOLS 
 // ============================================
 const FIRST_NAMES_MALE = ['Mohammed', 'Ali', 'Ahmed', 'Yusuf', 'Omar', 'Abdullah', 'Khalid', 'Hassan', 'Hussain', 'Salman', 'Hamad', 'Ebrahim', 'Jassim', 'Mahmood', 'Zaid', 'Isa', 'Musa', 'Bilal'];
 const FIRST_NAMES_FEMALE = ['Fatima', 'Zainab', 'Mariam', 'Noor', 'Dana', 'Layla', 'Sara', 'Aysha', 'Khawla', 'Reem', 'Huda', 'Amal', 'Mona', 'Lulwa', 'Latifa', 'Zahra', 'Yasmin'];
-// Removed Al-Khalifa, Al-Sabah etc.
 const LAST_NAMES = ['Al-Alawi', 'Husain', 'Ali', 'Mohammed', 'Al-Zayani', 'Fakhro', 'Kanoo', 'Al-Musawi', 'Radhi', 'Al-Jalahma', 'Nasser', 'Kamal', 'Sharif', 'Abdulla', 'Showaiter', 'Al-Haddad', 'Al-Najjar', 'Haji'];
 
 const CITIES = ['Manama', 'Riffa', 'Muharraq', 'Aali', 'Isa Town', 'Hamad Town', 'Budaiya', 'Hidd', 'Saar', 'Juffair'];

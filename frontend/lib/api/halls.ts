@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export interface Hall {
   id: string;
@@ -26,77 +26,24 @@ export interface UpdateHallDto {
 }
 
 export const hallsAPI = {
-  // Get all halls
-  getAll: async (venueId?: string, isActive?: boolean) => {
+  getAll: (venueId?: string, isActive?: boolean) => {
     const params = new URLSearchParams();
     if (venueId) params.append('venueId', venueId);
     if (isActive !== undefined) params.append('isActive', String(isActive));
-
     const queryString = params.toString();
-    const url = `${API_URL}/halls${queryString ? `?${queryString}` : ''}`;
-
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch halls');
-    return res.json();
+    return apiFetch(`/halls${queryString ? `?${queryString}` : ''}`);
   },
 
-  // Get by ID
-  getById: async (id: string) => {
-    const res = await fetch(`${API_URL}/halls/${id}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch hall');
-    return res.json();
-  },
+  getById: (id: string) => apiFetch(`/halls/${id}`),
 
-  // Create hall
-  create: async (data: CreateHallDto) => {
-    const res = await fetch(`${API_URL}/halls`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to create hall');
-    }
-    return res.json();
-  },
+  create: (data: CreateHallDto) =>
+    apiFetch('/halls', { method: 'POST', body: data }),
 
-  // Update hall
-  update: async (id: string, data: UpdateHallDto) => {
-    const res = await fetch(`${API_URL}/halls/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to update hall');
-    }
-    return res.json();
-  },
+  update: (id: string, data: UpdateHallDto) =>
+    apiFetch(`/halls/${id}`, { method: 'PUT', body: data }),
 
-  // Delete hall
-  delete: async (id: string) => {
-    const res = await fetch(`${API_URL}/halls/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to delete hall');
-    return res.json();
-  },
+  delete: (id: string) => apiFetch(`/halls/${id}`, { method: 'DELETE' }),
 
-  // Reactivate hall
-  reactivate: async (id: string) => {
-    const res = await fetch(`${API_URL}/halls/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify({ isActive: true })
-    });
-    if (!res.ok) throw new Error('Failed to reactivate hall');
-    return res.json();
-  }
+  reactivate: (id: string) =>
+    apiFetch(`/halls/${id}`, { method: 'PUT', body: { isActive: true } }),
 };

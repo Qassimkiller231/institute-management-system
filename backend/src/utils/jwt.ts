@@ -8,11 +8,11 @@ const JWT_EXPIRES_IN = env.JWT_EXPIRES_IN;
 
 export interface JwtPayload {
   userId: string;
-  email: string;
+  // role is included for the frontend's client-side routing, but the backend
+  // authorizes using the *current* DB role (see auth.middleware), not this copy.
   role: string;
-  studentId?: string | null;  // ✅ Add these
-  teacherId?: string | null;  // ✅
-  parentId?: string | null;   // ✅
+  studentId?: string | null;  // used by ownership/IDOR checks
+  parentId?: string | null;   // used by ownership/IDOR checks
 }
 
 /**

@@ -30,6 +30,9 @@ export interface AuthResponse {
       email: string;
       phone: string | null;
       role: string;
+      studentId?: string | null;
+      teacherId?: string | null;
+      parentId?: string | null;
     };
   };
 }

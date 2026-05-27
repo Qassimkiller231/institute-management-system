@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export interface Teacher {
   id: string;
@@ -26,68 +26,20 @@ export interface UpdateTeacherDto {
 }
 
 export const teachersAPI = {
-  // Get all teachers
-  getAll: async (params?: { isActive?: boolean }) => {
+  getAll: (params?: { isActive?: boolean }) => {
     const searchParams = new URLSearchParams();
-    if (params?.isActive !== undefined) {
-      searchParams.append('isActive', String(params.isActive));
-    }
-
-    const url = searchParams.toString() 
-      ? `${API_URL}/teachers?${searchParams.toString()}`
-      : `${API_URL}/teachers`;
-
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch teachers');
-    return res.json();
+    if (params?.isActive !== undefined) searchParams.append('isActive', String(params.isActive));
+    const qs = searchParams.toString();
+    return apiFetch(`/teachers${qs ? `?${qs}` : ''}`);
   },
 
-  // Get by ID
-  getById: async (id: string) => {
-    const res = await fetch(`${API_URL}/teachers/${id}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch teacher');
-    return res.json();
-  },
+  getById: (id: string) => apiFetch(`/teachers/${id}`),
 
-  // Create teacher
-  create: async (data: CreateTeacherDto) => {
-    const res = await fetch(`${API_URL}/teachers`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to create teacher');
-    }
-    return res.json();
-  },
+  create: (data: CreateTeacherDto) =>
+    apiFetch('/teachers', { method: 'POST', body: data }),
 
-  // Update teacher
-  update: async (id: string, data: UpdateTeacherDto) => {
-    const res = await fetch(`${API_URL}/teachers/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to update teacher');
-    }
-    return res.json();
-  },
+  update: (id: string, data: UpdateTeacherDto) =>
+    apiFetch(`/teachers/${id}`, { method: 'PUT', body: data }),
 
-  // Delete teacher
-  delete: async (id: string) => {
-    const res = await fetch(`${API_URL}/teachers/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to delete teacher');
-    return res.json();
-  }
+  delete: (id: string) => apiFetch(`/teachers/${id}`, { method: 'DELETE' }),
 };

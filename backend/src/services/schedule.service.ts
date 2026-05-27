@@ -1,7 +1,5 @@
-
 // ==================== SCHEDULE MANAGEMENT ====================
-import { Prisma } from '@prisma/client';
-import prisma from './db';
+import prisma from '../utils/db';
 
 export const checkScheduleConflicts = async (
   venueId: string,
@@ -109,21 +107,12 @@ export const checkTeacherConflicts = async (
     const incomingStart = new Date(`1970-01-01T${startTime}`).toISOString().split('T')[1].substring(0, 8);
     const incomingEnd = new Date(`1970-01-01T${endTime}`).toISOString().split('T')[1].substring(0, 8);
 
-    console.log('🔍 Checking conflict:');
-    console.log('  Incoming (original):', { startTime, endTime });
-    console.log('  Incoming (UTC):', { incomingStart, incomingEnd });
-    console.log('  Existing (UTC):', { sessionStart, sessionEnd });
-
     // Check if times overlap (same logic as venue conflicts)
-    const hasConflict = (
+    return (
       (incomingStart >= sessionStart && incomingStart < sessionEnd) ||
       (incomingEnd > sessionStart && incomingEnd <= sessionEnd) ||
       (incomingStart <= sessionStart && incomingEnd >= sessionEnd)
     );
-
-    console.log('  Overlap:', hasConflict);
-
-    return hasConflict;
   });
 
   return {

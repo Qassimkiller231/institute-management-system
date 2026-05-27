@@ -18,6 +18,18 @@ if (accountSid && authToken && accountSid.startsWith('AC')) {
 
 const TWILIO_PHONE_NUMBER = process.env.TWILIO_PHONE_NUMBER!;
 
+// Test mode: when enabled, all SMS are redirected to NOTIFICATION_TEST_PHONE
+// instead of the real recipient. Disable in production to text real users.
+const TEST_MODE = process.env.NOTIFICATION_TEST_MODE === 'true';
+const TEST_PHONE = process.env.NOTIFICATION_TEST_PHONE;
+
+// Format a number for Twilio (E.164). Bahrain (+973) is the default country.
+const formatForTwilio = (phone: string): string => {
+  if (phone.startsWith('+')) return phone;
+  if (phone.startsWith('973')) return `+${phone}`;
+  return `+973${phone}`;
+};
+
 /**
  * Send SMS to a single recipient
  */
@@ -28,21 +40,19 @@ export const sendSMS = async (data: {
   type?: string;
 }) => {
   try {
-    // SAFE MODE: Redirect all SMS
     const originalTo = data.to;
-    let phoneToUse = '35140480';
+    let recipient = data.to;
 
-    // Prepend original recipient to message
-    data.message = `[To: ${originalTo}] ${data.message}`;
+    // In test mode, redirect all SMS to the configured test number.
+    if (TEST_MODE && TEST_PHONE) {
+      recipient = TEST_PHONE;
+      data.message = `[To: ${originalTo}] ${data.message}`;
+      console.log(`⚠️ [TEST MODE] Redirecting SMS from ${originalTo} to ${recipient}`);
+    }
 
-    console.log(`⚠️ Redirecting SMS from ${originalTo} to ${phoneToUse}`);
+    // Twilio requires E.164 international format.
+    const formattedPhone = formatForTwilio(recipient);
 
-    // Twilio REQUIRES international format: +[country code][number]
-    // If phone doesn't start with +, add +973 (Bahrain)
-    const formattedPhone = phoneToUse.startsWith('+') ? phoneToUse : `+973${phoneToUse}`;
-
-    console.log(`📱 Original: ${data.to}`);
-    console.log(`📱 Final (for Twilio): ${formattedPhone}`);
     console.log(`📱 Twilio client: ${!!twilioClient ? 'YES' : 'NO'}`);
 
     // Send SMS via Twilio

@@ -3,6 +3,7 @@ import prisma from "../utils/db";
 import { generateToken } from "../utils/jwt";
 import { env } from "../config/env";
 import { normalizePhoneNumber, validatePhoneNumber } from "../utils/phone.utils";
+import { AuthResponse } from "../types/auth.types";
 import * as otpService from "./otp.service";
 import auditService from "./audit.service";
 
@@ -16,7 +17,7 @@ const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 const issueSession = async (
   user: { id: string; email: string; phone: string | null; role: string },
   method: "EMAIL" | "SMS" | "GOOGLE"
-) => {
+): Promise<AuthResponse> => {
   await prisma.user.update({
     where: { id: user.id },
     data: { lastLogin: new Date() },
@@ -47,12 +48,12 @@ const issueSession = async (
     parentId = parent?.id || null;
   }
 
+  // Note: email/teacherId are intentionally NOT in the token (unused + email is
+  // PII in a readable payload). They still go in the response for the frontend.
   const token = generateToken({
     userId: user.id,
-    email: user.email,
     role: user.role,
     studentId,
-    teacherId,
     parentId,
   });
 

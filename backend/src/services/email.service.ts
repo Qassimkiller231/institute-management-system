@@ -1,11 +1,7 @@
 // src/services/email.service.ts
 import prisma from '../utils/db';
-import { SNSClient, PublishCommand } from '@aws-sdk/client-sns';
 
 const nodemailer = require('nodemailer');
-
-// Email provider configuration
-const USE_SNS = process.env.USE_SNS === 'true';
 
 // SMTP transporter
 const transporter = nodemailer.createTransport({
@@ -18,41 +14,12 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// SNS client
-const snsClient = new SNSClient({
-  region: process.env.AWS_SNS_REGION || 'us-east-1',
-  credentials: process.env.AWS_ACCESS_KEY_ID && process.env.AWS_SECRET_ACCESS_KEY ? {
-    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
-    sessionToken: process.env.AWS_SESSION_TOKEN,
-  } : undefined,
-});
-
 const FROM_EMAIL = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@institute.com';
-const SNS_TOPIC_ARN = process.env.AWS_SNS_TOPIC_ARN;
 
-// Send via SNS
-const sendViaSNS = async (data: {
-  to: string;
-  subject: string;
-  htmlBody: string;
-  textBody?: string;
-}) => {
-  if (!SNS_TOPIC_ARN) {
-    throw new Error('AWS_SNS_TOPIC_ARN not configured');
-  }
-
-  const message = data.textBody || data.htmlBody.replace(/<[^>]*>/g, '');
-
-  const command = new PublishCommand({
-    TopicArn: SNS_TOPIC_ARN,
-    Subject: data.subject,
-    Message: message,
-  });
-
-  const result = await snsClient.send(command);
-  return { success: true, messageId: result.MessageId };
-};
+// Test mode: when enabled, all emails are redirected to NOTIFICATION_TEST_EMAIL
+// instead of the real recipient. Disable in production to email real users.
+const TEST_MODE = process.env.NOTIFICATION_TEST_MODE === 'true';
+const TEST_EMAIL = process.env.NOTIFICATION_TEST_EMAIL;
 
 // Send via SMTP
 const sendViaSMTP = async (data: {
@@ -79,54 +46,29 @@ export const sendEmail = async (data: {
   htmlBody: string;
   textBody?: string;
 }) => {
-  // SAFE MODE: Redirect all emails
-  const originalTo = data.to;
-  data.to = 'qassimahmed231@gmail.com';
+  // In test mode, redirect all emails to the configured test inbox.
+  if (TEST_MODE && TEST_EMAIL) {
+    const originalTo = data.to;
+    data.to = TEST_EMAIL;
 
-  if (data.htmlBody) {
-    data.htmlBody += `<br><br><hr><p style="color: red; font-weight: bold;">[TEST MODE] Original Recipient: ${originalTo}</p>`;
-  }
-  if (data.textBody) {
-    data.textBody += `\n\n[TEST MODE] Original Recipient: ${originalTo}`;
-  }
+    if (data.htmlBody) {
+      data.htmlBody += `<br><br><hr><p style="color: red; font-weight: bold;">[TEST MODE] Original Recipient: ${originalTo}</p>`;
+    }
+    if (data.textBody) {
+      data.textBody += `\n\n[TEST MODE] Original Recipient: ${originalTo}`;
+    }
 
-  console.log(`⚠️ Redirecting email from ${originalTo} to ${data.to}`);
+    console.log(`⚠️ [TEST MODE] Redirecting email from ${originalTo} to ${data.to}`);
+  }
 
   try {
-    if (USE_SNS) {
-      console.log('📧 Sending via SNS...');
-      const result = await sendViaSNS(data);
-      console.log('✅ SNS sent:', result.messageId);
-      return result;
-    } else {
-      console.log('📧 Sending via SMTP...');
-      const result = await sendViaSMTP(data);
-      console.log('✅ SMTP sent:', result.messageId);
-      return result;
-    }
+    console.log('📧 Sending via SMTP...');
+    const result = await sendViaSMTP(data);
+    console.log('✅ SMTP sent:', result.messageId);
+    return result;
   } catch (error: any) {
-    console.error(`❌ ${USE_SNS ? 'SNS' : 'SMTP'} failed:`, error.message);
-
-    // Try fallback
-    if (USE_SNS) {
-      console.log('🔄 Falling back to SMTP...');
-      try {
-        const result = await sendViaSMTP(data);
-        console.log('✅ SMTP fallback succeeded:', result.messageId);
-        return result;
-      } catch (smtpError: any) {
-        throw new Error(`Both SNS and SMTP failed. SNS: ${error.message}, SMTP: ${smtpError.message}`);
-      }
-    } else {
-      console.log('🔄 Falling back to SNS...');
-      try {
-        const result = await sendViaSNS(data);
-        console.log('✅ SNS fallback succeeded:', result.messageId);
-        return result;
-      } catch (snsError: any) {
-        throw new Error(`Both SMTP and SNS failed. SMTP: ${error.message}, SNS: ${snsError.message}`);
-      }
-    }
+    console.error('❌ SMTP failed:', error.message);
+    throw new Error(`Failed to send email: ${error.message}`);
   }
 };
 
@@ -612,13 +554,8 @@ export const sendBulkEmails = async (
 
 export const verifyEmailConfiguration = async () => {
   try {
-    if (USE_SNS) {
-      // Can't easily verify SNS without sending
-      return { success: true, message: 'SNS configured (Topic ARN set)' };
-    } else {
-      await transporter.verify();
-      return { success: true, message: 'SMTP configured correctly' };
-    }
+    await transporter.verify();
+    return { success: true, message: 'SMTP configured correctly' };
   } catch (error: any) {
     return { success: false, message: error.message };
   }

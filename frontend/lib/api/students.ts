@@ -1,4 +1,4 @@
-import { API_URL, getHeaders } from './client';
+import { apiFetch } from './client';
 
 export interface Student {
   id: string;
@@ -50,14 +50,13 @@ export interface UpdateStudentDto {
 }
 
 export const studentsAPI = {
-  // Get all students (admin) or by teacher (teacher)
-  getAll: async (filters: {
+  getAll: (filters: {
     teacherId?: string;
     levelId?: string;
     venueId?: string;
     isActive?: boolean;
-    limit?: number; // Added limit for consistency with usage
-    needsSpeakingTest?: boolean; // Added for speaking tests usage
+    limit?: number;
+    needsSpeakingTest?: boolean;
   } = {}) => {
     const params = new URLSearchParams();
     if (filters.teacherId) params.append('teacherId', filters.teacherId);
@@ -66,86 +65,28 @@ export const studentsAPI = {
     if (filters.isActive !== undefined) params.append('isActive', String(filters.isActive));
     if (filters.limit) params.append('limit', String(filters.limit));
     if (filters.needsSpeakingTest) params.append('needsSpeakingTest', String(filters.needsSpeakingTest));
-
-    const queryString = params.toString();
-    const url = queryString
-      ? `${API_URL}/students?${queryString}`
-      : `${API_URL}/students`;
-
-    const res = await fetch(url, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch students');
-    return res.json();
+    const qs = params.toString();
+    return apiFetch(`/students${qs ? `?${qs}` : ''}`);
   },
 
-  // Get by teacher
-  getByTeacher: async (teacherId: string) => {
-    const res = await fetch(`${API_URL}/students?teacherId=${teacherId}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch students');
-    return res.json();
-  },
+  getByTeacher: (teacherId: string) =>
+    apiFetch(`/students?teacherId=${teacherId}`),
 
-  // Get by ID
-  getById: async (id: string) => {
-    const res = await fetch(`${API_URL}/students/${id}`, {
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to fetch student');
-    return res.json();
-  },
+  getById: (id: string) => apiFetch(`/students/${id}`),
 
-  // Create student (from old studentAPI)
-  create: async (data: CreateStudentDto) => {
-    const res = await fetch(`${API_URL}/students`, {
-      method: 'POST',
-      headers: getHeaders(false), // No auth for registration
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to create student');
-    }
-    return res.json();
-  },
+  // No auth — used during public registration.
+  create: (data: CreateStudentDto) =>
+    apiFetch('/students', { method: 'POST', body: data, auth: false }),
 
-  // Update student
-  update: async (id: string, data: UpdateStudentDto) => {
-    const res = await fetch(`${API_URL}/students/${id}`, {
-      method: 'PUT',
-      headers: getHeaders(true),
-      body: JSON.stringify(data)
-    });
-    if (!res.ok) {
-      const error = await res.json();
-      throw new Error(error.message || 'Failed to update student');
-    }
-    return res.json();
-  },
+  update: (id: string, data: UpdateStudentDto) =>
+    apiFetch(`/students/${id}`, { method: 'PUT', body: data }),
 
-  // Delete student
-  delete: async (id: string) => {
-    const res = await fetch(`${API_URL}/students/${id}`, {
-      method: 'DELETE',
-      headers: getHeaders(true)
-    });
-    if (!res.ok) throw new Error('Failed to delete student');
-    return res.json();
-  },
+  delete: (id: string) => apiFetch(`/students/${id}`, { method: 'DELETE' }),
 
-  // Upload profile picture
-  uploadProfilePicture: async (id: string, formData: FormData) => {
-    const res = await fetch(`${API_URL}/students/${id}/profile-picture`, {
-      method: 'POST',
-      headers: getHeaders(true),
-      body: formData
-    });
-    // Note: When sending FormData, do NOT set Content-Type header manually, let the browser set it with boundary
-    if (!res.ok) throw new Error('Failed to upload profile picture');
-    return res.json();
-  }
+  // FormData upload: apiFetch omits the JSON Content-Type so the browser sets
+  // the multipart boundary itself.
+  uploadProfilePicture: (id: string, formData: FormData) =>
+    apiFetch(`/students/${id}/profile-picture`, { method: 'POST', body: formData }),
 };
 
 // For backward compatibility with old code using studentAPI
