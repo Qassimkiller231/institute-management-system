@@ -13,16 +13,24 @@ export const authenticate = async (
   next: NextFunction
 ) => {
   try {
-    // Get token from Authorization header
+    // Read the JWT from the httpOnly cookie first; fall back to the
+    // Authorization header so non-browser callers (cURL, Postman, scripts)
+    // can still authenticate with `Bearer <token>`.
+    const cookieToken: string | undefined = req.cookies?.authToken;
     const authHeader = req.headers.authorization;
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    const headerToken =
+      authHeader && authHeader.startsWith('Bearer ')
+        ? authHeader.slice('Bearer '.length)
+        : undefined;
+
+    const token = cookieToken || headerToken;
+
+    if (!token) {
       return res.status(401).json({
         success: false,
         message: 'No token provided',
       });
     }
-
-    const token = authHeader.replace('Bearer ', '');
 
     // Verify token signature/expiry
     const decoded = verifyToken(token);

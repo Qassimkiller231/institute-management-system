@@ -3,7 +3,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getToken, getTeacherId } from '@/lib/authStorage';
+import { getTeacherId } from '@/lib/authStorage';
+import { groupsAPI } from '@/lib/api';
 
 interface Group {
   id: string;
@@ -27,14 +28,10 @@ export default function GroupSelector({ onSelect, selectedGroupId }: GroupSelect
   const fetchGroups = async () => {
     try {
       const teacherId = getTeacherId();
-      const res = await fetch(
-        `http://localhost:3001/api/groups?teacherId=${teacherId}`,
-        { headers: { 'Authorization': `Bearer ${getToken()}` } }
-      );
-      const data = await res.json();
-      setGroups(data.data || []);
+      const data: any = await groupsAPI.getAll({ teacherId: teacherId || undefined });
+      setGroups(data?.data || []);
     } catch (err) {
-      // console.error('Error fetching groups:', err);
+      // swallow — central 401 handling is in apiFetch
     } finally {
       setLoading(false);
     }

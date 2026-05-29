@@ -33,6 +33,7 @@ export const reportingAPI = {
 
   downloadAttendancePDF: async (groupId: string, groupCode: string) => {
     const res = await fetch(`${API_URL}/reports/group/${groupId}/attendance`, {
+      credentials: 'include',
       headers: getHeaders(true),
     });
     if (!res.ok) throw new Error('Failed to generate PDF');
@@ -53,6 +54,7 @@ export const reportingAPI = {
 
   downloadProgressPDF: async (groupId: string, groupCode: string) => {
     const res = await fetch(`${API_URL}/reports/group/${groupId}/progress`, {
+      credentials: 'include',
       headers: getHeaders(true),
     });
     if (!res.ok) throw new Error('Failed to generate PDF');

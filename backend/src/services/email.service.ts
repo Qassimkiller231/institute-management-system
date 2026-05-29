@@ -1,5 +1,6 @@
 // src/services/email.service.ts
 import prisma from '../utils/db';
+import { env, isProduction } from '../config/env';
 
 const nodemailer = require('nodemailer');
 
@@ -46,6 +47,15 @@ export const sendEmail = async (data: {
   htmlBody: string;
   textBody?: string;
 }) => {
+  // Master kill-switch: when EMAIL_ENABLED=false, no email is actually sent.
+  // Every higher-level template (sendOtpEmail, sendAnnouncementEmail, …)
+  // goes through this function, so disabling it here disables all email.
+  if (!env.EMAIL_ENABLED) {
+    if (!isProduction) {
+      console.log(`[email disabled] would have sent to ${data.to}: ${data.subject}`);
+    }
+    return { success: true, messageId: 'email-disabled' };
+  }
   // In test mode, redirect all emails to the configured test inbox.
   if (TEST_MODE && TEST_EMAIL) {
     const originalTo = data.to;

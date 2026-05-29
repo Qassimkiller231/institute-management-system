@@ -24,6 +24,17 @@ function optional(name: string, fallback: string): string {
   return value && value.trim() !== '' ? value : fallback;
 }
 
+/**
+ * Parse a string env value as a boolean. Defaults to `defaultValue` when unset.
+ * Accepts: 'true'/'1'/'yes' (case-insensitive) → true; everything else → false.
+ */
+function bool(name: string, defaultValue: boolean): boolean {
+  const value = process.env[name];
+  if (value === undefined || value.trim() === '') return defaultValue;
+  const v = value.trim().toLowerCase();
+  return v === 'true' || v === '1' || v === 'yes';
+}
+
 export const env = {
   NODE_ENV: optional('NODE_ENV', 'development'),
   PORT: optional('PORT', '3001'),
@@ -38,6 +49,12 @@ export const env = {
   // Google Sign-In (staff). Optional: if unset, the /auth/google endpoint
   // returns an error but the rest of the app runs normally.
   GOOGLE_CLIENT_ID: optional('GOOGLE_CLIENT_ID', ''),
+
+  // Feature toggles. Defaults to ON; flip to false to disable entirely.
+  // OTP off → login skips the code check and issues a session straight away.
+  // EMAIL off → email service no-ops (returns success without sending).
+  OTP_ENABLED: bool('OTP_ENABLED', true),
+  EMAIL_ENABLED: bool('EMAIL_ENABLED', true),
 };
 
 export const isProduction = env.NODE_ENV === 'production';

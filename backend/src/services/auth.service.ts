@@ -129,11 +129,14 @@ export const requestOTP = async (
   }
 
   // Generate, store, and deliver the OTP (handles resend cooldown + channel).
-  await otpService.sendOtp({
-    userId: user.id,
-    recipient: identifier,
-    method,
-  });
+  // Skipped entirely when OTP_ENABLED=false — login then no-ops the code check.
+  if (env.OTP_ENABLED) {
+    await otpService.sendOtp({
+      userId: user.id,
+      recipient: identifier,
+      method,
+    });
+  }
 
   return genericResponse;
 };
@@ -167,7 +170,10 @@ export const verifyOTP = async (identifier: string, code: string) => {
   }
 
   // Verify the submitted code (enforces expiry, attempt limit, and consumes it).
-  await otpService.verifyOtp(user.id, code);
+  // Skipped when OTP_ENABLED=false — any code is accepted (dev / staging).
+  if (env.OTP_ENABLED) {
+    await otpService.verifyOtp(user.id, code);
+  }
 
   return issueSession(user, isEmail ? "EMAIL" : "SMS");
 };

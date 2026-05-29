@@ -33,6 +33,7 @@ export const backupsAPI = {
     // Downloads a binary file (Blob), so it can't use apiFetch's JSON handling.
     download: async (filename: string) => {
         const res = await fetch(`${API_URL}/backups/${filename}/download`, {
+            credentials: 'include',
             headers: getHeaders(true),
         });
         if (!res.ok) throw new Error('Failed to download backup');

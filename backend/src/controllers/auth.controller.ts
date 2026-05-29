@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as authService from '../services/auth.service';
 import { RequestOtpBody, VerifyOtpBody, AuthRequest } from '../types/auth.types';
+import { setAuthCookie, clearAuthCookie } from '../utils/authCookie';
 
 /**
  * POST /api/auth/request-otp
@@ -62,6 +63,7 @@ export const verifyOtp = async (req: Request, res: Response) => {
 
     const result = await authService.verifyOTP(identifier, code);
 
+    if (result.data?.token) setAuthCookie(res, result.data.token);
     res.status(200).json(result);
   } catch (error: any) {
     console.error('Verify OTP error:', error);
@@ -89,6 +91,7 @@ export const googleLogin = async (req: Request, res: Response) => {
 
     const result = await authService.loginWithGoogle(idToken);
 
+    if (result.data?.token) setAuthCookie(res, result.data.token);
     res.status(200).json(result);
   } catch (error: any) {
     console.error('Google login error:', error.message);
@@ -105,20 +108,23 @@ export const googleLogin = async (req: Request, res: Response) => {
  */
 export const logout = async (req: AuthRequest, res: Response) => {
   try {
-    const token = req.headers.authorization?.replace('Bearer ', '');
+    const cookieToken = req.cookies?.authToken;
+    const headerToken = req.headers.authorization?.replace('Bearer ', '');
+    const token = cookieToken || headerToken;
+
+    // Clear the cookie either way so the client lands logged-out even if the
+    // session was already invalid server-side.
+    clearAuthCookie(res);
 
     if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: 'No token provided',
-      });
+      return res.status(200).json({ success: true, message: 'Logged out' });
     }
 
     const result = await authService.logout(token);
-
     res.status(200).json(result);
   } catch (error: any) {
     console.error('Logout error:', error);
+    clearAuthCookie(res);
     res.status(400).json({
       success: false,
       message: error.message || 'Failed to logout',

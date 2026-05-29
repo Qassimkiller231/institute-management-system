@@ -1,8 +1,12 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import rateLimit from 'express-rate-limit';
 import { env, isProduction } from './config/env';
+import { silenceConsoleInProduction } from './utils/logger';
+
+silenceConsoleInProduction();
 import authRoutes from './routes/auth.routes';
 import userRoutes from './routes/user.routes';
 import programRoutes from './routes/program.routes';
@@ -45,6 +49,11 @@ import backupRoutes from './routes/backup.routes';
 const app = express();
 const PORT = env.PORT;
 
+// Trust the first proxy in front of the app (Render/Vercel/nginx etc.).
+// Without this, req.ip is the proxy IP and rate-limit shares one bucket
+// across every user — effectively disabling per-IP limits.
+app.set('trust proxy', 1);
+
 // Security headers (CSP, HSTS, X-Frame-Options, etc.)
 app.use(helmet());
 
@@ -59,6 +68,9 @@ app.use(
 
 // Cap request body size to mitigate DoS via huge payloads.
 app.use(express.json({ limit: '100kb' }));
+
+// Parse cookies so auth.middleware can read the httpOnly session cookie.
+app.use(cookieParser());
 
 // Global rate limit (defense-in-depth against abuse/DoS).
 const globalLimiter = rateLimit({

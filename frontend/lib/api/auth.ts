@@ -30,4 +30,9 @@ export const authAPI = {
 
   // Authenticated: a 401 here flows through apiFetch's session-expiry handling.
   getCurrentUser: () => apiFetch('/auth/me'),
+
+  // Tells the backend to clear the httpOnly session cookie. Always resolves
+  // (the user is logged out locally regardless of network outcome).
+  logout: () =>
+    apiFetch('/auth/logout', { method: 'POST', throwOnError: false }),
 };

@@ -45,6 +45,7 @@ export const reportsAPI = {
   // Returns a PDF (Blob), so it can't use apiFetch's JSON handling.
   generateGroupReport: async (groupId: string, type: 'attendance' | 'progress' | 'performance') => {
     const res = await fetch(`${API_URL}/reports/group/${groupId}/${type}`, {
+      credentials: 'include',
       headers: getHeaders(true),
     });
     if (!res.ok) throw new Error(`Failed to generate ${type} report`);

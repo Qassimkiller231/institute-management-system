@@ -25,6 +25,7 @@ export const testAPI = {
   // status code (which apiFetch intentionally hides) — keep plain fetch.
   getActiveSession: async (studentId: string) => {
     const res = await fetch(`${API_URL}/test-sessions/active?studentId=${studentId}`, {
+      credentials: 'include',
       headers: getHeaders(true),
     });
     if (res.status === 404) return { success: true, session: null };

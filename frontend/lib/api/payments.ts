@@ -9,6 +9,7 @@ export const paymentsAPI = {
   // Maps 404 to null, so it needs the raw status code that apiFetch hides.
   getPlanByEnrollment: async (enrollmentId: string) => {
     const res = await fetch(`${API_URL}/payments/plans/enrollment/${enrollmentId}`, {
+      credentials: 'include',
       headers: getHeaders(true),
     });
     if (res.status === 404) return null;

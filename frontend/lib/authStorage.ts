@@ -30,11 +30,10 @@ export const saveToken = (token: string): void => {
         return;
     }
 
-    // Save to localStorage
+    // Kept in localStorage as a "logged in" marker for client-side checks
+    // (the backend no longer accepts this as auth — the real session lives
+    // in an httpOnly cookie that this JS cannot read or write).
     localStorage.setItem(STORAGE_KEYS.TOKEN, token);
-
-    // CRITICAL: Also save as cookie (for middleware/SSR)
-    document.cookie = `authToken=${token}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
 };
 
 export const getToken = (): string | null => {
@@ -52,11 +51,9 @@ export const getToken = (): string | null => {
 
 export const removeToken = (): void => {
     if (typeof window === 'undefined') return;
-
+    // The httpOnly auth cookie is cleared by the backend on logout; here we
+    // just drop the local marker.
     localStorage.removeItem(STORAGE_KEYS.TOKEN);
-
-    // CRITICAL: Also clear the cookie
-    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
 };
 
 // ========================================
@@ -199,9 +196,8 @@ export const clearAuthData = (): void => {
 
     // Clear sessionStorage
     sessionStorage.removeItem(STORAGE_KEYS.OTP_EMAIL);
-
-    // CRITICAL: Clear the authToken cookie
-    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
+    // (The httpOnly authToken cookie is owned by the backend — it gets cleared
+    // when /api/auth/logout is hit, or just expires.)
 };
 
 /**
@@ -213,21 +209,24 @@ export const clearAllAuth = (): void => {
 
     localStorage.clear();
     sessionStorage.clear();
-
-    // CRITICAL: Clear the authToken cookie
-    document.cookie = 'authToken=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Lax';
 };
 
 /**
- * Logout and redirect to login
+ * Logout and redirect to login. Tells the backend to clear the httpOnly auth
+ * cookie, then drops local markers and navigates away. Network errors are
+ * swallowed — the user is logged out locally either way.
  */
-export const logout = (): void => {
+export const logout = async (): Promise<void> => {
     if (typeof window === 'undefined') return;
 
-    // Clear all auth data
-    clearAuthData();
+    try {
+        const { authAPI } = await import('@/lib/api');
+        await authAPI.logout();
+    } catch {
+        // ignore — clearing locally is the important part
+    }
 
-    // Redirect to login
+    clearAuthData();
     window.location.href = '/login';
 };
 
