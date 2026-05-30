@@ -54,6 +54,11 @@ export const env = {
   // block SMTP egress, like Render). When empty, falls back to nodemailer SMTP.
   RESEND_API_KEY: optional('RESEND_API_KEY', ''),
 
+  // Parent domain for the auth cookie. Set when frontend and backend live on
+  // sibling subdomains (e.g. the-function.online + api.the-function.online)
+  // so both can read the same cookie. Leave empty for localhost/single host.
+  COOKIE_DOMAIN: optional('COOKIE_DOMAIN', ''),
+
   // Feature toggles. Defaults to ON; flip to false to disable entirely.
   // OTP off → login skips the code check and issues a session straight away.
   // EMAIL off → email service no-ops (returns success without sending).
