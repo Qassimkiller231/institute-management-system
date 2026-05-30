@@ -50,6 +50,10 @@ export const env = {
   // returns an error but the rest of the app runs normally.
   GOOGLE_CLIENT_ID: optional('GOOGLE_CLIENT_ID', ''),
 
+  // Resend HTTP API. When set, email goes via HTTPS (works on hosts that
+  // block SMTP egress, like Render). When empty, falls back to nodemailer SMTP.
+  RESEND_API_KEY: optional('RESEND_API_KEY', ''),
+
   // Feature toggles. Defaults to ON; flip to false to disable entirely.
   // OTP off → login skips the code check and issues a session straight away.
   // EMAIL off → email service no-ops (returns success without sending).

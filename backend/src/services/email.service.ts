@@ -1,6 +1,7 @@
 // src/services/email.service.ts
 import prisma from '../utils/db';
 import { env, isProduction } from '../config/env';
+import { Resend } from 'resend';
 
 const nodemailer = require('nodemailer');
 
@@ -8,29 +9,69 @@ const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587');
 const SMTP_USER = process.env.SMTP_USER;
 
-// SMTP transporter
-const transporter = nodemailer.createTransport({
-  host: SMTP_HOST,
-  port: SMTP_PORT,
-  secure: false,
-  auth: {
-    user: SMTP_USER,
-    pass: process.env.SMTP_PASSWORD,
-  },
-});
+// Prefer Resend HTTP API when an API key is configured. Cloud hosts (Render,
+// Fly, etc.) routinely block outbound SMTP ports, so HTTPS is the reliable
+// transport. SMTP remains as a fallback for local dev or other providers.
+const useResendHttp = !!env.RESEND_API_KEY;
+const resendClient = useResendHttp ? new Resend(env.RESEND_API_KEY) : null;
+
+// SMTP transporter (used only when Resend HTTP is not configured).
+const transporter = useResendHttp
+  ? null
+  : nodemailer.createTransport({
+      host: SMTP_HOST,
+      port: SMTP_PORT,
+      secure: false,
+      auth: {
+        user: SMTP_USER,
+        pass: process.env.SMTP_PASSWORD,
+      },
+    });
 
 const FROM_EMAIL = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@institute.com';
 
-console.log(`[email] SMTP host=${SMTP_HOST}:${SMTP_PORT} user=${SMTP_USER} from="${FROM_EMAIL}"`);
-transporter.verify((err: any) => {
-  if (err) console.error('[email] ❌ SMTP verify failed:', err.message);
-  else console.log('[email] ✅ SMTP transporter ready');
-});
+if (useResendHttp) {
+  console.log(`[email] Resend HTTP API enabled, from="${FROM_EMAIL}"`);
+} else {
+  console.log(`[email] SMTP host=${SMTP_HOST}:${SMTP_PORT} user=${SMTP_USER} from="${FROM_EMAIL}"`);
+  transporter!.verify((err: any) => {
+    if (err) console.error('[email] ❌ SMTP verify failed:', err.message);
+    else console.log('[email] ✅ SMTP transporter ready');
+  });
+}
 
 // Test mode: when enabled, all emails are redirected to NOTIFICATION_TEST_EMAIL
 // instead of the real recipient. Disable in production to email real users.
 const TEST_MODE = process.env.NOTIFICATION_TEST_MODE === 'true';
 const TEST_EMAIL = process.env.NOTIFICATION_TEST_EMAIL;
+
+// Build "Name <addr>" From string once. If FROM_EMAIL already has a display
+// name, pass it through; otherwise wrap the bare address with a default.
+const formatFrom = () =>
+  FROM_EMAIL.includes('<') ? FROM_EMAIL : `"Function Institute" <${FROM_EMAIL}>`;
+
+// Send via Resend HTTP API
+const sendViaResend = async (data: {
+  to: string;
+  subject: string;
+  htmlBody: string;
+  textBody?: string;
+}) => {
+  const from = formatFrom();
+  console.log(`[email] → resend from=${from} to=${data.to} subject="${data.subject}"`);
+  const { data: result, error } = await resendClient!.emails.send({
+    from,
+    to: data.to,
+    subject: data.subject,
+    html: data.htmlBody,
+    text: data.textBody,
+  });
+  if (error) {
+    throw new Error(error.message || 'Resend API error');
+  }
+  console.log(`[email] ← resend id=${result?.id}`);
+  return { success: true, messageId: result?.id };
+};
 
 // Send via SMTP
 const sendViaSMTP = async (data: {
@@ -39,11 +80,9 @@ const sendViaSMTP = async (data: {
   htmlBody: string;
   textBody?: string;
 }) => {
-  // If FROM_EMAIL already includes a display name ("Name <addr@x>"), pass it through;
-  // otherwise wrap the bare address with a default display name.
-  const from = FROM_EMAIL.includes('<') ? FROM_EMAIL : `"Function Institute" <${FROM_EMAIL}>`;
+  const from = formatFrom();
   console.log(`[email] → sendMail from=${from} to=${data.to} subject="${data.subject}"`);
-  const info = await transporter.sendMail({
+  const info = await transporter!.sendMail({
     from,
     to: data.to,
     subject: data.subject,
@@ -87,12 +126,11 @@ export const sendEmail = async (data: {
   }
 
   try {
-    console.log('📧 Sending via SMTP...');
-    const result = await sendViaSMTP(data);
-    console.log('✅ SMTP sent:', result.messageId);
+    const result = useResendHttp ? await sendViaResend(data) : await sendViaSMTP(data);
+    console.log('✅ email sent:', result.messageId);
     return result;
   } catch (error: any) {
-    console.error('❌ SMTP failed:', error.message);
+    console.error('❌ email send failed:', error.message);
     throw new Error(`Failed to send email: ${error.message}`);
   }
 };
