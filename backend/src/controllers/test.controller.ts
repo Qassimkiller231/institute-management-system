@@ -11,7 +11,7 @@ export const createTest = async (req: AuthRequest, res: Response) => {
   try {
     const { name, testType, levelId, totalQuestions, durationMinutes } = req.body;
 
-    if (!name || !testType || !totalQuestions || !durationMinutes) {
+    if (!name || !testType || totalQuestions == null || !durationMinutes) {
       return res.status(400).json({
         success: false,
         message: 'name, testType, totalQuestions, durationMinutes are required'
@@ -117,6 +117,82 @@ export const getTests = async (req: AuthRequest, res: Response) => {
       success: false,
       message: error.message || 'Failed to fetch tests'
     });
+  }
+};
+
+/**
+ * PATCH /api/tests/:testId
+ * Update test metadata (ADMIN)
+ */
+export const updateTest = async (req: AuthRequest, res: Response) => {
+  try {
+    const { testId } = req.params;
+    const test = await testService.updateTest(testId, req.body);
+    return res.status(200).json({ success: true, message: 'Test updated', test });
+  } catch (error: any) {
+    console.error('updateTest error:', error);
+    return res.status(400).json({ success: false, message: error.message || 'Failed to update test' });
+  }
+};
+
+/**
+ * DELETE /api/tests/:testId
+ */
+export const deleteTest = async (req: AuthRequest, res: Response) => {
+  try {
+    const { testId } = req.params;
+    await testService.deleteTest(testId);
+    return res.status(200).json({ success: true, message: 'Test deleted' });
+  } catch (error: any) {
+    console.error('deleteTest error:', error);
+    return res.status(400).json({ success: false, message: error.message || 'Failed to delete test' });
+  }
+};
+
+/**
+ * PATCH /api/tests/:testId/questions/:questionId
+ */
+export const updateQuestion = async (req: AuthRequest, res: Response) => {
+  try {
+    const { questionId } = req.params;
+    const question = await testService.updateQuestion(questionId, req.body);
+    return res.status(200).json({ success: true, message: 'Question updated', question });
+  } catch (error: any) {
+    console.error('updateQuestion error:', error);
+    return res.status(400).json({ success: false, message: error.message || 'Failed to update question' });
+  }
+};
+
+/**
+ * DELETE /api/tests/:testId/questions/:questionId
+ */
+export const deleteQuestion = async (req: AuthRequest, res: Response) => {
+  try {
+    const { questionId } = req.params;
+    await testService.deleteQuestion(questionId);
+    return res.status(200).json({ success: true, message: 'Question deleted' });
+  } catch (error: any) {
+    console.error('deleteQuestion error:', error);
+    return res.status(400).json({ success: false, message: error.message || 'Failed to delete question' });
+  }
+};
+
+/**
+ * POST /api/tests/:testId/questions/reorder
+ * Body: { orders: [{ id, orderNumber }] }
+ */
+export const reorderQuestions = async (req: AuthRequest, res: Response) => {
+  try {
+    const { testId } = req.params;
+    const { orders } = req.body;
+    if (!Array.isArray(orders)) {
+      return res.status(400).json({ success: false, message: 'orders array required' });
+    }
+    const result = await testService.reorderQuestions(testId, orders);
+    return res.status(200).json({ success: true, message: 'Reordered', ...result });
+  } catch (error: any) {
+    console.error('reorderQuestions error:', error);
+    return res.status(400).json({ success: false, message: error.message || 'Failed to reorder' });
   }
 };
 

@@ -3,8 +3,10 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
+    "predev": "dotenv -e .env -- prisma db push --skip-generate --accept-data-loss",
     "dev": "nodemon --exec tsx src/index.ts",
     "build": "tsc",
+    "prestart": "dotenv -e .env -- prisma migrate deploy",
     "start": "node dist/src/index.js",
     "seed": "tsx scripts/seed-database.ts",
     "prisma:generate": "dotenv -e .env -- prisma generate",

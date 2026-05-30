@@ -4,18 +4,28 @@ import { env, isProduction } from '../config/env';
 
 const nodemailer = require('nodemailer');
 
+const SMTP_HOST = process.env.SMTP_HOST || 'smtp.gmail.com';
+const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587');
+const SMTP_USER = process.env.SMTP_USER;
+
 // SMTP transporter
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST || 'smtp.gmail.com',
-  port: parseInt(process.env.SMTP_PORT || '587'),
+  host: SMTP_HOST,
+  port: SMTP_PORT,
   secure: false,
   auth: {
-    user: process.env.SMTP_USER,
+    user: SMTP_USER,
     pass: process.env.SMTP_PASSWORD,
   },
 });
 
 const FROM_EMAIL = process.env.EMAIL_FROM || process.env.SMTP_USER || 'noreply@institute.com';
+
+console.log(`[email] SMTP host=${SMTP_HOST}:${SMTP_PORT} user=${SMTP_USER} from="${FROM_EMAIL}"`);
+transporter.verify((err: any) => {
+  if (err) console.error('[email] ❌ SMTP verify failed:', err.message);
+  else console.log('[email] ✅ SMTP transporter ready');
+});
 
 // Test mode: when enabled, all emails are redirected to NOTIFICATION_TEST_EMAIL
 // instead of the real recipient. Disable in production to email real users.
@@ -29,13 +39,18 @@ const sendViaSMTP = async (data: {
   htmlBody: string;
   textBody?: string;
 }) => {
+  // If FROM_EMAIL already includes a display name ("Name <addr@x>"), pass it through;
+  // otherwise wrap the bare address with a default display name.
+  const from = FROM_EMAIL.includes('<') ? FROM_EMAIL : `"Function Institute" <${FROM_EMAIL}>`;
+  console.log(`[email] → sendMail from=${from} to=${data.to} subject="${data.subject}"`);
   const info = await transporter.sendMail({
-    from: `"Function Institute" <${FROM_EMAIL}>`,
+    from,
     to: data.to,
     subject: data.subject,
     text: data.textBody,
     html: data.htmlBody,
   });
+  console.log(`[email] ← accepted=${JSON.stringify(info.accepted)} rejected=${JSON.stringify(info.rejected)} response="${info.response}"`);
 
   return { success: true, messageId: info.messageId };
 };

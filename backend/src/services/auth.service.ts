@@ -117,15 +117,13 @@ export const requestOTP = async (
       : { phone: searchIdentifier },
   });
 
-  // Avoid account enumeration: respond identically whether or not the
-  // account exists / is active. Only actually send an OTP when valid.
-  const genericResponse = {
-    success: true,
-    message: `If an account exists, an OTP has been sent to the ${method}.`,
-  };
+  console.log(`[auth] requestOTP identifier=${identifier} method=${method} userFound=${!!user} isActive=${user?.isActive ?? 'n/a'} otpEnabled=${env.OTP_ENABLED}`);
 
-  if (!user || !user.isActive) {
-    return genericResponse;
+  if (!user) {
+    throw new Error("No account found with that email or phone.");
+  }
+  if (!user.isActive) {
+    throw new Error("This account is deactivated. Please contact an administrator.");
   }
 
   // Generate, store, and deliver the OTP (handles resend cooldown + channel).
@@ -138,7 +136,10 @@ export const requestOTP = async (
     });
   }
 
-  return genericResponse;
+  return {
+    success: true,
+    message: `An OTP has been sent to your ${method}.`,
+  };
 };
 
 /**

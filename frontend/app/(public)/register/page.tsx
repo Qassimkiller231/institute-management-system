@@ -216,13 +216,25 @@ export default function RegisterPage() {
 
       if (result.success) {
         const otpResult = await authAPI.requestOTP(formData.email, 'email');
-        
-        if (otpResult.success) {
-          setOtpSent(true);
-          setStep('verify');
-        } else {
+
+        if (!otpResult.success) {
           setError('Account created but failed to send OTP. Please login manually.');
           setTimeout(() => router.push('/login'), 3000);
+        } else if (process.env.NEXT_PUBLIC_OTP_ENABLED === 'false') {
+          // OTP disabled — verify with any code and continue straight into the flow.
+          const verify = await authAPI.verifyOTP(formData.email, '000000');
+          if (verify.success) {
+            saveToken(verify.data.token);
+            saveUserRole(verify.data.user.role);
+            const id = verify.data.user.studentId;
+            if (id) saveStudentId(id);
+            router.push('/take-test');
+          } else {
+            setError(verify.message || 'Login failed');
+          }
+        } else {
+          setOtpSent(true);
+          setStep('verify');
         }
       } else {
         setError(result.message || 'Failed to create account');

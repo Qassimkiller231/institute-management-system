@@ -1,8 +1,44 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { getToken } from '@/lib/authStorage';
 import { saveLoginRedirect } from '@/lib/redirectStorage';
+
+function PublicNav() {
+  return (
+    <nav className="sticky top-0 z-30 w-full border-b border-gray-200/60 bg-white/75 backdrop-blur-md">
+      <div className="max-w-7xl mx-auto h-16 px-4 sm:px-6 lg:px-8 flex items-center justify-between">
+        <Link href="/" className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-md bg-blue-600 text-white font-serif text-lg leading-none">f</div>
+          <div className="leading-tight">
+            <div className="text-[15px] font-semibold text-gray-900">The Function</div>
+            <div className="text-[10px] uppercase tracking-wider text-gray-500">Institute</div>
+          </div>
+        </Link>
+        <div className="hidden sm:flex items-center gap-7 text-[14px] text-gray-700">
+          <Link href="/programs" className="hover:text-blue-600 transition-colors">Programs</Link>
+          <Link href="/book-speaking" className="hover:text-blue-600 transition-colors">Speaking test</Link>
+          <Link href="/take-test" className="hover:text-blue-600 transition-colors">Placement test</Link>
+        </div>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/login"
+            className="inline-flex h-9 items-center px-3.5 text-[13.5px] font-medium text-gray-700 hover:text-blue-600 transition-colors"
+          >
+            Sign in
+          </Link>
+          <Link
+            href="/register"
+            className="inline-flex h-9 items-center px-4 rounded-md bg-blue-600 text-[13.5px] font-medium text-white shadow-sm transition-all hover:bg-blue-700 hover:-translate-y-0.5"
+          >
+            Register
+          </Link>
+        </div>
+      </div>
+    </nav>
+  );
+}
 
 export default function LandingPage() {
   // ========================================
@@ -328,6 +364,7 @@ export default function LandingPage() {
   
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-white">
+      <PublicNav />
       {renderHeroSection()}
       {renderProgramsSection()}
       {renderFeaturesSection()}

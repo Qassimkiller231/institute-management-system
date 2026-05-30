@@ -11,11 +11,13 @@ export const authAPI = {
       throwOnError: false,
     }),
 
+  // verify-otp and google login MUST send credentials so the browser stores
+  // the Set-Cookie response (the httpOnly session cookie). `auth: true` triggers
+  // `credentials: 'include'` in apiFetch.
   verifyOTP: (identifier: string, code: string) =>
     apiFetch('/auth/verify-otp', {
       method: 'POST',
       body: { identifier, code },
-      auth: false,
       throwOnError: false,
     }),
 
@@ -24,7 +26,6 @@ export const authAPI = {
     apiFetch('/auth/google', {
       method: 'POST',
       body: { idToken },
-      auth: false,
       throwOnError: false,
     }),
 

@@ -22,6 +22,10 @@ export default function VerifyOtpPage() {
   // EFFECTS
   // ========================================
   useEffect(() => {
+    if (process.env.NEXT_PUBLIC_OTP_ENABLED === 'false') {
+      router.push('/login');
+      return;
+    }
     // Check if email exists in storage
     const savedEmail = getOtpEmail();
 

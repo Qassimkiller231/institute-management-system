@@ -9,8 +9,13 @@ const router = express.Router();
 router.use(authenticate);
 router.get('/', testController.getTests);
 router.post('/', requireAdmin, testController.createTest);
-router.post('/:testId/questions', requireAdmin, testController.addQuestionToTest);
-
 router.get('/:testId', requireTeacherOrAdmin, testController.getTestById);
+router.patch('/:testId', requireAdmin, testController.updateTest);
+router.delete('/:testId', requireAdmin, testController.deleteTest);
+
+router.post('/:testId/questions', requireAdmin, testController.addQuestionToTest);
+router.post('/:testId/questions/reorder', requireAdmin, testController.reorderQuestions);
+router.patch('/:testId/questions/:questionId', requireAdmin, testController.updateQuestion);
+router.delete('/:testId/questions/:questionId', requireAdmin, testController.deleteQuestion);
 
 export default router;

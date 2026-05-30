@@ -138,8 +138,8 @@ app.use('/api/faqs', faqRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/backups', backupRoutes);
 
-// ✅ AUTOMATIC NOTIFICATIONS ENABLED
-scheduler.startScheduler();
+// Scheduler disabled temporarily — re-enable when ready.
+// scheduler.startScheduler();
 
 
 

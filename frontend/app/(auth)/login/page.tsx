@@ -10,6 +10,7 @@ import { AuthLayout } from '@/components/auth/AuthLayout';
 import { ErrorMessage } from '@/components/common/Messages';
 
 const GOOGLE_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID;
+const OTP_ENABLED = process.env.NEXT_PUBLIC_OTP_ENABLED !== 'false';
 
 export default function LoginPage() {
   // ========================================
@@ -17,7 +18,6 @@ export default function LoginPage() {
   // ========================================
   const router = useRouter();
   const [email, setEmail] = useState('');
-  const [method, setMethod] = useState<'email' | 'sms'>('email');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -30,14 +30,27 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const result = await authAPI.requestOTP(email, method);
-      
-      if (result.success) {
-        saveOtpEmail(email); // ✅ Using utility function
-        router.push('/verify-otp');
-      } else {
+      const result = await authAPI.requestOTP(email, 'email');
+
+      if (!result.success) {
         setError(result.message || 'Failed to send OTP');
+        return;
       }
+
+      if (!OTP_ENABLED) {
+        // Backend skips code check when OTP_ENABLED=false; any code is accepted.
+        const verify = await authAPI.verifyOTP(email, '000000');
+        if (verify.success) {
+          const route = persistSession(verify.data);
+          router.push(route);
+        } else {
+          setError(verify.message || 'Login failed');
+        }
+        return;
+      }
+
+      saveOtpEmail(email);
+      router.push('/verify-otp');
     } catch (err) {
       setError('Network error. Please try again.');
     } finally {
@@ -97,48 +110,16 @@ export default function LoginPage() {
     return (
       <div>
         <label className="block text-sm font-semibold mb-2 text-gray-700">
-          Email/Phone
+          Email
         </label>
         <input
-          type="text"
+          type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
           className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-900"
-          placeholder="Enter your email or phone"
+          placeholder="Enter your email"
           required
         />
-      </div>
-    );
-  };
-
-  const renderMethodSelector = () => {
-    return (
-      <div>
-        <label className="block text-sm font-semibold mb-3 text-gray-700">
-          Send OTP via
-        </label>
-        <div className="flex gap-6">
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              value="email"
-              checked={method === 'email'}
-              onChange={(e) => setMethod(e.target.value as 'email')}
-              className="mr-2 w-4 h-4"
-            />
-            <span className="text-gray-900 font-medium">Email</span>
-          </label>
-          <label className="flex items-center cursor-pointer">
-            <input
-              type="radio"
-              value="sms"
-              checked={method === 'sms'}
-              onChange={(e) => setMethod(e.target.value as 'sms')}
-              className="mr-2 w-4 h-4"
-            />
-            <span className="text-gray-900 font-medium">SMS</span>
-          </label>
-        </div>
       </div>
     );
   };
@@ -150,7 +131,7 @@ export default function LoginPage() {
         disabled={loading}
         className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed"
       >
-        {loading ? 'Sending...' : 'Send OTP'}
+        {loading ? (OTP_ENABLED ? 'Sending...' : 'Signing in...') : (OTP_ENABLED ? 'Send OTP' : 'Sign In')}
       </button>
     );
   };
@@ -158,14 +139,13 @@ export default function LoginPage() {
   const renderLoginForm = () => {
     return (
       <AuthLayout>
-        <AuthHeader 
-          title="Institute Portal" 
-          subtitle="Enter your credentials to continue"
+        <AuthHeader
+          title="Institute Portal"
+          subtitle={OTP_ENABLED ? 'Enter your email to receive a code' : 'Enter your email to sign in'}
         />
         
         <form onSubmit={handleSubmit} className="space-y-6">
           {renderEmailInput()}
-          {renderMethodSelector()}
           <ErrorMessage message={error} />
           {renderSubmitButton()}
         </form>

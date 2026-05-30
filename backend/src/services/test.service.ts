@@ -123,6 +123,111 @@ export const getTests = async (filters: {
 };
 
 /**
+ * Update test metadata
+ */
+export const updateTest = async (
+  testId: string,
+  data: Partial<{
+    name: string;
+    testType: TestType | string;
+    levelId: string | null;
+    durationMinutes: number;
+    isActive: boolean;
+  }>
+) => {
+  const test = await prisma.test.findUnique({ where: { id: testId } });
+  if (!test) throw new Error('Test not found');
+
+  return prisma.test.update({
+    where: { id: testId },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.testType !== undefined && { testType: data.testType }),
+      ...(data.levelId !== undefined && { levelId: data.levelId }),
+      ...(data.durationMinutes !== undefined && { durationMinutes: data.durationMinutes }),
+      ...(data.isActive !== undefined && { isActive: data.isActive }),
+    },
+  });
+};
+
+/**
+ * Delete test (cascades questions)
+ */
+export const deleteTest = async (testId: string) => {
+  const test = await prisma.test.findUnique({ where: { id: testId } });
+  if (!test) throw new Error('Test not found');
+  await prisma.test.delete({ where: { id: testId } });
+  return { id: testId };
+};
+
+/**
+ * Update a question
+ */
+export const updateQuestion = async (
+  questionId: string,
+  data: Partial<{
+    questionText: string;
+    questionType: string;
+    options: any;
+    correctAnswer: string;
+    points: number;
+    orderNumber: number;
+  }>
+) => {
+  const q = await prisma.testQuestion.findUnique({ where: { id: questionId } });
+  if (!q) throw new Error('Question not found');
+
+  return prisma.testQuestion.update({
+    where: { id: questionId },
+    data: {
+      ...(data.questionText !== undefined && { questionText: data.questionText }),
+      ...(data.questionType !== undefined && { questionType: data.questionType }),
+      ...(data.options !== undefined && { options: data.options }),
+      ...(data.correctAnswer !== undefined && { correctAnswer: data.correctAnswer }),
+      ...(data.points !== undefined && { points: data.points }),
+      ...(data.orderNumber !== undefined && { orderNumber: data.orderNumber }),
+    },
+  });
+};
+
+/**
+ * Delete a question and resync totalQuestions
+ */
+export const deleteQuestion = async (questionId: string) => {
+  const q = await prisma.testQuestion.findUnique({ where: { id: questionId } });
+  if (!q) throw new Error('Question not found');
+
+  await prisma.testQuestion.delete({ where: { id: questionId } });
+
+  const count = await prisma.testQuestion.count({ where: { testId: q.testId } });
+  await prisma.test.update({
+    where: { id: q.testId },
+    data: { totalQuestions: count },
+  });
+
+  return { id: questionId };
+};
+
+/**
+ * Bulk reorder questions for a test.
+ * Accepts an array of { id, orderNumber } pairs.
+ */
+export const reorderQuestions = async (
+  testId: string,
+  orders: { id: string; orderNumber: number }[]
+) => {
+  await prisma.$transaction(
+    orders.map(o =>
+      prisma.testQuestion.update({
+        where: { id: o.id },
+        data: { orderNumber: o.orderNumber },
+      })
+    )
+  );
+  return { testId, count: orders.length };
+};
+
+/**
  * Get single test with all its questions
  */
 export const getTestById = async (testId: string) => {
