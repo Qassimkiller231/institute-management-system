@@ -10,6 +10,18 @@ const nextConfig: NextConfig = {
         ? { exclude: ['warn', 'error'] }
         : false,
   },
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          // Google Sign-In popup must postMessage back to the opener window.
+          // Default 'same-origin' COOP blocks that; this allows popups only.
+          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin-allow-popups' },
+        ],
+      },
+    ];
+  },
 };
 
 export default nextConfig;

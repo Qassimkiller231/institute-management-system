@@ -19,14 +19,22 @@ const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
 export const setAuthCookie = (res: Response, token: string): void => {
   res.cookie(AUTH_COOKIE, token, {
     httpOnly: true,
-    secure: isProduction, // requires HTTPS in production; localhost is exempt
-    sameSite: 'lax',
+    // In production the frontend and API live on different eTLD+1 domains
+    // (e.g. the-function.online ↔ *.onrender.com), so the cookie must be
+    // SameSite=None to be sent on cross-site requests. None requires Secure.
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: SEVEN_DAYS_MS,
     path: '/',
   });
 };
 
-/** Clear the session cookie (used on logout). */
+/** Clear the session cookie (used on logout). Must mirror the set options. */
 export const clearAuthCookie = (res: Response): void => {
-  res.clearCookie(AUTH_COOKIE, { path: '/' });
+  res.clearCookie(AUTH_COOKIE, {
+    path: '/',
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
+  });
 };
